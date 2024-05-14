@@ -1,10 +1,6 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import SeleniumScraping
 from con_research.src.modules.search_module import SerperDevTool
-
-
-# Load the secrets at the start of the app
-secrets = load_secrets()
 def main():
     st.title("Bio Generator")
 
