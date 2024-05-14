@@ -1,5 +1,5 @@
 from con_research.src.modules.imports import *
-from con_research.src.modules.scrapping_module import SeleniumScraping
+from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 def generate_short_bio(openai_api_key,bio_content):
     """
@@ -62,8 +62,9 @@ def process_bios(df, openai_api_key, serper_api_key):
         # Scrape content from the obtained URLs
         bio_content = ""
         for url in search_results:
-            scraping_tool = SeleniumScraping(website_url=url)
-            content = scraping_tool._run()
+            # scraping_tool = SeleniumScraping(website_url=url)
+            # content = scraping_tool._run()
+            content = ContentScraper.scrape_anything(url)
             # Assuming you extract relevant information from content
             bio_content += content + "\n"
 
