@@ -1,4 +1,4 @@
-from imports import *
+from con_research.src.modules.imports import *
 class SerperDevToolSchema(BaseModel):
     """Input for TXTSearchTool."""
     search_query: str = Field(..., description="Mandatory search query you want to use to search the internet")
