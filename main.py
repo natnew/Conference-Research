@@ -20,7 +20,7 @@ def main():
     st.title("Bio Generator")
 
     # OpenAI API Key Input
-    openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password")
+    openai_api_key = st.secrets["openai_api_key"]
 
     # Serper API Key Input
     serper_api_key = st.text_input("Enter your Serper API Key:",type = "password")
