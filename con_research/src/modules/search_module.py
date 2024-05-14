@@ -1,5 +1,4 @@
 from imports import *
-os.environ["SERPER_API_KEY"] = getpass.getpass('Enter the Serper dev key: ') # here is where to get your serper api key:https://serper.dev/login
 class SerperDevToolSchema(BaseModel):
     """Input for TXTSearchTool."""
     search_query: str = Field(..., description="Mandatory search query you want to use to search the internet")
