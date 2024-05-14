@@ -1,5 +1,5 @@
 # Conference Research
-Conduct your own conference in a few simple steps!
+Conduct your own conference research in a few simple steps!
 
 This is the repo to build a conference research app.
 
