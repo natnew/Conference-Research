@@ -26,3 +26,4 @@ from langchain.prompts import PromptTemplate
 from langchain.llms import OpenAI
 import streamlit as st
 import base64
+from langchain_groq import ChatGroq
