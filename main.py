@@ -51,31 +51,39 @@ def main():
 
 def process_bios(df, groq_api_key, serper_api_key):
     df["Bio"] = ""
-    for index, row in df.iterrows():
-        name = row["Name"]
-        university = row["University"]
+    batch_size = 10
 
-        # Generate search query
-        query = f"{name} {university}"
+    for start_idx in range(0, len(df), batch_size):
+        end_idx = start_idx + batch_size
+        batch_df = df.iloc[start_idx:end_idx]  # Get a batch of rows from DataFrame
 
-        # Search the internet using Serper with provided API key
-        tool = SerperDevTool(api_key= serper_api_key)
-        search_results = tool._run(query)
+        for index, row in batch_df.iterrows():
+            name = row["Name"]
+            university = row["University"]
 
-        # Scrape content from the obtained URLs
-        bio_content = ""
-        for url in search_results:
-            # scraping_tool = SeleniumScraping(website_url=url)
-            # content = scraping_tool._run()
-            content = ContentScraper.scrape_anything(url)
-            # Assuming you extract relevant information from content
-            bio_content += content + "\n"
+            # Generate search query
+            query = f"{name} {university}"
 
-        # Pass the scraped content through LLM to format as a short, concise bio
-        formatted_bio = generate_short_bio(groq_api_key,bio_content)
+            # Search the internet using Serper with provided API key
+            tool = SerperDevTool(api_key=serper_api_key)
+            search_results = tool._run(query)
 
-        # Update the Bio column
-        df.at[index, "Bio"] = formatted_bio
+            # Scrape content from the obtained URLs
+            bio_content = ""
+            for url in search_results:
+                # scraping_tool = SeleniumScraping(website_url=url)
+                # content = scraping_tool._run()
+                content = ContentScraper.scrape_anything(url)
+                bio_content += content + "\n"
+
+            # Pass the scraped content through LLM to format as a short, concise bio
+            formatted_bio = generate_short_bio(groq_api_key, bio_content)
+
+            # Update the Bio column
+            df.at[index, "Bio"] = formatted_bio
+
+        # Sleep for 30 seconds before processing the next batch
+        time.sleep(30)
 
     return df
 
