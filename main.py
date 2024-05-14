@@ -1,6 +1,21 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import SeleniumScraping
 from con_research.src.modules.search_module import SerperDevTool
+def generate_short_bio(bio_content):
+    """
+    Generates a short, concise bio from the scraped content using an LLM.
+    
+    :param content: The scraped content from the internet
+    :return: A short bio formatted from the scraped content
+    """
+    llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0)
+    prompt = PromptTemplate(
+        template="Generate a short bio of not more than 100 words from the following content:\n{content}",
+        input_variables=["content"]
+    )
+    llm_chain = prompt | llm
+    short_bio = llm_chain.invoke(input={"content":bio_content},)
+    return short_bio.content
 def main():
     st.title("Bio Generator")
 
@@ -41,7 +56,7 @@ def process_bios(df, openai_api_key, serper_api_key):
         query = f"{name} {university}"
 
         # Search the internet using Serper with provided API key
-        tool = SerperDevTool(api_key=serper_api_key)
+        tool = SerperDevTool()
         search_results = tool._run(query)
 
         # Scrape content from the obtained URLs
@@ -53,7 +68,7 @@ def process_bios(df, openai_api_key, serper_api_key):
             bio_content += content + "\n"
 
         # Pass the scraped content through LLM to format as a short, concise bio
-        formatted_bio = generate_short_bio(openai_api_key, bio_content)
+        formatted_bio = generate_short_bio(bio_content)
 
         # Update the Bio column
         df.at[index, "Bio"] = formatted_bio
