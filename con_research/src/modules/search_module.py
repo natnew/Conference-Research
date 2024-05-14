@@ -5,7 +5,7 @@ class SerperDevToolSchema(BaseModel):
 
 class SerperDevTool():
     def __init__(self, api_key):
-        self.api_key = serper_api_key
+        self.api_key = api_key
     name: str = "Search the internet"
     description: str = "A tool that can be used to semantic search a query from a txt's content."
     args_schema: Type[BaseModel] = SerperDevToolSchema
