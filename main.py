@@ -1,32 +1,3 @@
-import os
-import re
-import pandas as pd
-from langchain_openai import ChatOpenAI
-import requests
-from bs4 import BeautifulSoup
-from io import BytesIO, StringIO
-import urllib.request
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.pdfpage import PDFPage
-import getpass
-from typing import Optional, Type, Any
-from pydantic import BaseModel, Field
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-import json
-import sys
-import time
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
-import streamlit as st
-import base64
-
 from imports import *
 from scrapping_module import SeleniumScraping
 from search_module import SerperDevTool
@@ -34,13 +5,6 @@ from search_module import SerperDevTool
 
 # Load the secrets at the start of the app
 secrets = load_secrets()
-
-# Assign OpenAI key
-os.environ["OPENAI_API_KEY"] = getpass.getpass('Enter your Openai api key: ')
-os.environ["SERPER_API_KEY"] = getpass.getpass('Enter the Serper dev key: ') # here is where to get your serper api key:https://serper.dev/login
-
-
-
 def main():
     st.title("Bio Generator")
 
