@@ -17,7 +17,7 @@ class SerperDevTool():
     ) -> Any:
         payload = json.dumps({"q": search_query})
         headers = {
-            'X-API-KEY': serper_api_key,
+            'X-API-KEY':  os.environ["SERPER_API_KEY"],
             'content-type': 'application/json'
         }
         response = requests.request("POST", self.search_url, headers=headers, data=payload)
