@@ -1,6 +1,6 @@
-from imports import *
-from scrapping_module import SeleniumScraping
-from search_module import SerperDevTool
+from src.modules.imports import *
+from src.modules.scrapping_module import SeleniumScraping
+from src.modules.search_module import SerperDevTool
 
 
 # Load the secrets at the start of the app
