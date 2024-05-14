@@ -41,7 +41,7 @@ def main():
 
         # Processing and displaying bios
         if st.button("Generate Bios"):
-            df_with_bios = process_bios(df, openai_api_key, serper_api_key)
+            df_with_bios = process_bios(df, groq_api_key, serper_api_key)
             st.write("DataFrame with Bios:")
             st.write(df_with_bios)
 
