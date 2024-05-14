@@ -11,7 +11,7 @@ def generate_short_bio(groq_api_key,bio_content):
     # llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0,api_key=openai_api_key)
     llm = ChatGroq(temperature=0, model_name="llama3-70b-8192",api_key=groq_api_key)
     prompt = PromptTemplate(
-        template="""Generate a short bio of not more than 100 words from the following content and don't include the following phrase when generating your response "Here is a short bio of a person in 100 words" just generated the bio:\n{content}""",
+        template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
         input_variables=["content"]
     )
     llm_chain = prompt | llm
