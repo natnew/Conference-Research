@@ -68,7 +68,7 @@ def process_bios(df, openai_api_key, serper_api_key):
             bio_content += content + "\n"
 
         # Pass the scraped content through LLM to format as a short, concise bio
-        formatted_bio = generate_short_bio(bio_content)
+        formatted_bio = generate_short_bio(openai_api_key,bio_content)
 
         # Update the Bio column
         df.at[index, "Bio"] = formatted_bio
