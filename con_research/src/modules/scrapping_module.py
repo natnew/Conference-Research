@@ -1,4 +1,4 @@
-from imports import *
+from con_research.src.modules.imports import *
 
 class ContentScraper:
     @staticmethod
