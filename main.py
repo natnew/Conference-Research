@@ -23,7 +23,7 @@ def main():
     openai_api_key = st.secrets["openai_api_key"]
 
     # Serper API Key Input
-    serper_api_key = st.text_input("Enter your Serper API Key:",type = "password")
+    serper_api_key = st.secrets["serper_api_key"]
 
     # File Upload Section
     st.subheader("Upload Excel File")
