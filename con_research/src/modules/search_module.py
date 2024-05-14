@@ -4,6 +4,8 @@ class SerperDevToolSchema(BaseModel):
     search_query: str = Field(..., description="Mandatory search query you want to use to search the internet")
 
 class SerperDevTool():
+    def __init__(self, api_key):
+        self.api_key = api_key
     name: str = "Search the internet"
     description: str = "A tool that can be used to semantic search a query from a txt's content."
     args_schema: Type[BaseModel] = SerperDevToolSchema
@@ -17,7 +19,7 @@ class SerperDevTool():
     ) -> Any:
         payload = json.dumps({"q": search_query})
         headers = {
-            'X-API-KEY':  os.environ["SERPER_API_KEY"],
+            'X-API-KEY': self.api_key,
             'content-type': 'application/json'
         }
         response = requests.request("POST", self.search_url, headers=headers, data=payload)
