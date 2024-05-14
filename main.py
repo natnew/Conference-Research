@@ -1,14 +1,14 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import SeleniumScraping
 from con_research.src.modules.search_module import SerperDevTool
-def generate_short_bio(bio_content):
+def generate_short_bio(openai_api_key,bio_content):
     """
     Generates a short, concise bio from the scraped content using an LLM.
     
     :param content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0)
+    llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0,api_key=openai_api_key)
     prompt = PromptTemplate(
         template="Generate a short bio of not more than 100 words from the following content:\n{content}",
         input_variables=["content"]
