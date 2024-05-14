@@ -1,9 +1,9 @@
 crewai==0.28.8
 crewai[tools]==0.1.7
-selenium== 4.19.0
+selenium==4.19.0
 serpapi==0.1.5
 pdfminer==20191125
 streamlit==1.32.2
-langchain== 0.1.16
+langchain==0.1.16
 langchain_openai==0.0.5
 openpyxl==3.1.2
