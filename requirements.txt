@@ -1,0 +1,9 @@
+crewai==
+crewai[tools]==
+selenium==
+serpapi==
+pdfminer==
+streamlit==
+langchain==
+langchain_openai==
+openpyxl==
