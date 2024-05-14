@@ -56,7 +56,7 @@ def process_bios(df, openai_api_key, serper_api_key):
         query = f"{name} {university}"
 
         # Search the internet using Serper with provided API key
-        tool = SerperDevTool()
+        tool = SerperDevTool(api_key= serper_api_key)
         search_results = tool._run(query)
 
         # Scrape content from the obtained URLs
