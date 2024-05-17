@@ -1,14 +1,14 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
-def generate_short_bio(groq_api_key,bio_content):
+def generate_short_bio(openai_api_key,bio_content):
     """
     Generates a short, concise bio from the scraped content using an LLM.
     
     :param content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0,api_key=openai_api_key)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0,api_key=openai_api_key)
     #llm = ChatGroq(temperature=0, model_name="llama3-70b-8192",api_key=groq_api_key)
     prompt = PromptTemplate(
         template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
@@ -23,7 +23,7 @@ def main():
     # OpenAI API Key Input
     openai_api_key = st.secrets["openai_api_key"]
     # GROQ API Key Input
-    groq_api_key = st.secrets["groq_api_key"]
+    # groq_api_key = st.secrets["groq_api_key"]
 
     # Serper API Key Input
     serper_api_key = st.secrets["serper_api_key"]
@@ -41,7 +41,7 @@ def main():
 
         # Processing and displaying bios
         if st.button("Generate Bios"):
-            df_with_bios = process_bios(df, groq_api_key, serper_api_key)
+            df_with_bios = process_bios(df, openai_api_key, serper_api_key)
             st.write("DataFrame with Bios:")
             st.write(df_with_bios)
 
@@ -49,7 +49,7 @@ def main():
             st.markdown(get_table_download_link(df_with_bios), unsafe_allow_html=True)
 
 
-def process_bios(df, groq_api_key, serper_api_key):
+def process_bios(df, openai_api_key, serper_api_key):
     df["Bio"] = ""
     batch_size = 10
 
@@ -77,7 +77,7 @@ def process_bios(df, groq_api_key, serper_api_key):
                 bio_content += content + "\n"
 
             # Pass the scraped content through LLM to format as a short, concise bio
-            formatted_bio = generate_short_bio(groq_api_key, bio_content)
+            formatted_bio = generate_short_bio(openai_api_key, bio_content)
 
             # Update the Bio column
             df.at[index, "Bio"] = formatted_bio
