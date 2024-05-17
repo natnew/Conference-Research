@@ -8,8 +8,8 @@ def generate_short_bio(groq_api_key,bio_content):
     :param content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    # llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0,api_key=openai_api_key)
-    llm = ChatGroq(temperature=0, model_name="llama3-70b-8192",api_key=groq_api_key)
+    llm = ChatOpenAI(model="gpt-4-0125-preview", temperature=0,api_key=openai_api_key)
+    #llm = ChatGroq(temperature=0, model_name="llama3-70b-8192",api_key=groq_api_key)
     prompt = PromptTemplate(
         template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
         input_variables=["content"]
