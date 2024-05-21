@@ -96,9 +96,20 @@ def process_bios(df,serper_api_key):#openai_api_key
 
 # Function to create a download link for a DataFrame
 def get_table_download_link(df):
-    csv = df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="bios.csv">Download Bios Data</a>'
+    # Use a BytesIO buffer to save the Excel file to memory
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    
+    # Get the buffer content as bytes
+    buffer.seek(0)
+    excel_bytes = buffer.getvalue()
+
+    # Encode the bytes in base64
+    b64 = base64.b64encode(excel_bytes).decode()
+
+    # Create a download link
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="bios.xlsx">Download Bios Data</a>'
     return href
 
 
