@@ -1,6 +1,7 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
+import google.generativeai as genai
 def generate_short_bio(openai_api_key,bio_content):
     """
     Generates a short, concise bio from the scraped content using an LLM.
