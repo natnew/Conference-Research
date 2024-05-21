@@ -2,7 +2,8 @@ from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 import google.generativeai as genai
-from langchain import PromptTemplate, GenerativeModel
+from langchain.prompts import PromptTemplate
+from langchain.generative_models import GenerativeModel
 
 def generate_short_bio(bio_content): #openai_api_key
     """
