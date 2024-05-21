@@ -96,9 +96,9 @@ def process_bios(df,serper_api_key):#openai_api_key
 
 # Function to create a download link for a DataFrame
 def get_table_download_link(df):
-    csv = df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="bios.csv">Download Bios CSV</a>'
+    xlsx = df.to_xlsx(index=False)
+    b64 = base64.b64encode(xlsx.encode()).decode()
+    href = f'<a href="data:file/xlsx;base64,{b64}" download="bios.xlsx">Download Bios Data</a>'
     return href
 
 
