@@ -10,3 +10,4 @@ openpyxl==3.1.2
 langchain_groq==0.1.2
 google==3.0.0
 google-generativeai==0.5.4
+langchain.generative_models
