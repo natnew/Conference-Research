@@ -21,7 +21,7 @@ def generate_short_bio(bio_content): #openai_api_key
 
     # Invoke the model with the formatted prompt
     short_bio = llm.generate_content(formatted_prompt)
-    return short_bio.content
+    return short_bio.text
 def main():
     st.title("Bio Generator")
 
