@@ -2,6 +2,7 @@ from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 import google.generativeai as genai
+
 def generate_short_bio(openai_api_key,bio_content):
     """
     Generates a short, concise bio from the scraped content using an LLM.
@@ -10,7 +11,7 @@ def generate_short_bio(openai_api_key,bio_content):
     :return: A short bio formatted from the scraped content
     """
     # llm = ChatOpenAI(model="gpt-4o", temperature=0,api_key=openai_api_key)
-    llm = genai.GenerativeModel(model_name="gemini-1.5-pro-latest",api_key=openai_api_key)
+    llm = genai.GenerativeModel(model_name="gemini-1.5-pro-latest")
     prompt = PromptTemplate(
         template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
         input_variables=["content"]
@@ -25,6 +26,7 @@ def main():
     openai_api_key = st.secrets["openai_api_key"]
     # GROQ API Key Input
     # groq_api_key = st.secrets["groq_api_key"]
+    genai.configure(api_key=openai_api_key)
 
     # Serper API Key Input
     serper_api_key = st.secrets["serper_api_key"]
