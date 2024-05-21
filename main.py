@@ -3,7 +3,7 @@ from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 import google.generativeai as genai
 
-def generate_short_bio(openai_api_key,bio_content):
+def generate_short_bio(bio_content): #openai_api_key
     """
     Generates a short, concise bio from the scraped content using an LLM.
     
@@ -52,7 +52,7 @@ def main():
             st.markdown(get_table_download_link(df_with_bios), unsafe_allow_html=True)
 
 
-def process_bios(df, openai_api_key, serper_api_key):
+def process_bios(df,serper_api_key):#openai_api_key
     df["Bio"] = ""
     batch_size = 10
 
@@ -80,13 +80,13 @@ def process_bios(df, openai_api_key, serper_api_key):
                 bio_content += content + "\n"
 
             # Pass the scraped content through LLM to format as a short, concise bio
-            formatted_bio = generate_short_bio(openai_api_key, bio_content)
+            formatted_bio = generate_short_bio(bio_content) #openai_api_key
 
             # Update the Bio column
             df.at[index, "Bio"] = formatted_bio
 
         # Sleep for 30 seconds before processing the next batch
-        time.sleep(30)
+        time.sleep(10)
 
     return df
 
