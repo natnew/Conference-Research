@@ -2,22 +2,26 @@ from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 import google.generativeai as genai
+from langchain import PromptTemplate, GenerativeModel
 
 def generate_short_bio(bio_content): #openai_api_key
     """
     Generates a short, concise bio from the scraped content using an LLM.
     
-    :param content: The scraped content from the internet
+    :param bio_content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    # llm = ChatOpenAI(model="gpt-4o", temperature=0,api_key=openai_api_key)
-    llm = genai.GenerativeModel(model_name="gemini-1.5-pro-latest")
+    llm = GenerativeModel(model_name="gemini-1.5-pro-latest")
     prompt = PromptTemplate(
         template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
         input_variables=["content"]
     )
-    llm_chain = prompt | llm
-    short_bio = llm_chain.invoke(input={"content":bio_content},)
+
+    # Ensure that the prompt is correctly formatted before passing it to the model
+    formatted_prompt = prompt.format(content=bio_content)
+
+    # Invoke the model with the formatted prompt
+    short_bio = llm.generate(formatted_prompt)
     return short_bio.content
 def main():
     st.title("Bio Generator")
