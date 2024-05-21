@@ -8,3 +8,4 @@ langchain==0.1.16
 langchain_openai==0.0.5
 openpyxl==3.1.2
 langchain_groq==0.1.2
+google
