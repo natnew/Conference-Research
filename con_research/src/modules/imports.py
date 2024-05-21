@@ -28,3 +28,5 @@ import streamlit as st
 import base64
 from langchain_groq import ChatGroq
 import google.generativeai as genai
+import io
+import base64
