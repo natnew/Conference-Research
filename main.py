@@ -10,7 +10,7 @@ def generate_short_bio(bio_content): #openai_api_key
     :param bio_content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    llm = genai.GenerativeModel(model_name="gemini-1.5-pro-latest")
+    llm = genai.GenerativeModel(model_name="gemini-1.5-flash-latest")
     prompt = PromptTemplate(
         template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
         input_variables=["content"]
