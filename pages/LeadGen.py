@@ -15,5 +15,7 @@ with st.sidebar:
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
 st.title("💬 Lead Generation")
+st.subheader("Generate Professional Email Templates for Conference Preparation: Tailor Your Communication for Effective Networking and Engagement")
+
 
 
