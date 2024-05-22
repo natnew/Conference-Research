@@ -28,7 +28,7 @@ st.markdown(hide_streamlit_footer, unsafe_allow_html=True)
 with st.sidebar:
     st.markdown("# About")
     st.markdown(
-       "A collection of Multi AI Agent Systems "
+       "We use multi-agent systems and other AI technologies to power this app. "
             )
     st.markdown(
        "This tool is a work in progress. "
