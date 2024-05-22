@@ -3,6 +3,21 @@ from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 import google.generativeai as genai
 
+with st.sidebar:
+    st.markdown("# About")
+    st.markdown(
+       "A collection of Multi AI Agent Systems "
+            )
+    st.markdown("""
+    **This app helps conference attendees prepare for networking at a conference by automating the desktop research and lead generation email creation process.**
+    
+    The app provides detailed information about conference attendees and helps craft personalized emails, making it easier to connect and engage effectively.
+    """)
+    
+    #openai_api_key = st.text_input("OpenAI API Key", key="file_qa_api_key", type="password")
+    "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
+    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+
 def generate_short_bio(bio_content): #openai_api_key
     """
     Generates a short, concise bio from the scraped content using an LLM.
