@@ -6,12 +6,16 @@ import google.generativeai as genai
 with st.sidebar:
     st.markdown("# About")
     st.markdown(
-       "We use multi-agent systems and other AI technologies to power this app"
+       "We use multi-agent systems and other AI technologies to power this app."
             )
     st.markdown("""
     This app helps conference attendees prepare for networking at a conference by automating the desktop research and lead generation email creation process.
     
         """)
+
+    st.markdown(
+       "This tool is a work in progress. "
+            )
     
     #openai_api_key = st.text_input("OpenAI API Key", key="file_qa_api_key", type="password")
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
