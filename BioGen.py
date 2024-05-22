@@ -9,10 +9,9 @@ with st.sidebar:
        "A collection of Multi AI Agent Systems "
             )
     st.markdown("""
-    **This app helps conference attendees prepare for networking at a conference by automating the desktop research and lead generation email creation process.**
+    This app helps conference attendees prepare for networking at a conference by automating the desktop research and lead generation email creation process.
     
-    The app provides detailed information about conference attendees and helps craft personalized emails, making it easier to connect and engage effectively.
-    """)
+        """)
     
     #openai_api_key = st.text_input("OpenAI API Key", key="file_qa_api_key", type="password")
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
