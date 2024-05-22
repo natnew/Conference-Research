@@ -79,10 +79,10 @@ def main_gpt3emailgen():
     except FileNotFoundError:
         st.warning("Image file not found. Continuing without displaying the image.")
     
-    st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) Implemented by '
-        '[Pratyay Anil](https://www.linkedin.com/in/pratyay-anil-412127185) - '
+    st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) '
+        
         'view project source code on '
-        '[GitHub](https://github.com/Pratyayanil/Email-Generator-using-Python-Open-AI-and-Streamlit)')
+        '[GitHub](https://github.com/natnew/Conference-Research)')
     st.write('\n')
 
     st.subheader('\nWhat is your email all about?\n')
