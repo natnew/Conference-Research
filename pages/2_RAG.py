@@ -14,6 +14,7 @@ with st.sidebar:
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
 st.title("💬 RAG")
+st.markdown("Search and Filter Conference Participants: Retrieve Relevant Information Based on University Affiliation and Year, Including Research and Teaching Areas")
 uploaded_file = st.file_uploader("Upload an article", type=("txt", "md", "xlsx"))
 question = st.text_input(
     "Ask something about the article",
