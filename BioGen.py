@@ -24,6 +24,7 @@ def generate_short_bio(bio_content): #openai_api_key
     return short_bio.text
 def main():
     st.title("Bio Generator")
+    st.markdown("Generate Detailed Bios for Conference Participants: Create Personalized Profiles for Effective Networking and Contact")
 
     # OpenAI API Key Input
     openai_api_key = st.secrets["openai_api_key"]
