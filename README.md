@@ -8,4 +8,4 @@ This is the repo to build a conference research app.
 
 - rename .streamlit/_secrets.toml to .streamlit/secrets.toml and place your secrets there
 
->streamlit run main.py
+>streamlit run BioGen.py
