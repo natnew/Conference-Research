@@ -51,7 +51,11 @@ def gen_mail_format(sender, recipient, style, email_contents):
     return email_final_text.get("choices")[0]['text']
 
 def main_gpt3emailgen():
-    st.image('GPT_email_generator-main/img/Email Generator.jpg')
+    try:
+        st.image('../con_research/data/Email_Generator.jpg')  # Use relative path from the /pages directory
+    except FileNotFoundError:
+        st.warning("Image file not found. Continuing without displaying the image.")
+    
     st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) Implemented by '
         '[Pratyay Anil](https://www.linkedin.com/in/pratyay-anil-412127185) - '
         'view project source code on '
