@@ -17,6 +17,7 @@ with st.sidebar:
 st.title("💬 Lead Generation")
 st.markdown("Generate Professional Email Templates for Conference Preparation: Tailor Your Communication for Effective Networking and Engagement")
 
+
 def gen_mail_contents(email_contents):
     for topic in range(len(email_contents)):
         input_text = email_contents[topic]
@@ -31,7 +32,6 @@ def gen_mail_contents(email_contents):
             presence_penalty=0.0)
         email_contents[topic] = rephrased_content.get("choices")[0]['text']
     return email_contents
-
 
 def gen_mail_format(sender, recipient, style, email_contents):
     email_contents = gen_mail_contents(email_contents)
@@ -50,9 +50,8 @@ def gen_mail_format(sender, recipient, style, email_contents):
         presence_penalty=0.0)
     return email_final_text.get("choices")[0]['text']
 
-
 def main_gpt3emailgen():
-    st.image('GPT_email_generator-main\img\Email Generator.jpg')
+    st.image('GPT_email_generator-main/img/Email Generator.jpg')
     st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) Implemented by '
         '[Pratyay Anil](https://www.linkedin.com/in/pratyay-anil-412127185) - '
         'view project source code on '
@@ -61,7 +60,7 @@ def main_gpt3emailgen():
 
     st.subheader('\nWhat is your email all about?\n')
     with st.expander("SECTION - Email Input", expanded=True):
-        input_c1 = st.text_input('Enter email contents down below! (currently 2x seperate topics supported)', 'topic 1')
+        input_c1 = st.text_input('Enter email contents down below! (currently 2x separate topics supported)', 'topic 1')
         input_c2 = st.text_input('', 'topic 2 (optional)')
 
         email_text = ""
@@ -75,23 +74,28 @@ def main_gpt3emailgen():
         with col4:
             st.write("\n")
             st.write("\n")
-            if st.button('Generate Email'):
-                with st.spinner():
+            generate_button = st.button('Generate Email')
+
+            if generate_button:
+                if not openai_api_key:
+                    st.info("Please add your OpenAI API key to continue.")
+                else:
                     input_contents = []
-                    if (input_c1 != "") and (input_c1 != 'topic 1'):
+                    if input_c1 and input_c1 != 'topic 1':
                         input_contents.append(str(input_c1))
-                    if (input_c2 != "") and (input_c2 != 'topic 2 (optional)'):
+                    if input_c2 and input_c2 != 'topic 2 (optional)':
                         input_contents.append(str(input_c2))
 
-                    if (len(input_contents) == 0):
+                    if not input_contents:
                         st.write('Please fill in some contents for your message!')
-                    if (len(input_sender) == 0) or (len(input_recipient) == 0):
-                        st.write('Sender and Recipient names can not be empty!')
-
-                    if (len(input_contents) >= 1):
-                        if (len(input_sender) != 0) and (len(input_recipient) != 0):
+                    elif not input_sender or not input_recipient:
+                        st.write('Sender and Recipient names cannot be empty!')
+                    else:
+                        with st.spinner():
+                            openai.api_key = openai_api_key
                             email_text = gen_mail_format(input_sender, input_recipient, input_style, input_contents)
-    if email_text != "":
+
+    if email_text:
         st.write('\n')
         st.subheader('\nYou sound incredibly professional!\n')
         with st.expander("SECTION - Email Output", expanded=True):
@@ -99,9 +103,3 @@ def main_gpt3emailgen():
 
 if __name__ == '__main__':
     main_gpt3emailgen()
-
-
-
-
-
-
