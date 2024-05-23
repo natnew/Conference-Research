@@ -1,8 +1,6 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
-import google.generativeai as genai
-import openai
 
 with st.sidebar:
     st.markdown("# About")
@@ -22,25 +20,21 @@ with st.sidebar:
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
-def generate_short_bio(bio_content, openai_api_key): #openai_api_key
+def generate_short_bio(bio_content,openai_api_key):
     """
     Generates a short, concise bio from the scraped content using an LLM.
-    
-    :param bio_content: The scraped content from the internet
+
+    :param content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    llm = genai.GenerativeModel(model_name="gpt-4o")
+    llm = ChatOpenAI(model="gpt-4o", temperature=0)
     prompt = PromptTemplate(
-        template="""Generate a short bio of not more than 100 words from the following content:\n{content}""",
+        template="Generate a short bio of not more than 100 words from the following content:\n{content}",
         input_variables=["content"]
     )
-
-    # Ensure that the prompt is correctly formatted before passing it to the model
-    formatted_prompt = prompt.format(content=bio_content)
-
-    # Invoke the model with the formatted prompt
-    short_bio = llm.generate_content(formatted_prompt)
-    return short_bio.text
+    llm_chain = prompt | llm
+    short_bio = llm_chain.invoke(input={"content": bio_content},)
+    return short_bio.content
 def main():
     st.title("Bio Generator")
     st.markdown("Generate Detailed Bios for Conference Participants: Create Personalized Profiles for Effective Networking and Contact")
@@ -49,7 +43,7 @@ def main():
     openai_api_key = st.secrets["openai_api_key"]
     # GROQ API Key Input
     # groq_api_key = st.secrets["groq_api_key"]
-    genai.configure(api_key=openai_api_key)
+    # genai.configure(api_key=openai_api_key)
 
     # Serper API Key Input
     serper_api_key = st.secrets["serper_api_key"]
@@ -103,7 +97,7 @@ def process_bios(df,serper_api_key, openai_api_key):#openai_api_key
                 bio_content += content + "\n"
 
             # Pass the scraped content through LLM to format as a short, concise bio
-            formatted_bio = generate_short_bio(bio_content) #openai_api_key
+            formatted_bio = generate_short_bio(bio_content,openai_api_key) #openai_api_key
 
             # Update the Bio column
             df.at[index, "Bio"] = formatted_bio
