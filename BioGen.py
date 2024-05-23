@@ -86,7 +86,9 @@ def process_bios(df, serper_api_key, openai_api_key):
 
     return df
 
-def get_table_download_link(df):
+def get_table_download_link(df,original_filename):
+    base_filename = os.path.splitext(original_filename)[0]
+    new_filename = f"{base_filename}_bios.xlsx"
     # Use a BytesIO buffer to save the Excel file to memory
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
@@ -100,7 +102,8 @@ def get_table_download_link(df):
     b64 = base64.b64encode(excel_bytes).decode()
 
     # Create a download link
-    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="bios.xlsx">Download Bios Data</a>'
+    # Create a download link
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{new_filename}">Download Bios Data</a>'
     return href
 
 def main():
@@ -128,9 +131,11 @@ def main():
             df_with_bios = process_bios(df, serper_api_key, openai_api_key)
             st.write("DataFrame with Bios:")
             st.write(df_with_bios)
+            # Get the original filename
+            original_filename = uploaded_file.name
 
             # Download Button
-            st.markdown(get_table_download_link(df_with_bios), unsafe_allow_html=True)
+            st.markdown(get_table_download_link(df_with_bios, original_filename), unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
