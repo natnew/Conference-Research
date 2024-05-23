@@ -17,8 +17,18 @@ with st.sidebar:
             )
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
-
-def generate_short_bio(bio_content, openai_api_key):
+def truncate_content(content, max_length=20000):
+    """
+    Truncate content to ensure it does not exceed the specified maximum length.
+    
+    :param content: The content to be truncated
+    :param max_length: The maximum length of the content
+    :return: Truncated content
+    """
+    if len(content) > max_length:
+        return content[:max_length]
+    return content
+def generate_short_bio(bio_content, openai_api_key,max_tokens=128000):
     """
     Generates a short, concise bio from the scraped content using an LLM.
 
@@ -26,13 +36,16 @@ def generate_short_bio(bio_content, openai_api_key):
     :param openai_api_key: The API key for OpenAI
     :return: A short bio formatted from the scraped content
     """
+    # Truncate bio_content to ensure it does not exceed the max_tokens
+    truncated_content = truncate_content(bio_content, max_length=max_tokens)
+    
     llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=openai_api_key)
     prompt = PromptTemplate(
         template="Generate a short bio of not more than 100 words from the following content:\n{content}",
         input_variables=["content"]
     )
     llm_chain = prompt | llm
-    short_bio = llm_chain.invoke(input={"content": bio_content})
+    short_bio = llm_chain.invoke(input={"content": truncated_content })
     return short_bio.content
 
 def process_bios(df, serper_api_key, openai_api_key):
@@ -61,6 +74,8 @@ def process_bios(df, serper_api_key, openai_api_key):
                 bio_content += content + "\n"
 
             # Pass the scraped content through LLM to format as a short, concise bio
+            bio_content = truncate_content(bio_content, max_length=20000)
+            
             formatted_bio = generate_short_bio(bio_content, openai_api_key)
 
             # Update the Bio column
