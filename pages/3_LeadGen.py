@@ -33,7 +33,6 @@ with st.sidebar:
     st.markdown(
        "This tool is a work in progress. "
             )
-    # openai_api_key = st.text_input("OpenAI API Key", key="file_qa_api_key", type="password")
     openai_api_key = st.secrets["openai_api_key"]
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
@@ -105,23 +104,20 @@ def main_gpt3emailgen():
             generate_button = st.button('Generate Email')
 
             if generate_button:
-                if not openai_api_key:
-                    st.info("Please add your OpenAI API key to continue.")
-                else:
-                    input_contents = []
-                    if input_c1 and input_c1 != 'topic 1':
-                        input_contents.append(str(input_c1))
-                    if input_c2 and input_c2 != 'topic 2 (optional)':
-                        input_contents.append(str(input_c2))
+              input_contents = []
+              if input_c1 and input_c1 != 'topic 1':
+                  input_contents.append(str(input_c1))
+              if input_c2 and input_c2 != 'topic 2 (optional)':
+                  input_contents.append(str(input_c2))
 
-                    if not input_contents:
-                        st.write('Please fill in some contents for your message!')
-                    elif not input_sender or not input_recipient:
-                        st.write('Sender and Recipient names cannot be empty!')
-                    else:
-                        with st.spinner():
-                            openai.api_key = openai_api_key
-                            email_text = gen_mail_format(input_sender, input_recipient, input_style, input_contents)
+              if not input_contents:
+                  st.write('Please fill in some contents for your message!')
+              elif not input_sender or not input_recipient:
+                  st.write('Sender and Recipient names cannot be empty!')
+              else:
+                  with st.spinner():
+                      openai.api_key = openai_api_key
+                      email_text = gen_mail_format(input_sender, input_recipient, input_style, input_contents)
 
     if email_text:
         st.write('\n')
