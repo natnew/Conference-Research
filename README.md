@@ -32,23 +32,23 @@ The 'Fact Checking Element of App' is crucial to ensure the accuracy and reliabi
 
 ### Limitations
 
-**Static Web Scraping:**
+Static Web Scraping:
 - The current content scraping approach relies on static HTML and PDF scraping, which might not handle dynamic content effectively. Many modern websites load content dynamically using JavaScript, and the static scraping methods might miss critical information.
 
-**Limited Data Sources:**
+Limited Data Sources:
 - The semantic search tool uses a specific search API and relies heavily on the content available on the web. This approach might not always retrieve comprehensive or accurate information, especially for websites that have not been updated with the most relevant information or who do not provide biographical information.
 
-**No Contextual Understanding:**
+No Contextual Understanding:
 - The bio generation process does not include advanced contextual understanding. It relies solely on the scraped content, which might lead to inaccuracies or incomplete bios if the content is not well-structured or detailed.
 
 ### Possible Improvements
-**Expanding Data Sources:**
+Expanding Data Sources:
 - Incorporate additional data sources such as academic databases, professional networking sites, and other authoritative sources to improve the comprehensiveness and reliability of the retrieved information.
 
-**User Feedback and Iterative Improvement:**
+User Feedback and Iterative Improvement:
 - Incorporate user feedback mechanisms to continuously improve the system. Implement a way for users to report inaccuracies or suggest enhancements, allowing for iterative improvements based on real-world usage.
 
-**Robust Error Handling and Logging:**
+Robust Error Handling and Logging:
 - Implement more robust error handling mechanisms to cover a wider range of potential issues. Incorporate logging to track errors and performance metrics, which can help in diagnosing and resolving issues more efficiently.
 
 ## UI
