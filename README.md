@@ -24,6 +24,8 @@ This is the repo to build a conference research app.
 - [Update Database Using Agents]() section outlines how autonomous agents can be used to update a database with new or revised information.
 - [Craft Email Templates Using AI](https://github.com/natnew/Conference-Research/blob/main/pages/3_LeadGen.py) section demonstrates the use of AI to generate personalized email templates for conference attendees.
 
+## Fact Checking Element of App
+The 'Fact Checking Element of App' is crucial to ensure the accuracy and reliability of the information provided to users, as it helps verify the validity of the data retrieved from various sources. This element is essential for maintaining trust and credibility, preventing the dissemination of outdated or incorrect information which could potentially mislead users.
 
 ## Limitations & Areas for Improvement
 🩺 The current implementation of the project provides valuable tools for conference attendees to prepare for networking, but there are several limitations and areas for improvement to enhance its effectiveness and reliability.
