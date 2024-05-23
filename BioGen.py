@@ -1,24 +1,7 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
-st.markdown("""
-    <style>
-        .sidebar .sidebar-content {
-            background-color: #f0f2f6;
-            padding: 10px;
-        }
-        .main .block-container {
-            padding: 10px;
-        }
-        h1 {
-            color: #3c8dbc;
-        }
-        .stButton>button {
-            background-color: #4CAF50;
-            color: white;
-        }
-    </style>
-""", unsafe_allow_html=True)
+
 with st.sidebar:
     st.markdown("# About")
     st.markdown(
