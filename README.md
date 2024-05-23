@@ -3,6 +3,8 @@ Conduct your own conference research in a few simple steps!
 
 This is the repo to build a conference research app.
 
+# UI
+
 # Setup
 - install the requirements from requirements.txt
 
