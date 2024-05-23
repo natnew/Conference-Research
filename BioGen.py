@@ -82,7 +82,7 @@ def process_bios(df, serper_api_key, openai_api_key):
             df.at[index, "Bio"] = formatted_bio
 
         # Sleep for 10 seconds before processing the next batch
-        time.sleep(10)
+        # time.sleep(10)
 
     return df
 
