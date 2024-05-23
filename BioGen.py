@@ -21,7 +21,7 @@ with st.sidebar:
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
-def generate_short_bio(bio_content): #openai_api_key
+def generate_short_bio(bio_content, openai_api_key): #openai_api_key
     """
     Generates a short, concise bio from the scraped content using an LLM.
     
@@ -74,7 +74,7 @@ def main():
             st.markdown(get_table_download_link(df_with_bios), unsafe_allow_html=True)
 
 
-def process_bios(df,serper_api_key):#openai_api_key
+def process_bios(df,serper_api_key, openai_api_key):#openai_api_key
     df["Bio"] = ""
     batch_size = 10
 
