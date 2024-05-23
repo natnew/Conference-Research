@@ -1,6 +1,7 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
+pd.set_option("display.max_colwidth", 1000)
 st.markdown("""
     <style>
         .sidebar .sidebar-content {
