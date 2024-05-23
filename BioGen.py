@@ -27,7 +27,7 @@ def generate_short_bio(bio_content,openai_api_key):
     :param content: The scraped content from the internet
     :return: A short bio formatted from the scraped content
     """
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0,api_key=openai_api_key)
     prompt = PromptTemplate(
         template="Generate a short bio of not more than 100 words from the following content:\n{content}",
         input_variables=["content"]
