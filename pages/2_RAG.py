@@ -9,7 +9,6 @@ with st.sidebar:
     st.markdown(
        "This tool is a work in progress. "
             )
-    # openai_api_key = st.text_input("OpenAI API Key", key="file_qa_api_key", type="password")
     openai_api_key = st.secrets["openai_api_key"]
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
@@ -23,10 +22,8 @@ question = st.text_input(
     disabled=not uploaded_file,
 )
 
-if uploaded_file and question and not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.")
 
-if uploaded_file and question and openai_api_key:
+if uploaded_file and question:
     article = uploaded_file.read().decode()
     prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
 
@@ -37,7 +34,7 @@ if uploaded_file and question and openai_api_key:
         max_tokens=100,
         n=1,
         stop=None,
-        temperature=0.7,
+        temperature=0,
     )
     st.write("### Answer")
     st.write(response.choices[0].text.strip())
