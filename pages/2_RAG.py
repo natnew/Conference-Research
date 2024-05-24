@@ -55,9 +55,12 @@ if uploaded_file and question:
             openai.api_key = openai_api_key
 
             # Call OpenAI API to get the response
-            response = openai.Completion.create(
-                engine="gpt-4",  # Use GPT-4 model
-                prompt=prompt,
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt},
+                ],
                 max_tokens=100,
                 n=1,
                 stop=None,
@@ -66,7 +69,7 @@ if uploaded_file and question:
 
             # Display the response
             st.write("### Answer")
-            st.write(response.choices[0].text.strip())
+            st.write(response.choices[0].message['content'].strip())
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
