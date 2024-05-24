@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+import pandas as pd
 
 with st.sidebar:
     st.markdown("# About")
@@ -26,34 +27,46 @@ question = st.text_input(
 # Process the uploaded file and question
 if uploaded_file and question:
     try:
-        # Attempt to read the file with UTF-8 encoding
-        article = uploaded_file.read().decode('utf-8')
-    except UnicodeDecodeError:
-        try:
-            # If UTF-8 fails, attempt to read the file with a different encoding, e.g., ISO-8859-1
-            article = uploaded_file.read().decode('ISO-8859-1')
-        except UnicodeDecodeError:
-            # If all attempts fail, handle the error (e.g., display an error message to the user)
-            st.error("The uploaded file has an unsupported encoding. Please upload a file with UTF-8 or ISO-8859-1 encoding.")
+        if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.md'):
+            # Attempt to read the file with UTF-8 encoding
+            try:
+                article = uploaded_file.read().decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    # If UTF-8 fails, attempt to read the file with a different encoding, e.g., ISO-8859-1
+                    article = uploaded_file.read().decode('ISO-8859-1')
+                except UnicodeDecodeError:
+                    # If all attempts fail, handle the error (e.g., display an error message to the user)
+                    st.error("The uploaded file has an unsupported encoding. Please upload a file with UTF-8 or ISO-8859-1 encoding.")
+                    article = None
+        elif uploaded_file.name.endswith('.xlsx'):
+            # Read Excel file
+            df = pd.read_excel(uploaded_file)
+            article = df.to_string(index=False)  # Convert DataFrame to string
+        else:
+            st.error("Unsupported file type.")
             article = None
 
-    if article:
-        # Prepare the prompt for OpenAI API
-        prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
+        if article:
+            # Prepare the prompt for OpenAI API
+            prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
 
-        # Set OpenAI API key
-        openai.api_key = openai_api_key
+            # Set OpenAI API key
+            openai.api_key = openai_api_key
 
-        # Call OpenAI API to get the response
-        response = openai.Completion.create(
-            engine="gpt-4",  # Use GPT-4 model
-            prompt=prompt,
-            max_tokens=100,
-            n=1,
-            stop=None,
-            temperature=0,
-        )
+            # Call OpenAI API to get the response
+            response = openai.Completion.create(
+                engine="gpt-4",  # Use GPT-4 model
+                prompt=prompt,
+                max_tokens=100,
+                n=1,
+                stop=None,
+                temperature=0,
+            )
 
-        # Display the response
-        st.write("### Answer")
-        st.write(response.choices[0].text.strip())
+            # Display the response
+            st.write("### Answer")
+            st.write(response.choices[0].text.strip())
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
