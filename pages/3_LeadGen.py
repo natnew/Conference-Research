@@ -1,10 +1,10 @@
 import streamlit as st
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 # Load the model and tokenizer
-model_name = "Helsinki-NLP/opus-mt-en-ro"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+model_name = "distilgpt2"
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained(model_name)
 
 # DESIGN implement changes to the standard streamlit UI/UX
 st.set_page_config(page_title="rephraise", page_icon="img/rephraise_logo.png")
@@ -39,11 +39,17 @@ with st.sidebar:
 st.title("💬 Lead Generation")
 st.markdown("Generate Professional Email Templates for Conference Preparation: Tailor Your Communication for Effective Networking and Engagement")
 
-def generate_email(sender, recipient, style, topics):
-    email_content = " ".join(topics)
-    input_text = f"Generate a professional email in a {style} tone from {sender} to {recipient}. The email should cover the following topics: {email_content}"
+def generate_email_template(sender, recipient, style, subject):
+    input_text = f"Generate a professional email in a {style} tone from {sender} to {recipient} about {subject}."
     
     inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    outputs = model.generate(inputs, max_length=512, num_beams=5, early_stopping=True)
+    email = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    return email
+
+def generate_email_from_prompt(prompt):
+    inputs = tokenizer.encode(prompt, return_tensors="pt", max_length=512, truncation=True)
     outputs = model.generate(inputs, max_length=512, num_beams=5, early_stopping=True)
     email = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
@@ -55,44 +61,39 @@ def main():
         '[GitHub](https://github.com/natnew/Conference-Research)')
     st.write('\n')
 
-    st.subheader('\nWhat is your email all about?\n')
-    with st.expander("SECTION - Email Input", expanded=True):
-        input_c1 = st.text_input('Enter email contents down below! (currently 2x separate topics supported)', 'topic 1')
-        input_c2 = st.text_input('', 'topic 2 (optional)')
+    st.subheader('Choose Email Generation Method:')
+    option = st.radio('Select an option:', ('Template Based', 'Prompt Based'))
 
-        email_text = ""
-        col1, col2, col3, space, col4 = st.columns([5, 5, 5, 0.5, 5])
-        with col1:
-            input_sender = st.text_input('Sender Name', '[rephraise]')
-        with col2:
-            input_recipient = st.text_input('Recipient Name', '[recipient]')
-        with col3:
-            input_style = st.selectbox('Writing Style', ('formal', 'motivated', 'concerned', 'disappointed'), index=0)
-        with col4:
-            st.write("\n")
-            st.write("\n")
-            generate_button = st.button('Generate Email')
+    if option == 'Template Based':
+        st.subheader('Email Template Input:')
+        sender = st.text_input('Sender Name', '')
+        recipient = st.text_input('Recipient Name', '')
+        subject = st.text_input('Subject', '')
+        style = st.selectbox('Writing Style', ('formal', 'motivated', 'concerned', 'disappointed'), index=0)
 
-            if generate_button:
-                input_contents = []
-                if input_c1 and input_c1 != 'topic 1':
-                    input_contents.append(str(input_c1))
-                if input_c2 and input_c2 != 'topic 2 (optional)':
-                    input_contents.append(str(input_c2))
+        generate_button = st.button('Generate Email Template')
+        if generate_button:
+            if sender and recipient and subject:
+                with st.spinner('Generating email...'):
+                    email_text = generate_email_template(sender, recipient, style, subject)
+                    st.subheader('Generated Email:')
+                    st.write(email_text)
+            else:
+                st.warning('Please fill out all fields.')
 
-                if not input_contents:
-                    st.write('Please fill in some contents for your message!')
-                elif not input_sender or not input_recipient:
-                    st.write('Sender and Recipient names cannot be empty!')
-                else:
-                    with st.spinner():
-                        email_text = generate_email(input_sender, input_recipient, input_style, input_contents)
+    elif option == 'Prompt Based':
+        st.subheader('Email Prompt Input:')
+        prompt = st.text_area('Enter a prompt for the email:', '')
 
-    if email_text:
-        st.write('\n')
-        st.subheader('\nYou sound incredibly professional!\n')
-        with st.expander("SECTION - Email Output", expanded=True):
-            st.markdown(email_text)
+        generate_button = st.button('Generate Email from Prompt')
+        if generate_button:
+            if prompt:
+                with st.spinner('Generating email...'):
+                    email_text = generate_email_from_prompt(prompt)
+                    st.subheader('Generated Email:')
+                    st.write(email_text)
+            else:
+                st.warning('Please enter a prompt.')
 
 if __name__ == '__main__':
     main()
