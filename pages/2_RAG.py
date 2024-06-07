@@ -5,7 +5,7 @@ import os
 
 with st.sidebar:
     st.markdown("# About")
-@@ -25,7 +26,10 @@
+
 
 
 # Process the uploaded file and question
@@ -17,7 +17,7 @@ if uploaded_file and question and openai_api_key:
     try:
         if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.md'):
             # Attempt to read the file with UTF-8 encoding
-@@ -52,24 +56,24 @@
+
             prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
 
             # Set OpenAI API key
