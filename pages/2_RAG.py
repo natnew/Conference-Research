@@ -26,8 +26,8 @@ if uploaded_file and question and openai_api_key:
             client = OpenAI(api_key=openai_api_key)
 
             # Call OpenAI API to get the response
-            response = openai.ChatCompletion.create(
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create()
+            response = client.chat.completions.create()
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
