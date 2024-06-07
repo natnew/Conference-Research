@@ -16,7 +16,7 @@ with st.sidebar:
 st.title("💬 RAG")
 st.markdown("Search database")
 
-uploaded_file = st.file_uploader("Upload an article", type=("txt", "md"))
+uploaded_file = st.file_uploader("Upload an article", type=("txt", "md", "xlsx"))
 question = st.text_input(
     "Ask something about the article",
     placeholder="Can you give me a short summary?",
