@@ -1,37 +1,21 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import pandas as pd
-import os
 
-# Sidebar
 with st.sidebar:
     st.markdown("# About")
-
-# Main app
-st.title("File and Question Processor")
-
-# File upload
-uploaded_file = st.file_uploader("Choose a file", type=["txt", "md", "xlsx"])
-
-# Question input
-question = st.text_input("Enter your question")
-
-# Set OpenAI API key
-openai_api_key = st.secrets["openai_api_key"]
-openai.api_key = openai_api_key
 
 # Process the uploaded file and question
 if uploaded_file and question:
     try:
         if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.md'):
             # Attempt to read the file with UTF-8 encoding
-            article = uploaded_file.read().decode('utf-8')
-        elif uploaded_file.name.endswith('.xlsx'):
-            # Read the Excel file
-            df = pd.read_excel(uploaded_file)
-            article = df.to_string(index=False)
-
+            pass
+        
         prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
+
+        # Set OpenAI API key
+        openai.api_key = openai_api_key
 
         # Call OpenAI API to get the response
         response = openai.ChatCompletion.create(
@@ -49,5 +33,6 @@ if uploaded_file and question:
         # Display the response
         st.write("### Answer")
         st.write(response.choices[0].message["content"].strip())
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
