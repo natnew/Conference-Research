@@ -11,7 +11,7 @@ with st.sidebar:
 # Process the uploaded file and question
 if uploaded_file and question:
     if uploaded_file and question and not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.")
+        st.info("Please add your OpenAI API key to continue.")
 
 if uploaded_file and question and openai_api_key:
     try:
