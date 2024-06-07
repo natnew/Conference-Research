@@ -1,6 +1,10 @@
-import os
-import openai
 import streamlit as st
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+# Load the model and tokenizer
+model_name = "Helsinki-NLP/opus-mt-en-ro"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
 # DESIGN implement changes to the standard streamlit UI/UX
 st.set_page_config(page_title="rephraise", page_icon="img/rephraise_logo.png")
@@ -31,53 +35,22 @@ with st.sidebar:
     st.markdown(
        "This tool is a work in progress. "
     )
-    openai_api_key = st.secrets["openai_api_key"]
-    "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
-    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
 st.title("💬 Lead Generation")
 st.markdown("Generate Professional Email Templates for Conference Preparation: Tailor Your Communication for Effective Networking and Engagement")
 
-def gen_mail_contents(email_contents):
-    for topic in range(len(email_contents)):
-        input_text = email_contents[topic]
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Rewrite the text to be elaborate and polite. Abbreviations need to be replaced. Text: {input_text}"}
-            ],
-            temperature=0.8,
-            max_tokens=len(input_text)*3,
-            top_p=0.8,
-            frequency_penalty=0.0,
-            presence_penalty=0.0
-        )
-        email_contents[topic] = response.choices[0].message['content']
-    return email_contents
+def generate_email(sender, recipient, style, topics):
+    email_content = " ".join(topics)
+    input_text = f"Generate a professional email in a {style} tone from {sender} to {recipient}. The email should cover the following topics: {email_content}"
+    
+    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    outputs = model.generate(inputs, max_length=512, num_beams=5, early_stopping=True)
+    email = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    return email
 
-def gen_mail_format(sender, recipient, style, email_contents):
-    email_contents = gen_mail_contents(email_contents)
-    contents_str, contents_length = "", 0
-    for topic in range(len(email_contents)):
-        contents_str = contents_str + f"\nContent{topic+1}: " + email_contents[topic]
-        contents_length += len(email_contents[topic])
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Write a professional email that sounds {style} and includes Content1 and Content2 in that order.\n\nSender: {sender}\nRecipient: {recipient} {contents_str}\n\nEmail Text:"}
-        ],
-        temperature=0.8,
-        max_tokens=contents_length*2,
-        top_p=0.8,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-    return response.choices[0].message['content']
-
-def main_gpt3emailgen():
-    st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) '
+def main():
+    st.markdown('Generate professional sounding emails based on your direct comments - powered by AI '
         'view project source code on '
         '[GitHub](https://github.com/natnew/Conference-Research)')
     st.write('\n')
@@ -113,8 +86,7 @@ def main_gpt3emailgen():
                     st.write('Sender and Recipient names cannot be empty!')
                 else:
                     with st.spinner():
-                        openai.api_key = openai_api_key
-                        email_text = gen_mail_format(input_sender, input_recipient, input_style, input_contents)
+                        email_text = generate_email(input_sender, input_recipient, input_style, input_contents)
 
     if email_text:
         st.write('\n')
@@ -123,4 +95,4 @@ def main_gpt3emailgen():
             st.markdown(email_text)
 
 if __name__ == '__main__':
-    main_gpt3emailgen()
+    main()
