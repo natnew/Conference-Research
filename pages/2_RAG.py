@@ -17,7 +17,7 @@ uploaded_file = st.file_uploader("Choose a file", type=["txt", "md"])
 question = st.text_input("Enter your question")
 
 # Set OpenAI API key
-openai_api_key = st.secrets["OPENAI_API_KEY"]
+openai_api_key = st.secrets["openai_api_key"]
 openai.api_key = openai_api_key
 os.environ['OPENAI_API_KEY'] = openai_api_key
 client = OpenAI(api_key=openai_api_key)
