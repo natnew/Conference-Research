@@ -1,3 +1,4 @@
+import os
 import openai
 import streamlit as st
 
@@ -40,7 +41,7 @@ st.markdown("Generate Professional Email Templates for Conference Preparation: T
 def gen_mail_contents(email_contents):
     for topic in range(len(email_contents)):
         input_text = email_contents[topic]
-        rephrased_content = openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -52,7 +53,7 @@ def gen_mail_contents(email_contents):
             frequency_penalty=0.0,
             presence_penalty=0.0
         )
-        email_contents[topic] = rephrased_content.choices[0].message['content']
+        email_contents[topic] = response.choices[0].message['content']
     return email_contents
 
 def gen_mail_format(sender, recipient, style, email_contents):
@@ -61,7 +62,7 @@ def gen_mail_format(sender, recipient, style, email_contents):
     for topic in range(len(email_contents)):
         contents_str = contents_str + f"\nContent{topic+1}: " + email_contents[topic]
         contents_length += len(email_contents[topic])
-    email_final_text = openai.ChatCompletion.create(
+    response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -73,7 +74,7 @@ def gen_mail_format(sender, recipient, style, email_contents):
         frequency_penalty=0.0,
         presence_penalty=0.0
     )
-    return email_final_text.choices[0].message['content']
+    return response.choices[0].message['content']
 
 def main_gpt3emailgen():
     st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) '
