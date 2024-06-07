@@ -11,7 +11,7 @@ with st.sidebar:
 st.title("File and Question Processor")
 
 # File upload
-uploaded_file = st.file_uploader("Choose a file", type=["txt", "md", "xlms"])
+uploaded_file = st.file_uploader("Choose a file", type=["md"])
 
 # Question input
 question = st.text_input("Enter your question")
