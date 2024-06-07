@@ -27,8 +27,9 @@ if uploaded_file and question and not openai_api_key:
     st.info("Please add your OpenAI API key to continue.")
 
 if article:
-        # Prepare the prompt for OpenAI API
-        prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
+    # Prepare the prompt for OpenAI API
+    prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
+            
 
     # Set OpenAI API key
     openai.api_key = openai_api_key
