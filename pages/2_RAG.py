@@ -23,20 +23,25 @@ question = st.text_input(
     disabled=not uploaded_file,
 )
 
-if uploaded_file and question and not anthropic_api_key:
-    st.info("Please add your Anthropic API key to continue.")
+if uploaded_file and question and not openai_api_key:
+    st.info("Please add your OpenAI API key to continue.")
 
-if uploaded_file and question and anthropic_api_key:
-    article = uploaded_file.read().decode()
-    prompt = f"""{anthropic.HUMAN_PROMPT} Here's an article:\n\n<article>
-    {article}\n\n</article>\n\n{question}{anthropic.AI_PROMPT}"""
+if article:
+        # Prepare the prompt for OpenAI API
+        prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
 
-    client = anthropic.Client(api_key=anthropic_api_key)
-    response = client.completions.create(
+    # Set OpenAI API key
+    openai.api_key = openai_api_key
+
+    # Call OpenAI API to get the response
+    response = openai.Completion.create(
+        engine="gpt-4",  # Use GPT-4 model
         prompt=prompt,
-        stop_sequences=[anthropic.HUMAN_PROMPT],
-        model="claude-v1",  # "claude-2" for Claude 2 model
-        max_tokens_to_sample=100,
+        max_tokens=100,
+        n=1,
+        stop=None,
+        temperature=0,
     )
+
     st.write("### Answer")
     st.write(response.completion)
