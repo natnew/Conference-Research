@@ -26,9 +26,6 @@ question = st.text_input(
 if uploaded_file and question and not openai_api_key:
     st.info("Please add your OpenAI API key to continue.")
 
-if article:
-    # Prepare the prompt for OpenAI API
-    prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
     
     try:
         # Attempt to read the file with UTF-8 encoding
