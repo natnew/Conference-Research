@@ -46,10 +46,10 @@ def gen_mail_contents(email_contents):
             temperature=0.8,
             max_tokens=len(input_text)*3,
             top_p=0.8,
-            best_of=2,
+            n=1,
             frequency_penalty=0.0,
             presence_penalty=0.0)
-        email_contents[topic] = rephrased_content.get("choices")[0]['text']
+        email_contents[topic] = rephrased_content['choices'][0]['text']
     return email_contents
 
 def gen_mail_format(sender, recipient, style, email_contents):
@@ -60,18 +60,17 @@ def gen_mail_format(sender, recipient, style, email_contents):
         contents_length += len(email_contents[topic])
     email_final_text = openai.Completion.create(
         engine="text-davinci-002",
-        prompt=f"Write a professional email sounds {style} and includes Content1 and Content2 in that order.\n\nSender: {sender}\nRecipient: {recipient} {contents_str}\n\nEmail Text:",
+        prompt=f"Write a professional email that sounds {style} and includes Content1 and Content2 in that order.\n\nSender: {sender}\nRecipient: {recipient} {contents_str}\n\nEmail Text:",
         temperature=0.8,
         max_tokens=contents_length*2,
         top_p=0.8,
-        best_of=2,
+        n=1,
         frequency_penalty=0.0,
         presence_penalty=0.0)
-    return email_final_text.get("choices")[0]['text']
+    return email_final_text['choices'][0]['text']
 
 def main_gpt3emailgen():
     st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) '
-        
         'view project source code on '
         '[GitHub](https://github.com/natnew/Conference-Research)')
     st.write('\n')
