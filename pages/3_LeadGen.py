@@ -40,16 +40,19 @@ st.markdown("Generate Professional Email Templates for Conference Preparation: T
 def gen_mail_contents(email_contents):
     for topic in range(len(email_contents)):
         input_text = email_contents[topic]
-        rephrased_content = openai.Completion.create(
-            engine="text-davinci-002",
-            prompt=f"Rewrite the text to be elaborate and polite.\nAbbreviations need to be replaced.\nText: {input_text}\nRewritten text:",
+        rephrased_content = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Rewrite the text to be elaborate and polite. Abbreviations need to be replaced. Text: {input_text}"}
+            ],
             temperature=0.8,
             max_tokens=len(input_text)*3,
             top_p=0.8,
-            n=1,
             frequency_penalty=0.0,
-            presence_penalty=0.0)
-        email_contents[topic] = rephrased_content['choices'][0]['text']
+            presence_penalty=0.0
+        )
+        email_contents[topic] = rephrased_content.choices[0].message['content']
     return email_contents
 
 def gen_mail_format(sender, recipient, style, email_contents):
@@ -58,16 +61,19 @@ def gen_mail_format(sender, recipient, style, email_contents):
     for topic in range(len(email_contents)):
         contents_str = contents_str + f"\nContent{topic+1}: " + email_contents[topic]
         contents_length += len(email_contents[topic])
-    email_final_text = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=f"Write a professional email that sounds {style} and includes Content1 and Content2 in that order.\n\nSender: {sender}\nRecipient: {recipient} {contents_str}\n\nEmail Text:",
+    email_final_text = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"Write a professional email that sounds {style} and includes Content1 and Content2 in that order.\n\nSender: {sender}\nRecipient: {recipient} {contents_str}\n\nEmail Text:"}
+        ],
         temperature=0.8,
         max_tokens=contents_length*2,
         top_p=0.8,
-        n=1,
         frequency_penalty=0.0,
-        presence_penalty=0.0)
-    return email_final_text['choices'][0]['text']
+        presence_penalty=0.0
+    )
+    return email_final_text.choices[0].message['content']
 
 def main_gpt3emailgen():
     st.markdown('Generate professional sounding emails based on your direct comments - powered by Artificial Intelligence (OpenAI GPT-3) '
