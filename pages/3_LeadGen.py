@@ -23,23 +23,20 @@ hide_streamlit_footer = """<style>#MainMenu {visibility: hidden;}
                         footer {visibility: hidden;}</style>"""
 st.markdown(hide_streamlit_footer, unsafe_allow_html=True)
 
-
-
 with st.sidebar:
     st.markdown("# About")
     st.markdown(
        "We use multi-agent systems and other AI technologies to power this app. "
-            )
+    )
     st.markdown(
        "This tool is a work in progress. "
-            )
+    )
     openai_api_key = st.secrets["openai_api_key"]
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
 st.title("💬 Lead Generation")
 st.markdown("Generate Professional Email Templates for Conference Preparation: Tailor Your Communication for Effective Networking and Engagement")
-
 
 def gen_mail_contents(email_contents):
     for topic in range(len(email_contents)):
@@ -75,7 +72,9 @@ def gen_mail_format(sender, recipient, style, email_contents):
 
 def main_gpt3emailgen():
     try:
-        st.image('../con_research/data/Email_Generator.jpg')  # Use relative path from the /pages directory
+        current_dir = os.path.dirname(__file__)
+        image_path = os.path.join(current_dir, '../con_research/data/Email_Generator.jpg')
+        st.image(image_path)  # Use relative path from the /pages directory
     except FileNotFoundError:
         st.warning("Image file not found. Continuing without displaying the image.")
     
@@ -104,20 +103,20 @@ def main_gpt3emailgen():
             generate_button = st.button('Generate Email')
 
             if generate_button:
-              input_contents = []
-              if input_c1 and input_c1 != 'topic 1':
-                  input_contents.append(str(input_c1))
-              if input_c2 and input_c2 != 'topic 2 (optional)':
-                  input_contents.append(str(input_c2))
+                input_contents = []
+                if input_c1 and input_c1 != 'topic 1':
+                    input_contents.append(str(input_c1))
+                if input_c2 and input_c2 != 'topic 2 (optional)':
+                    input_contents.append(str(input_c2))
 
-              if not input_contents:
-                  st.write('Please fill in some contents for your message!')
-              elif not input_sender or not input_recipient:
-                  st.write('Sender and Recipient names cannot be empty!')
-              else:
-                  with st.spinner():
-                      openai.api_key = openai_api_key
-                      email_text = gen_mail_format(input_sender, input_recipient, input_style, input_contents)
+                if not input_contents:
+                    st.write('Please fill in some contents for your message!')
+                elif not input_sender or not input_recipient:
+                    st.write('Sender and Recipient names cannot be empty!')
+                else:
+                    with st.spinner():
+                        openai.api_key = openai_api_key
+                        email_text = gen_mail_format(input_sender, input_recipient, input_style, input_contents)
 
     if email_text:
         st.write('\n')
