@@ -1,9 +1,21 @@
 import streamlit as st
 from langchain.llms import OpenAI
 
-# Set page configuration
-st.set_page_config(page_title="Lead Generation")
-st.title('Lead Generation')
+with st.sidebar:
+    st.markdown("# About")
+    st.markdown(
+       "We use multi-agent systems and other AI technologies to power this app."
+            )
+    st.markdown(
+       "This tool is a work in progress. "
+            )
+    openai_api_key = st.secrets["openai_api_key"]
+    "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
+    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+
+st.title("💬 Lead Generation")
+st.markdown("Craft emails to participants to reach out and engage with them before the conference.")
+)
 
 # Retrieve the OpenAI API key from the secrets file
 openai_api_key = st.secrets["openai_api_key"]
