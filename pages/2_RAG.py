@@ -1,61 +1,62 @@
-from openai import OpenAI
 import streamlit as st
+import openai
+import pandas as pd
+import os
 
-with st.sidebar:
-    st.markdown("# About")
-    st.markdown(
-       "We use multi-agent systems and other AI technologies to power this app. "
-            )
-    st.markdown(
-       "This tool is a work in progress. "
-            )
-    openai_api_key = st.secrets["openai_api_key"]
-    "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
-    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+# Streamlit web app
+st.sidebar.markdown("About")
+st.title("This tool is a work in progress.")
 
-st.title("💬 RAG")
-st.markdown("Search database")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
-uploaded_file = st.file_uploader("Upload an article", type=("txt", "md", "xlsx"))
-question = st.text_input(
-    "Ask something about the article",
-    placeholder="Can you give me a short summary?",
-    disabled=not uploaded_file,
-)
+uploaded_file = st.file_uploader("Choose a file")
+question = st.text_input("Ask a question")
 
-if uploaded_file and question and not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.")
+if uploaded_file and question:
+    # Process the uploaded file and question
+    if not openai_api_key:
+        st.warning("Please add your OpenAI API key to continue.")
 
-    
     try:
-        # Attempt to read the file with UTF-8 encoding
+        # Try to read the file with utf-8 encoding
         article = uploaded_file.read().decode('utf-8')
     except UnicodeDecodeError:
         try:
-            # If UTF-8 fails, attempt to read the file with a different encoding, e.g., ISO-8859-1
+            # If utf-8 fails, attempt to read the file with a different encoding, e.g., ISO-8859-1
             article = uploaded_file.read().decode('ISO-8859-1')
         except UnicodeDecodeError:
-            # If all attempts fail, handle the error (e.g., display an error message to the user)
-            st.error("The uploaded file has an unsupported encoding. Please upload a file with UTF-8 or ISO-8859-1 encoding.")
+            # If all decoding attempts fail, handle the error (e.g., display an error message to the user)
+            st.error("Unsupported file type. The file has an unsupported encoding. Please upload a file with UTF-8 or ISO-8859-1 encoding.")
             article = None
 
     if article:
+        # Convert DataFrame to string if needed
+        if isinstance(article, pd.DataFrame):
+            article = article.to_string(index=False)
+
         # Prepare the prompt for OpenAI API
-        prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
+        prompt = f"Here is an article:\n\n{article}\n\nQuestion: {question}\n\nAnswer:"
 
-        # Set OpenAI API key
-        openai.api_key = openai_api_key
+        # Send request to OpenAI API
+        if openai_api_key:
+            openai.api_key = openai_api_key
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    max_tokens=300,
+                    n=1,
+                    stop=None,
+                    temperature=0.7,
+                )
 
-        # Call OpenAI API to get the response
-        response = openai.Completion.create(
-            engine="gpt-4",  # Use GPT-4 model
-            prompt=prompt,
-            max_tokens=100,
-            n=1,
-            stop=None,
-            temperature=0,
-        )
-
-        # Display the response
-        st.write("### Answer")
-        st.write(response.choices[0].text.strip())
+                # Display the response
+                answer = response.choices[0].message['content'].strip()
+                st.write(answer)
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+else:
+    st.write("Please upload a file and ask a question.")
