@@ -15,7 +15,7 @@ with st.sidebar:
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
-st.title("💬 RAG")
+st.title("💬 RAG - Lead Generation")
 st.markdown("Search and Filter Conference Participants: Retrieve Relevant Information Based on University Affiliation and Year, Including Research and Teaching Areas")
 uploaded_file = st.file_uploader("Upload an article", type=("txt", "md", "xlsx"))
 question = st.text_input(
