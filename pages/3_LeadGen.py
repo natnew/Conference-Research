@@ -15,7 +15,7 @@ with st.sidebar:
 
 st.title("💬 Lead Generation")
 st.markdown("Craft emails to participants to reach out and engage with them before the conference.")
-)
+
 
 # Retrieve the OpenAI API key from the secrets file
 openai_api_key = st.secrets["openai_api_key"]
