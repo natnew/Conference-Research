@@ -13,7 +13,7 @@ with st.sidebar:
     "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
 
-st.title("💬 Lead Generation")
+st.title("💬 Outreach - Email Generation")
 st.markdown("Craft emails to participants to reach out and engage with them before the conference.")
 
 
