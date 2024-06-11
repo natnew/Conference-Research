@@ -1,14 +1,20 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
+
+###
 import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
-###
 # Load configuration file
 with open('config.yaml') as file:
     config = yaml.load(file, Loader=SafeLoader)
+
+# Substitute environment variables in the config
+for username in config['credentials']['usernames']:
+    config['credentials']['usernames'][username]['password'] = st.secrets[username.upper() + '_PASSWORD']
+config['cookie']['key'] = st.secrets['COOKIE_KEY']
 
 # Create an authenticator object
 authenticator = stauth.Authenticate(
