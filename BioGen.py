@@ -3,6 +3,7 @@ from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
 ###
+import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
@@ -26,7 +27,9 @@ authenticator = stauth.Authenticate(
 )
 
 # Add the login widget
-name, authentication_status, username = authenticator.login('Login', 'main')
+name, authentication_status, username = authenticator.login(
+    'main', 'Login', fields=('username', 'password')
+)
 
 # Handle authentication status
 if authentication_status:
@@ -38,8 +41,6 @@ elif authentication_status is False:
     st.error('Username/password is incorrect')
 elif authentication_status is None:
     st.warning('Please enter your username and password')
-
-
 
 
 ###
