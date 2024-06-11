@@ -1,0 +1,15 @@
+credentials:
+  usernames:
+    user1:
+      name: John Doe
+      password: ${USER1_PASSWORD}
+    user2:
+      name: Jane Doe
+      password: ${USER2_PASSWORD}
+cookie:
+  expiry_days: 30
+  key: ${COOKIE_KEY}
+  name: some_cookie_name
+preauthorized:
+  emails:
+    - john@example.com
