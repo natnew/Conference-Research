@@ -1,6 +1,43 @@
 from con_research.src.modules.imports import *
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
+import streamlit_authenticator as stauth
+import yaml
+from yaml.loader import SafeLoader
+
+###
+# Load configuration file
+with open('config.yaml') as file:
+    config = yaml.load(file, Loader=SafeLoader)
+
+# Create an authenticator object
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days'],
+    config['preauthorized']
+)
+
+# Add the login widget
+name, authentication_status, username = authenticator.login('Login', 'main')
+
+# Handle authentication status
+if authentication_status:
+    st.success(f'Welcome {name}')
+    # Your main app code goes here
+    st.title("Conference Research App")
+    st.write("Add your main app logic here.")
+elif authentication_status is False:
+    st.error('Username/password is incorrect')
+elif authentication_status is None:
+    st.warning('Please enter your username and password')
+
+
+
+
+###
+
 st.markdown("""
     <style>
         .sidebar .sidebar-content {
