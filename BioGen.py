@@ -44,6 +44,10 @@ elif authentication_status is None:
 
 
 ###
+# Handle authentication status
+if authentication_status:
+    st.success(f'Welcome {name}')
+###
 
 st.markdown("""
     <style>
