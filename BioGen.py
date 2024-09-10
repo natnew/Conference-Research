@@ -1,6 +1,8 @@
 import streamlit as st
 import yaml
 import pandas as pd
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import PromptTemplate
 from yaml.loader import SafeLoader
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
