@@ -56,7 +56,7 @@ def process_bios(df, serper_api_key, openai_api_key):
         batch_df = df.iloc[start_idx:end_idx]  # Get a batch of rows from DataFrame
 
         for index, row in batch_df.iterrows():
-            name = row["Name"]
+            name = row["Names"]
             university = row["University"]
 
             # Generate search query
