@@ -29,7 +29,7 @@ def search_local_file(df, full_name, university):
     return "No information found in local files."
 
 def search_internet(full_name, university, selected_interest, serper_api_key):
-    # Generate a search query that includes full name, university, and selected interest
+    # Generate a search query with full name, university, and selected interest
     query = f"{full_name} {university} professor {selected_interest} academic research"
     
     # Use Serper or another web scraping/search tool
@@ -37,22 +37,52 @@ def search_internet(full_name, university, selected_interest, serper_api_key):
     search_results = tool._run(query)
     
     # Scrape relevant content from search results
-    bio_content = ""
+    professors = []
     for url in search_results:
         content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n"
+        # Extract professor-specific information
+        prof_data = extract_professor_data(content)
+        if prof_data:
+            professors.append(prof_data)
     
-    return bio_content if bio_content else "No relevant web results found."
+    return professors if professors else "No relevant web results found."
 
+def extract_professor_data(content):
+    """
+    Function to extract concise professor information like name, bio, and email from the page content.
+    """
+    soup = BeautifulSoup(content, 'html.parser')
+    professor_data = {
+        'name': None,
+        'bio': None,
+        'email': None
+    }
 
-def display_results_in_table(results):
-    if isinstance(results, list):
-        # Convert list of dicts into a DataFrame
-        df = pd.DataFrame(results)
-        df.columns = ['Name', 'Email', 'University', 'University Location', 'Bio', 'Social Handle', 'Published Papers']
-        st.table(df)  # Display as a table in Streamlit
+    # Example tags for extracting relevant details (adjust according to actual HTML structure)
+    name_tag = soup.find('h1')  # Adjust based on actual page structure
+    bio_tag = soup.find('p')     # Adjust based on actual page structure
+    email_tag = soup.find('a', href=lambda href: href and "mailto:" in href)
+
+    if name_tag:
+        professor_data['name'] = name_tag.get_text(strip=True)
+    if bio_tag:
+        professor_data['bio'] = bio_tag.get_text(strip=True)[:150] + "..."  # Limit bio length for brevity
+    if email_tag:
+        professor_data['email'] = email_tag.get('href').replace("mailto:", "")
+    
+    # Only return if name and bio are found
+    return professor_data if professor_data['name'] and professor_data['bio'] else None
+
+def display_results_in_table(professors):
+    if isinstance(professors, list) and professors:
+        for prof in professors:
+            st.write(f"**Name**: {prof['name']}")
+            st.write(f"**Bio**: {prof['bio']}")
+            st.write(f"**Email**: {prof['email'] if prof['email'] else 'No email available'}")
+            st.write("---")
     else:
-        st.write(results)  # Display the error message
+        st.write(professors)
+
 
 # Main function
 def main():
