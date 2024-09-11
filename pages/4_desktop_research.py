@@ -8,10 +8,15 @@ from con_research.src.modules.search_module import SerperDevTool
 from con_research.src.modules.scrape_professors import scrape_professors_by_research_area
 
 # Load interest areas from the JSON file stored in the data folder
+import os
+
 def load_interest_areas():
-    with open('data/interests.json', 'r') as f:
+    # Build the correct path to the interests.json file
+    json_file_path = os.path.join(os.path.dirname(__file__), '..', 'con_research', 'data', 'interests.json')
+    with open(json_file_path, 'r') as f:
         data = json.load(f)
     return data['interest_areas']
+
 
 # Define your helper functions
 def search_local_file(df, full_name, university):
