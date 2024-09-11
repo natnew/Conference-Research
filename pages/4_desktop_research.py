@@ -87,19 +87,20 @@ def main():
                         df = pd.read_csv(file)
                     elif file.name.endswith(".xlsx"):
                         df = pd.read_excel(file)
-                    
+    
                     # Search in the file
                     local_results = search_local_file(df, full_name, university)
                     st.write("Results from Local Files:")
                     display_results_in_table(local_results)
             else:
                 st.warning("Please upload a file to search in local data.")
-        
+    
         if search_scope in ["Internet", "Both"]:
-            # Search on the internet using Serper
-            web_results = search_internet(full_name, university, serper_api_key)
+            # Ensure that full_name, university, and selected_interest are passed
+            web_results = search_internet(full_name, university, selected_interest, serper_api_key)
             st.write(f"Results for {selected_interest} in {university}:")
             display_results_in_table(web_results)
+
 
 # Run the app
 if __name__ == "__main__":
