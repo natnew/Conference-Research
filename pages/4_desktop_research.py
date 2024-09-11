@@ -16,21 +16,20 @@ def search_local_file(df, full_name, university):
         return result.to_dict(orient='records')
     return "No information found in local files."
 
-def search_internet(full_name, university, research_interest, serper_api_key, temperature=0.5):
-    # Generate a search query with full name, university, and research interest
+def search_internet(full_name, university, research_interest, serper_api_key):
     query = f"{full_name} {university} {research_interest} academic research"
     
     # Use Serper or another web scraping/search tool
-    tool = SerperDevTool(api_key=serper_api_key, temperature=temperature)  # Assuming temperature control is added in tool
+    tool = SerperDevTool(api_key=serper_api_key)  # No temperature here
     search_results = tool._run(query)
 
-    # Scrape relevant content from search results
     bio_content = ""
     for url in search_results:
         content = ContentScraper.scrape_anything(url)
         bio_content += content + "\n"
     
     return bio_content if bio_content else "No relevant web results found."
+
 
 # Function to display the results with clear formatting
 def display_results(professor_data):
