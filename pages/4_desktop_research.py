@@ -16,12 +16,12 @@ def search_local_file(df, full_name, university):
         return result.to_dict(orient='records')
     return "No information found in local files."
 
-def search_internet(full_name, university, research_interest, serper_api_key):
+def search_internet(full_name, university, research_interest, serper_api_key, temperature=0.5):
     # Generate a search query with full name, university, and research interest
     query = f"{full_name} {university} {research_interest} academic research"
     
     # Use Serper or another web scraping/search tool
-    tool = SerperDevTool(api_key=serper_api_key)
+    tool = SerperDevTool(api_key=serper_api_key, temperature=temperature)  # Assuming temperature control is added in tool
     search_results = tool._run(query)
 
     # Scrape relevant content from search results
@@ -47,7 +47,7 @@ def display_results(professor_data):
 def main():
     st.title("Desktop Research")
     st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet.")
-
+    
     # API Key Inputs
     groq_api_key = st.text_input("Groq API Key", type="password")
     serper_api_key = st.secrets["serper_api_key"]  # Assuming Serper API is used for web scraping
@@ -63,6 +63,9 @@ def main():
 
     # Option to search local files or the internet
     search_scope = st.selectbox("Where would you like to search?", ["Local Files", "Internet", "Both"])
+
+    # Sliders for controlling output temperature (Assuming this affects how search results or scraping are handled)
+    temperature = st.slider("Adjust Temperature for Internet Search", min_value=0.0, max_value=1.0, value=0.5)
 
     # File Upload Section (Optional for local file search)
     uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
@@ -90,7 +93,7 @@ def main():
 
         if search_scope in ["Internet", "Both"]:
             # Search on the internet using Serper
-            web_results = search_internet(full_name, university, research_interest, serper_api_key)
+            web_results = search_internet(full_name, university, research_interest, serper_api_key, temperature)
             st.write("Results from Internet:")
             st.write(web_results)
 
