@@ -122,3 +122,33 @@ class SeleniumScraping():
 
     def close(self):
         self.driver.close()
+
+
+# New Function to Scrape Faculty Profiles Based on Interests
+def scrape_faculty_page(url, interest_keywords):
+    """
+    Scrapes a university or conference page and returns information on faculty
+    members who match the interest areas.
+    """
+    response = requests.get(url)
+    if response.status_code != 200:
+        return f"Failed to retrieve content from {url}. Status code: {response.status_code}"
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+    faculty_data = []
+
+    # Adjust the selectors depending on the page's structure
+    profiles = soup.find_all('div', class_='faculty-profile')
+
+    for profile in profiles:
+        name = profile.find('h3', class_='faculty-name').text.strip()
+        description = profile.find('p', class_='faculty-description').text.strip().lower()
+        
+        # Check if the faculty member matches any of the provided interest keywords
+        if any(interest in description for interest in interest_keywords):
+            faculty_data.append({
+                'Name': name,
+                'Description': description
+            })
+
+    return faculty_data
