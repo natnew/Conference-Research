@@ -7,16 +7,19 @@ from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
 # Define your helper functions
-def search_local_file(df, first_name, last_name, university):
+def search_local_file(df, full_name, university):
     # Function to search Excel/CSV files
+    name_parts = full_name.split()  # Split full name into parts
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""  # Assume last name is the second part
     result = df[(df['First Name'] == first_name) & (df['Last Name'] == last_name) & (df['University'] == university)]
     if not result.empty:
         return result.to_dict(orient='records')
     return "No information found in local files."
 
-def search_internet(first_name, last_name, university, serper_api_key):
+def search_internet(full_name, university, serper_api_key):
     # Generate a search query
-    query = f"{first_name} {last_name} {university} academic research"
+    query = f"{full_name} {university} academic research"
     
     # Use Serper or another web scraping/search tool
     tool = SerperDevTool(api_key=serper_api_key)
@@ -30,6 +33,15 @@ def search_internet(first_name, last_name, university, serper_api_key):
     
     return bio_content if bio_content else "No relevant web results found."
 
+def display_results_in_table(results):
+    if isinstance(results, list):
+        # Convert list of dicts into a DataFrame
+        df = pd.DataFrame(results)
+        df.columns = ['Name', 'Email', 'University', 'University Location', 'Bio', 'Social Handle', 'Published Papers']
+        st.table(df)  # Display as a table in Streamlit
+    else:
+        st.write(results)  # Display the error message
+
 # Main function
 def main():
     st.title("Desktop Research")
@@ -39,9 +51,8 @@ def main():
     groq_api_key = st.text_input("Groq API Key", type="password")
     serper_api_key = st.secrets["serper_api_key"]  # Assuming Serper API is used for web scraping
     
-    # User inputs for searching profiles
-    first_name = st.text_input("First Name")
-    last_name = st.text_input("Last Name")
+    # User inputs for searching profiles (combine first name and last name)
+    full_name = st.text_input("Full Name (First and Last Name)")
     university = st.text_input("University")
 
     # Option to search local files or the internet
@@ -62,17 +73,17 @@ def main():
                         df = pd.read_excel(file)
                     
                     # Search in the file
-                    local_results = search_local_file(df, first_name, last_name, university)
+                    local_results = search_local_file(df, full_name, university)
                     st.write("Results from Local Files:")
-                    st.write(local_results)
+                    display_results_in_table(local_results)
             else:
                 st.warning("Please upload a file to search in local data.")
         
         if search_scope in ["Internet", "Both"]:
             # Search on the internet using Serper
-            web_results = search_internet(first_name, last_name, university, serper_api_key)
+            web_results = search_internet(full_name, university, serper_api_key)
             st.write("Results from Internet:")
-            st.write(web_results)
+            display_results_in_table(web_results)
 
 # Run the app
 if __name__ == "__main__":
