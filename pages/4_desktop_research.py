@@ -1,23 +1,25 @@
 import streamlit as st
 import pandas as pd
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
-import yaml
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
 # Define your helper functions
-def search_local_file(df, first_name, last_name, university):
+def search_local_file(df, full_name, university):
+    # Split the full name into first and last name
+    name_parts = full_name.split()
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""  # Handle cases where there's no last name
+    
     # Function to search Excel/CSV files
     result = df[(df['First Name'] == first_name) & (df['Last Name'] == last_name) & (df['University'] == university)]
     if not result.empty:
         return result.to_dict(orient='records')
     return "No information found in local files."
 
-def search_internet(first_name, last_name, university, serper_api_key):
-    # Generate a search query
-    query = f"{first_name} {last_name} {university} academic research"
-
+def search_internet(full_name, university, research_interest, serper_api_key):
+    # Generate a search query with full name, university, and research interest
+    query = f"{full_name} {university} {research_interest} academic research"
+    
     # Use Serper or another web scraping/search tool
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
@@ -27,7 +29,7 @@ def search_internet(first_name, last_name, university, serper_api_key):
     for url in search_results:
         content = ContentScraper.scrape_anything(url)
         bio_content += content + "\n"
-
+    
     return bio_content if bio_content else "No relevant web results found."
 
 # Main function
@@ -39,9 +41,13 @@ def main():
     groq_api_key = st.text_input("Groq API Key", type="password")
     serper_api_key = st.secrets["serper_api_key"]  # Assuming Serper API is used for web scraping
 
-    # User inputs for searching profiles
-    first_name = st.text_input("First Name")
-    last_name = st.text_input("Last Name")
+    # User input for full name (first and last name combined)
+    full_name = st.text_input("Full Name (First and Last Name)")
+
+    # Input for research or teaching interests
+    research_interest = st.text_input("Research or Teaching Interest")
+
+    # Input for university
     university = st.text_input("University")
 
     # Option to search local files or the internet
@@ -62,7 +68,7 @@ def main():
                         df = pd.read_excel(file)
 
                     # Search in the file
-                    local_results = search_local_file(df, first_name, last_name, university)
+                    local_results = search_local_file(df, full_name, university)
                     st.write("Results from Local Files:")
                     st.write(local_results)
             else:
@@ -70,7 +76,7 @@ def main():
 
         if search_scope in ["Internet", "Both"]:
             # Search on the internet using Serper
-            web_results = search_internet(first_name, last_name, university, serper_api_key)
+            web_results = search_internet(full_name, university, research_interest, serper_api_key)
             st.write("Results from Internet:")
             st.write(web_results)
 
