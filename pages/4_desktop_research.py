@@ -67,4 +67,33 @@ def main():
     # File Upload Section (Optional for local file search)
     uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
 
- 
+    if st.button("Search"):
+        if search_scope in ["Local Files", "Both"]:
+            # Process local file search
+            if uploaded_files:
+                for file in uploaded_files:
+                    # Load CSV or Excel file
+                    if file.name.endswith(".csv"):
+                        df = pd.read_csv(file)
+                    elif file.name.endswith(".xlsx"):
+                        df = pd.read_excel(file)
+
+                    # Search in the file
+                    local_results = search_local_file(df, full_name, university)
+                    st.write("Results from Local Files:")
+                    if isinstance(local_results, list):
+                        display_results(local_results)
+                    else:
+                        st.write(local_results)
+            else:
+                st.warning("Please upload a file to search in local data.")
+
+        if search_scope in ["Internet", "Both"]:
+            # Search on the internet using Serper
+            web_results = search_internet(full_name, university, research_interest, serper_api_key)
+            st.write("Results from Internet:")
+            st.write(web_results)
+
+# Run the app
+if __name__ == "__main__":
+    main()
