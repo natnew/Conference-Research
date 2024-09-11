@@ -4,6 +4,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from con_research.src.modules.scrapping_module import ContentScraper, scrape_faculty_page
 from con_research.src.modules.search_module import SerperDevTool
+from con_research.src.modules.scrape_professors import scrape_professors_by_research_area  # Import the new function
 
 # Define your helper functions
 def search_local_file(df, full_name, university):
