@@ -32,6 +32,17 @@ def search_internet(full_name, university, research_interest, serper_api_key):
     
     return bio_content if bio_content else "No relevant web results found."
 
+# Function to display the results with clear formatting
+def display_results(professor_data):
+    for prof in professor_data:
+        st.write(f"### Name: {prof.get('Name', 'N/A')}")
+        st.write(f"**University**: {prof.get('University', 'N/A')}")
+        st.write(f"**Teaching Interest**: {prof.get('Teaching Interest', 'N/A')}")
+        st.write(f"**Research Interest**: {prof.get('Research Interest', 'N/A')}")
+        st.write(f"**Contact**: {prof.get('Contact', 'N/A')}")
+        st.write(f"**Bio**: {prof.get('Bio', 'N/A')}")
+        st.write("---")
+
 # Main function
 def main():
     st.title("Desktop Research")
@@ -56,30 +67,4 @@ def main():
     # File Upload Section (Optional for local file search)
     uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
 
-    if st.button("Search"):
-        if search_scope in ["Local Files", "Both"]:
-            # Process local file search
-            if uploaded_files:
-                for file in uploaded_files:
-                    # Load CSV or Excel file
-                    if file.name.endswith(".csv"):
-                        df = pd.read_csv(file)
-                    elif file.name.endswith(".xlsx"):
-                        df = pd.read_excel(file)
-
-                    # Search in the file
-                    local_results = search_local_file(df, full_name, university)
-                    st.write("Results from Local Files:")
-                    st.write(local_results)
-            else:
-                st.warning("Please upload a file to search in local data.")
-
-        if search_scope in ["Internet", "Both"]:
-            # Search on the internet using Serper
-            web_results = search_internet(full_name, university, research_interest, serper_api_key)
-            st.write("Results from Internet:")
-            st.write(web_results)
-
-# Run the app
-if __name__ == "__main__":
-    main()
+ 
