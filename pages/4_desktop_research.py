@@ -28,9 +28,9 @@ def search_local_file(df, full_name, university):
         return result.to_dict(orient='records')
     return "No information found in local files."
 
-def search_internet(full_name, university, serper_api_key):
-    # Generate a search query
-    query = f"{full_name} {university} academic research"
+def search_internet(full_name, university, selected_interest, serper_api_key):
+    # Generate a search query that includes full name, university, and selected interest
+    query = f"{full_name} {university} professor {selected_interest} academic research"
     
     # Use Serper or another web scraping/search tool
     tool = SerperDevTool(api_key=serper_api_key)
@@ -43,6 +43,7 @@ def search_internet(full_name, university, serper_api_key):
         bio_content += content + "\n"
     
     return bio_content if bio_content else "No relevant web results found."
+
 
 def display_results_in_table(results):
     if isinstance(results, list):
