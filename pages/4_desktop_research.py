@@ -1,10 +1,17 @@
 import streamlit as st
 import pandas as pd
+import json
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from con_research.src.modules.scrapping_module import ContentScraper, scrape_faculty_page
 from con_research.src.modules.search_module import SerperDevTool
-from con_research.src.modules.scrape_professors import scrape_professors_by_research_area  # Import the new function
+from con_research.src.modules.scrape_professors import scrape_professors_by_research_area
+
+# Load interest areas from the JSON file stored in the data folder
+def load_interest_areas():
+    with open('data/interests.json', 'r') as f:
+        data = json.load(f)
+    return data['interest_areas']
 
 # Define your helper functions
 def search_local_file(df, full_name, university):
@@ -42,19 +49,6 @@ def display_results_in_table(results):
     else:
         st.write(results)  # Display the error message
 
-# Function to scrape professors based on interests from a URL
-def scrape_professors_from_url(url, interests):
-    # Check if the URL and interests are valid
-    if not url or not interests:
-        return "Please provide both URL and interest areas."
-    
-    keywords = [kw.strip().lower() for kw in interests.split(',')]  # Convert interests into keywords list
-    result = scrape_faculty_page(url, keywords)  # Call the scraping function
-    
-    if isinstance(result, list) and result:
-        return result  # Return matching profiles
-    return "No matching profiles found."
-
 # Main function
 def main():
     st.title("Desktop Research")
@@ -68,17 +62,16 @@ def main():
     full_name = st.text_input("Full Name (First and Last Name)")
     university = st.text_input("University")
 
-    # Option to search local files, internet, or fetch from a URL
-    search_scope = st.selectbox("Where would you like to search?", ["Local Files", "Internet", "Web URL", "Both"])
-    
+    # Option to search local files or internet
+    search_scope = st.selectbox("Where would you like to search?", ["Local Files", "Internet", "Both"])
+
+    # Interest area selection from dropdown (loaded from JSON)
+    interest_areas = load_interest_areas()
+    selected_interest = st.selectbox("Select Interest Area", interest_areas)
+
     # File Upload Section (Optional for local file search)
     uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
-    
-    # URL and interests input for fetching profiles from a web page
-    if search_scope == "Web URL":
-        url = st.text_input("Enter the webpage URL for scraping faculty profiles")
-        interests = st.text_area("Enter keywords for interests (comma separated)", "child development, diversity")
-    
+
     if st.button("Search"):
         if search_scope in ["Local Files", "Both"]:
             # Process local file search
@@ -100,17 +93,8 @@ def main():
         if search_scope in ["Internet", "Both"]:
             # Search on the internet using Serper
             web_results = search_internet(full_name, university, serper_api_key)
-            st.write("Results from Internet:")
+            st.write(f"Results for {selected_interest} in {university}:")
             display_results_in_table(web_results)
-        
-        if search_scope == "Web URL":
-            # Search by scraping the URL
-            if url and interests:
-                url_results = scrape_professors_from_url(url, interests)
-                st.write("Results from URL:")
-                display_results_in_table(url_results)
-            else:
-                st.warning("Please provide both a URL and interest areas.")
 
 # Run the app
 if __name__ == "__main__":
