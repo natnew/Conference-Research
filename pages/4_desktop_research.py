@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from bs4 import BeautifulSoup
 import json
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
