@@ -253,7 +253,7 @@ Impact: This will increase the reliability and consistency of the data, ensuring
 <br>
 
 3. Utilising More Advanced AI Models
-Solution: Future improvements could involve experimenting with or migrating to more advanced AI models, such as OpenAI's GPT-4 or specialised transformer models designed for knowledge extraction from structured datasets.
+Solution: Future improvements could involve experimenting with or migrating to more advanced AI models, such as OpenAI's GPT-4, GPT-o1-preview or specialised transformer models designed for knowledge extraction from structured datasets.
 How it Works: More advanced models, especially those built for information retrieval and natural language understanding, could perform better at generating nuanced content such as delegate bios or contact information. These models can offer improved comprehension of complex queries and unstructured data.
 Impact: This would result in even more accurate and contextually appropriate outputs, with enhanced consistency across large datasets.
 <br>
