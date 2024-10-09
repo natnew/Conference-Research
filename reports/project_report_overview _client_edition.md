@@ -133,7 +133,7 @@ While we experimented with other open-source models and frameworks using API cal
 ![]()
 The data presented here demonstrates the accuracy of our data scraping and the completion of missing fields using the GPT API.
 
-**Examples of Generated Emails**:
+**Examples of Generated output**:
 - Example 1: Name: Dr Jane Doe, Email: jane.doe@university.ac.uk, University: University of Example, Location: United Kingdom, Bio: Research in AI and NLP.
 - Example 2: Name: Prof John Smith, Email: john.smith@college.com, University: College of Example, Location: United States, Bio: Specialises in Machine Learning.
 
@@ -145,6 +145,23 @@ The Streamlit app allows users to filter and search for delegates by region, uni
 
 ![]()
 The chatbot can quickly retrieve delegate information and provide users with suggestions for follow-up emails or meeting requests during conferences
+
+**Mail Merge Process**
+The personalised emails were created by using mail merge with the generated Excel files from the system. The mail merge process allows the automatic population of fields in the email template using the corresponding columns in the Excel file. This automated approach ensures accurate, scalable, and personalised email generation without manual editing.
+
+>Subject: Invitation to Connect at [Conference Name]
+
+>Dear Dr. Jane Doe,
+
+>I hope this message finds you well. My name is [Your Name], and I represent [Your Organisation]. I came across your profile while reviewing the delegate list for [Conference Name], and I was particularly impressed with your work in AI and NLP.
+
+>I would love the opportunity to meet with you during the conference to explore potential collaboration opportunities between our organisations. Please let me know if you're available for a quick chat.
+
+>Looking forward to hearing from you.
+
+>Best regards,  
+>[Your Name]  
+>[Your Organisation]
 
 ---
 
