@@ -1,5 +1,115 @@
 # Conference Research App
 
+### **Table of Contents**
+
+<details>
+  <summary>1. Title Page</summary>
+  <ul>
+    <li><a href="#1-title-page">Title Page</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>2. Abstract</summary>
+  <ul>
+    <li><a href="#2-abstract">Abstract</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>3. Introduction</summary>
+  <ul>
+    <li><a href="#3-introduction">Introduction</a></li>
+    <li><a href="#31-problem-statement">3.1 Problem Statement</a></li>
+    <li><a href="#32-objectives">3.2 Objectives</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>4. Data</summary>
+  <ul>
+    <li><a href="#4-data">Data</a></li>
+    <li><a href="#41-data-sources">4.1 Data Sources</a></li>
+    <li><a href="#42-conference-information">4.2 Conference Information</a></li>
+    <li><a href="#43-instructions">4.3 Instructions</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>5. Approaches Considered</summary>
+  <ul>
+    <li><a href="#5-approaches-considered">Approaches Considered</a></li>
+    <li><a href="#51-tool-use-gpt-for-sheets">5.1 Tool Use: GPT for Sheets</a></li>
+    <li><a href="#52-api-proof-of-concept">5.2 API Proof of Concept</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>6. Methodology</summary>
+  <ul>
+    <li><a href="#6-methodology">Methodology</a></li>
+    <li><a href="#61-tools-and-libraries">6.1 Tools and Libraries</a></li>
+    <li><a href="#62-model-training">6.2 Model Training</a></li>
+    <li><a href="#63-data-collection">6.3 Data Collection</a></li>
+    <li><a href="#64-evaluation">6.4 Evaluation</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>7. Results</summary>
+  <ul>
+    <li><a href="#7-results">Results</a></li>
+    <li><a href="#71-model-performance">7.1 Model Performance</a></li>
+    <li><a href="#72-snippets-of-excel-outputs">7.2 Snippets of Excel Outputs</a></li>
+    <li><a href="#73-streamlit-app-and-chatbot-screenshots">7.3 Streamlit App and Chatbot Screenshots</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>8. Evaluation of Outputs</summary>
+  <ul>
+    <li><a href="#8-evaluation-of-outputs">Evaluation of Outputs</a></li>
+    <li><a href="#81-metrics-based-evaluation">8.1 Metrics-Based Evaluation</a></li>
+    <li><a href="#82-llm-based-evaluation">8.2 LLM-Based Evaluation</a></li>
+    <li><a href="#83-human-based-evaluation">8.3 Human-Based Evaluation</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>9. Challenges and Limitations</summary>
+  <ul>
+    <li><a href="#9-challenges-and-limitations">Challenges and Limitations</a></li>
+    <li><a href="#91-challenges">9.1 Challenges</a></li>
+    <li><a href="#92-limitations">9.2 Limitations</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>10. Conclusion</summary>
+  <ul>
+    <li><a href="#10-conclusion">Conclusion</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>11. Next Steps/Improvements</summary>
+  <ul>
+    <li><a href="#11-next-steps-improvements">Next Steps/Improvements</a></li>
+    <li><a href="#111-generative-memory-and-feedback-mechanism">11.1 Generative Memory and Feedback Mechanism</a></li>
+    <li><a href="#112-enhancing-data-accuracy-with-fine-tuned-models">11.2 Enhancing Data Accuracy with Fine-Tuned Models</a></li>
+    <li><a href="#113-introducing-validation-layers-for-consistency">11.3 Introducing Validation Layers for Consistency</a></li>
+  </ul>
+</details>
+
+<details>
+  <summary>12. References</summary>
+  <ul>
+    <li><a href="#12-references">References</a></li>
+  </ul>
+</details>
+
+---
+
 ## 1. Title Page
 
 - **Project Title**: Automating Conference Delegate Information Retrieval
@@ -92,6 +202,51 @@ We evaluated three different approaches to automate the collection and organisat
 - **Time (per conference)**: Web scraping takes approximately 3 hours, preprocessing another 2 hours, and using the API or third-party tool for completing missing fields takes an additional 2 hours. The total time may vary depending on the size of the dataset and the API’s processing speed.
 - **Effectiveness**: This hybrid approach achieves 100% accuracy in data extraction by combining the strengths of both Python for scraping and the GPT API for handling missing data and refining results. While some fields may still be missing due to limitations in source data, the API allows for faster, more accurate completion of partial or incomplete data. The use of an API ensures that data is up-to-date and accurate, but it requires careful management of API rate limits and costs.
 <br>
+
+**API Prompt Engineering Proof of Concept**
+```
+1. **Scrape the BISA conference website:**
+   - "You are provided with the following URL that contains the list of names for individuals who are to attend the BISA conference: https://conference.bisa.ac.uk/list-speakers-0. Your goal is to scrape the website URL provided and extract the names and universities of the attendees or speakers."
+   
+   - "Scrape the provided URL for the speakers attending the BISA conference. Ensure that the data is well formatted and neatly organised."
+
+2. **Extract names and universities:**
+   - "Your goal is to extract the names and universities for each person attending or speaking at the conference from the scraped content provided by the researcher."
+
+3. **Search the internet for biographies:**
+   - "You are provided with the list of names for individuals who are to attend the BISA conference. Your goal is to search the internet for each name in the list and scrape relevant websites to gather information about each person."
+
+   - "For each name in the list, search the internet and scrape URLs with relevant biographical information. Ensure all the data is neatly formatted and organised."
+
+4. **Generate concise biographies:**
+   - "Your goal is to produce a short bio for each person attending or speaking at the BISA conference based on the content provided by the researcher."
+   
+   - "Craft a short and concise biography for the names in the list attending the BISA conference. Ensure that the data is well formatted and neatly organised."
+
+   - **Expected Output**: "A set of short and concise well-written biographies for each conference speaker, ready to be included in the conference materials."
+
+```
+
+**Tool Use Prompt Engineering Proof of Concept**
+```
+##=GPT_WEB("What is the university email address of " & A2 & "? Provide only the email address.")##
+
+##=GPT_WEB("Which country is the university " & C2 & " located in? Provide only the country name. For example United States or United Kingdom or Netherlands or Germany.")##
+
+##=GPT_WEB("Find the LinkedIn and Twitter profiles of " & A2 & ". Provide only the profile URLs.")##
+
+##=GPT_WEB("Find Bios, including teaching and research interest only, from the LinkedIn and Twitter profiles of " & F2 & ". Provide a summary.")##
+
+##=GPT_WEB("Find Bios, including teaching and research interest for profiles of " & A2 & ". Provide a summary.")##
+
+##=GPT_WEB("Which university is the person in " & A3 & " associated with? Provide only the University name.")##
+
+##=GPT_WEB("What is the university email address of " & A3 & "? Provide only the email address.")##
+
+##=GPT_WEB("What is the university email address of " & A2 & "? Provide only the email address. Search the faculty website.")##
+
+```
+
 
 ### Selected Approach: Hybrid Approach
 
