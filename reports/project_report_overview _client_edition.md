@@ -1,4 +1,6 @@
 # Conference Research App
+Date: October 2024 | Estimated Reading Time: 30 min | Author: Natasha
+
 
 ### **Table of Contents**
 
