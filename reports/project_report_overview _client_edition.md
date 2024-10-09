@@ -126,7 +126,7 @@ This project aims to automate the retrieval of conference delegate information a
 
 The final solution integrates the scraped and API-generated data into a user-friendly Streamlit application that allows editors to filter and search for delegates and automatically generate outreach emails. An embedded chatbot further enhances real-time interaction with the dataset during conferences. To ensure the system’s reliability, we employed multiple evaluation techniques, including metrics-based evaluation (accuracy, recall, precision, F1 score), LLM-based grading, and human-based reviews. The project successfully reduces the time and manual effort required for conference preparation while improving the accuracy and consistency of delegate information, making it a valuable tool for academic and business conferences.
 
-![](https://github.com/natnew/Conference-Research/blob/main/images/LLM%20System.png)
+![](https://github.com/natnew/Conference-Research/blob/main/images/LLM%20System%20Overview.png)
 Hybrid Approach Architecture for Conference Delegate Information Retrieval
 
 ---
