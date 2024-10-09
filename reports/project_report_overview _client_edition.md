@@ -208,13 +208,18 @@ In addition to LLM-based evaluation, we performed **human-based evaluations** fo
 
 ## 9. Challenges and Limitations
 
-**Challenges**:
-- Difficulty in scraping dynamically loaded content on modern websites.
-- Inconsistent data formats across conferences require additional preprocessing and validation.
-
-**Limitations**:
-- The system may struggle to gather information from websites that require JavaScript to load content or use CAPTCHA.
-- Occasional manual intervention is required to fill in missing delegate information.
+**Challenges:**
+- Difficulty in scraping dynamically loaded content on modern websites: Many modern websites use JavaScript to load content, making it challenging for traditional scraping methods.
+- Inconsistent data formats across conferences require additional preprocessing and validation: Conference websites often present delegate data in different formats, increasing the complexity of data cleaning and preprocessing.
+- Finite context length in LLM models: The limited context window restricts the amount of historical data or detailed instructions the system can process at a given time, making it difficult to retain prior knowledge across multiple steps. This affects the completeness of the generated outputs when filling in missing information.
+- Challenges in long-term planning and task decomposition: LLMs struggle to adapt to complex, multi-step processes, such as refining outputs based on errors or incomplete data. The inability to easily revise plans reduces the system’s flexibility when handling unexpected issues.
+- Reliability of natural language interfaces: The interaction between the LLM and external components (e.g., data validation, mail merge) depends on natural language, which can lead to formatting errors or misinterpretations of instructions, necessitating additional validation efforts.
+- 
+**Limitations:**
+- The system may struggle to gather information from websites that require JavaScript to load content or use CAPTCHA, limiting the scope of data that can be automatically retrieved.
+- Occasional manual intervention is required to fill in missing delegate information: Despite the use of LLMs, some data sources may not provide enough context for accurate auto-completion, requiring human involvement.
+- Limited ability to handle complex delegate profiles: The model’s context window may not be sufficient to process detailed or lengthy delegate profiles, which can affect the quality of the final email generation or bios.
+- LLM outputs may be inconsistent or prone to formatting issues: Relying on natural language generation introduces the risk of formatting errors or outputs that deviate from the intended structure, which can affect the reliability of automated processes like email generation.
 
 ---
 
@@ -278,7 +283,28 @@ Impact: This will ensure the system generates more precise, relevant, and consis
 
 ## 12. References
 
-- [Hugging Face Transformers Documentation](https://huggingface.co/transformers/)
-- [Pywin32 Documentation](https://pypi.org/project/pywin32/)
-- [BLEU Score Evaluation Paper](https://aclanthology.org/P02-1040/)
-- [LangChain Documentation](https://www.langchain.com/)
+1. Weng, L. (2023). “LLM-powered Autonomous Agents”. Lil’Log. [https://lilianweng.github.io/posts/2023-06-23-agent/](https://lilianweng.github.io/posts/2023-06-23-agent/)
+2. Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E., Le, Q., & Zhou, D. (2022). “Chain of thought prompting elicits reasoning in large language models.” NeurIPS 2022.
+3. Yao, S., Zhao, J., Yu, D., Xu, R., & Zha, H. (2023). “Tree of Thoughts: Deliberate Problem Solving with Large Language Models.” arXiv preprint arXiv:2305.10601.
+4. Liu, P., Yuan, W., Fu, J., Jiang, Z., Hayashi, H., & Neubig, G. (2023). “Chain of Hindsight Aligns Language Models with Feedback.” arXiv preprint arXiv:2302.02676.
+5. Liu, P., et al. (2023). “LLM+P: Empowering Large Language Models with Optimal Planning Proficiency.” arXiv preprint arXiv:2304.11477.
+6. Yao, S., et al. (2023). “ReAct: Synergizing reasoning and acting in language models.” ICLR 2023.
+7. Google Blog. “Announcing ScaNN: Efficient Vector Similarity Search.” July 28, 2020. [https://blog.google/products/ai/announcing-scann-efficient-vector-similarity-search/](https://blog.google/products/ai/announcing-scann-efficient-vector-similarity-search/)
+8. Shinn, M., & Labash, P. (2023). “Reflexion: an autonomous agent with dynamic memory and self-reflection.” arXiv preprint arXiv:2303.11366.
+9. Laskin, M., et al. (2023). “In-context Reinforcement Learning with Algorithm Distillation.” ICLR 2023.
+10. Karpas, E., et al. (2022). “MRKL Systems: A modular, neuro-symbolic architecture that combines large language models, external knowledge sources, and discrete reasoning.” arXiv preprint arXiv:2205.00445.
+11. Nakano, R., et al. (2021). “WebGPT: Browser-assisted question-answering with human feedback.” arXiv preprint arXiv:2112.09332.
+12. Parisi, M., et al. (2023). “TALM: Tool Augmented Language Models.”
+13. Schick, T., et al. (2023). “Toolformer: Language Models Can Teach Themselves to Use Tools.” arXiv preprint arXiv:2302.04761.
+14. Weaviate Blog. “Why is Vector Search so fast?” Sep 13, 2022. [https://weaviate.io/blog/why-is-vector-search-so-fast](https://weaviate.io/blog/why-is-vector-search-so-fast)
+15. Li, T., et al. (2023). “API-Bank: A Benchmark for Tool-Augmented LLMs.” arXiv preprint arXiv:2304.08244.
+16. Shen, Y., et al. (2023). “HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in HuggingFace.” arXiv preprint arXiv:2303.17580.
+17. Bran, D., et al. (2023). “ChemCrow: Augmenting large-language models with chemistry tools.” arXiv preprint arXiv:2304.05376.
+18. Boiko, D., et al. (2023). “Emergent autonomous scientific research capabilities of large language models.” arXiv preprint arXiv:2304.05332.
+19. Park, J. S., et al. (2023). “Generative Agents: Interactive Simulacra of Human Behavior.” arXiv preprint arXiv:2304.03442.
+20. Significant Gravitas. (2023). AutoGPT. [https://github.com/Significant-Gravitas/Auto-GPT](https://github.com/Significant-Gravitas/Auto-GPT)
+21. AntonOsika. (2023). GPT-Engineer. [https://github.com/AntonOsika/gpt-engineer](https://github.com/AntonOsika/gpt-engineer)
+22. [Hugging Face Transformers Documentation](https://huggingface.co/transformers/)
+23. [Pywin32 Documentation](https://pypi.org/project/pywin32/)
+24. [BLEU Score Evaluation Paper](https://aclanthology.org/P02-1040/)
+25. [LangChain Documentation](https://www.langchain.com/)
