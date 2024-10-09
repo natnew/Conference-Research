@@ -115,7 +115,7 @@ Date: October 2024 | Estimated Reading Time: 30 min | Author: Natasha
 ## 1. Title Page
 
 - **Project Title**: Automating Conference Delegate Information Retrieval
-- **Author**: ...
+- **Author**: Natasha
 - **Date**: 2024
 
 ---
@@ -255,6 +255,10 @@ We evaluated three different approaches to automate the collection and organisat
 After evaluating all three approaches, we selected the **Hybrid Approach** as the best solution. It provided the highest accuracy while ensuring that missing data was filled using GPT for Sheets or GPT API. The Python script enabled fast and efficient scraping, and GPT for Sheets or GPT API ensured that the data was complete and consistent. Although the other approaches had their strengths, the **Hybrid Approach** stood out as the most reliable and accurate solution for collecting and processing conference delegate data.
 
 While we experimented with other open-source models and frameworks using API calls, even with prompt engineering, these alternatives provided less accurate results and were not as efficient in this context.
+
+**API Call Process Pseudocode**
+![](https://github.com/natnew/Conference-Research/blob/main/images/api-bank-process.png)
+To illustrate the process of querying the GPT API for completing missing data fields (such as emails, bios, and university details), we used a structured API call approach similar to the following pseudocode. This ensures that the system interacts with the API effectively and retries the query if the response isn't satisfactory, while providing a fallback if the required data isn't retrieved.
   
 ---
 
