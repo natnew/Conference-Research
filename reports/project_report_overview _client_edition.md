@@ -29,7 +29,7 @@ The final solution integrates the scraped and API-generated data into a user-fri
 - Evaluate system performance using metrics-based evaluation (accuracy, precision, recall, F1 score), LLM-based grading, and human-based feedback to continually improve the accuracy, relevance, and quality of the AI-generated outputs.
 
 
-
+**App** [Desktop Research - Conference App](https://biogenpy.streamlit.app/Desktop_Research)
 
 ---
 
