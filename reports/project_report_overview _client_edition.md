@@ -140,10 +140,10 @@ The data presented here demonstrates the accuracy of our data scraping and the c
 **Streamlit App and Chatbot Screenshots:**
 We developed a **Streamlit-based interface** for easy access to delegate data and lead generation functionality. Below are some screenshots of the Streamlit app and the **chatbot**:
 
-![]()
+![](https://github.com/natnew/Conference-Research/blob/main/images/Screenshot%202024-10-09%20100435.png)
 The Streamlit app allows users to filter and search for delegates by region, university, or research interest. It also generates email templates for outreach.
 
-![]()
+![](https://github.com/natnew/Conference-Research/blob/main/images/Screenshot%202024-07-08%20193129.png)
 The chatbot can quickly retrieve delegate information and provide users with suggestions for follow-up emails or meeting requests during conferences
 
 **Mail Merge Process**
