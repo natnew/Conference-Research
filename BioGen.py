@@ -48,20 +48,43 @@ def search_local_file(df, full_name, university):
 
 def search_internet(full_name, university, research_interest, serper_api_key):
     """
-    Search for academic profiles on the internet using the Serper API.
+    Enhanced internet search function that generates detailed academic profiles using scraping
+    and structured data processing.
     """
-    query = f"{full_name} {university} {research_interest} academic research"
+    # Build a more specific query
+    query = (
+        f"Retrieve academic profile for {full_name}, a researcher at {university}. "
+        f"Include research interests (related to {research_interest}), teaching interests, "
+        f"contact information (email, LinkedIn), and links to publications or repositories."
+    )
     
-    # Use SerperDevTool for web scraping and searching
+    # Perform web search using SerperDevTool
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
 
     bio_content = ""
     for url in search_results:
-        content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n"
-    
-    return bio_content if bio_content else "No relevant web results found."
+        try:
+            # Scrape content from the URL
+            if url.endswith('.pdf'):
+                # Handle PDF scraping
+                content = ContentScraper._extract_text_from_pdf_url(url)
+            else:
+                # Handle HTML content
+                content = ContentScraper._scrape_text_from_url(url)
+            
+            bio_content += content + "\n"
+
+        except Exception as e:
+            st.warning(f"Error scraping {url}: {e}")
+
+    # Use GPT model to generate a concise bio
+    if bio_content.strip():
+        formatted_bio = generate_short_bio(bio_content)
+        return formatted_bio
+    else:
+        return "No relevant web results found."
+
 
 # Function to display results in a structured format
 def display_results(professor_data):
