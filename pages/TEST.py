@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import requests
+import openai
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
@@ -20,25 +22,65 @@ with st.sidebar.expander("Capabilities", expanded=False):
     methodologies to deliver efficient and accurate results.
     """)
 
-# Internet Search Function
-def search_internet(full_name, university, serper_api_key):
+# Google Custom Search API Function
+def google_search(query, google_cse_id, google_api_key):
     """
-    Search for academic profiles on the internet using the Serper API.
+    Perform a search using Google Custom Search JSON API.
     """
-    query = f"{full_name} {university} faculty profile, research interests, teaching experience, publications, contact details"
-    tool = SerperDevTool(api_key=serper_api_key)
-    search_results = tool._run(query)
+    url = "https://www.googleapis.com/customsearch/v1"
+    params = {
+        "q": query,  # Search query
+        "cx": google_cse_id,  # Custom Search Engine ID
+        "key": google_api_key,  # Google API Key
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {"error": response.status_code, "message": response.text}
 
-    # Combine relevant content from search results
-    bio_content = ""
-    for url in search_results:
+# OpenAI Summarization Function
+def summarize_bio(content, openai_api_key):
+    """
+    Use OpenAI's API to summarize the extracted content into a bio.
+    """
+    openai.api_key = openai_api_key
+    prompt = f"Summarize the following information into a concise academic bio:\n\n{content}"
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=200,
+        temperature=0.7,
+    )
+    return response["choices"][0]["text"].strip()
+
+# Internet Search Function
+def search_and_generate_bio(full_name, university, serper_api_key, google_cse_id, google_api_key, openai_api_key):
+    """
+    Use Serper API, Google Custom Search API, and OpenAI API to generate a short bio.
+    """
+    # Query Google Custom Search API
+    google_results = google_search(f"{full_name} {university}", google_cse_id, google_api_key)
+    google_content = "\n".join(
+        [f"{item['title']} - {item['snippet']}" for item in google_results.get("items", [])]
+    )
+
+    # Query Serper API
+    serper_tool = SerperDevTool(api_key=serper_api_key)
+    serper_results = serper_tool._run(f"{full_name} {university} research teaching")
+
+    # Scrape content from Serper results
+    serper_content = ""
+    for url in serper_results:
         try:
-            content = ContentScraper.scrape_anything(url)
-            bio_content += content + "\n\n"
+            serper_content += ContentScraper.scrape_anything(url) + "\n\n"
         except Exception as e:
-            bio_content += f"Failed to scrape {url}: {str(e)}\n\n"
-    
-    return bio_content.strip() if bio_content else "No relevant information found online."
+            serper_content += f"Failed to scrape {url}: {str(e)}\n\n"
+
+    # Combine content and summarize using OpenAI
+    combined_content = f"{google_content}\n{serper_content}"
+    bio = summarize_bio(combined_content, openai_api_key)
+    return bio
 
 # Streamlit App Title
 st.title("BioGen - Automated Bio Generator")
@@ -76,18 +118,25 @@ if uploaded_file:
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            serper_api_key = st.secrets.get("serper_api_key")  # Access API key from secrets
-            
-            if not serper_api_key:
-                st.error("Serper API key is missing. Please add it to the secrets file.")
+            # Access API keys from Streamlit secrets
+            serper_api_key = st.secrets.get("serper_api_key")
+            google_cse_id = st.secrets.get("google_cse_id")
+            google_api_key = st.secrets.get("google_api_key")
+            openai_api_key = st.secrets.get("openai_api_key")
+
+            if not (serper_api_key and google_cse_id and google_api_key and openai_api_key):
+                st.error("One or more API keys are missing. Please add them to the secrets file.")
             else:
                 # Iterate through each row in the chunk
                 for index, row in chunk_data.iterrows():
                     full_name = row['Name']
                     university = row['University']
 
-                    # Search internet for bio content
-                    bio_content = search_internet(full_name, university, serper_api_key)
+                    # Search and generate bio content
+                    bio_content = search_and_generate_bio(
+                        full_name, university,
+                        serper_api_key, google_cse_id, google_api_key, openai_api_key
+                    )
                     data.at[index, 'Bio'] = bio_content  # Update the bio column
 
                 # Display Updated Chunk
