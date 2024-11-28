@@ -3,8 +3,26 @@ import pandas as pd
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
+st.sidebar.title("Conference Research Assistant")
+st.sidebar.write("""
+A self-service app that automates the generation of biographical content 
+and assists in lead generation. Designed to support academic and professional 
+activities, it offers interconnected modules that streamline research tasks, 
+whether for conferences, campus visits, or other events.
+""")
+
+# Sidebar Info Box as Dropdown
+with st.sidebar.expander("Capabilities", expanded=False):
+    st.write("""
+    This app leverages cutting-edge technologies to automate and enhance research 
+    workflows. It combines generative AI, voice-to-action capabilities, 
+    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
+    methodologies to deliver efficient and accurate results.
+
+    """)
+    
 with st.sidebar:
-    st.markdown("# About")
+    st.markdown("# About This Tool")
     st.markdown(
        "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles."
             )
