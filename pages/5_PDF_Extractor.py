@@ -7,7 +7,7 @@ from io import BytesIO
 with st.sidebar:
     st.markdown("# About")
     st.markdown(
-       "Extract names, universities, and other relevant details from uploaded PDFs. Use this tool to analyze academic documents quickly and efficiently."
+       "Extract names, universities, and other relevant details from uploaded PDFs. Use this tool to analyze documents quickly and efficiently."
             )
     st.markdown(
        "This tool is a work in progress. "
