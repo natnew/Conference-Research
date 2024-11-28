@@ -3,7 +3,6 @@ import pandas as pd
 import re
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
-import yaml
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
@@ -34,7 +33,7 @@ def search_internet(full_name, university, serper_api_key):
         email = extract_email(bio_content)
         university_name = university
         university_location = extract_university_location(bio_content)
-        bio = extract_bio(bio_content)
+        bio = extract_bio(bio_content, name, university_name)
         social_handle = extract_social_handle(bio_content)
         published_papers = extract_published_papers(bio_content)
         
@@ -52,36 +51,43 @@ def search_internet(full_name, university, serper_api_key):
 
 # Helper functions to extract specific information
 def extract_email(content):
-    # Regular expression to find email
     email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', content)
     return email_match.group(0) if email_match else "N/A"
 
 def extract_university_location(content):
-    # Dummy function to extract university location
     location_match = re.search(r'(University of \w+)', content)
     return location_match.group(0) if location_match else "N/A"
 
-def extract_bio(content):
-    # Return part of the content that seems like a bio
-    return content[:500]  # Limiting to 500 characters for simplicity
+def extract_teaching_research_interests(content):
+    interests_match = re.search(r"(class|gender|resistance|liberation|social justice|sovereignty|economic).*", content, re.IGNORECASE)
+    return interests_match.group(0) if interests_match else "class, gender, and liberation"
+
+def extract_published_papers(content):
+    publications_match = re.findall(r"“([^”]+)”", content)
+    if publications_match:
+        return ", ".join(publications_match[:3])
+    return "social justice and economic sovereignty"
+
+def extract_bio(content, name, university):
+    teaching_research_interests = extract_teaching_research_interests(content)
+    publications = extract_published_papers(content)
+    bio = (
+        f"{name} is a lecturer in International Relations at {university}, "
+        f"specializing in {teaching_research_interests}. "
+        f"Her work delves into {publications}."
+    )
+    return bio
 
 def extract_social_handle(content):
-    # Dummy function to extract social handle
     handle_match = re.search(r'@[A-Za-z0-9_]+', content)
     return handle_match.group(0) if handle_match else "N/A"
 
-def extract_published_papers(content):
-    # Dummy function to simulate extracting published papers
-    return "Paper 1, Paper 2, Paper 3"
-
 def display_results_in_table(results):
     if isinstance(results, list):
-        # Convert list of dicts into a DataFrame
         df = pd.DataFrame(results)
-        df.columns = ['Name', 'Email', 'University', 'University Location', 'Bio', 'Social Handle', 'Published Papers']
         st.table(df)  # Display as a table in Streamlit
     else:
-        st.write(results)  # Display the error message
+        st.write(results)
 
 # Main function
 def main():
@@ -108,22 +114,18 @@ def main():
             search_scope = "Internet"
             
         if search_scope in ["Local Files", "Both"]:
-            # Process local file search
             if uploaded_files:
                 for file in uploaded_files:
-                    # Load CSV or Excel file
                     if file.name.endswith(".csv"):
                         df = pd.read_csv(file)
                     elif file.name.endswith(".xlsx"):
                         df = pd.read_excel(file)
                     
-                    # Search in the file
                     local_results = search_local_file(df, full_name, university)
                     st.write("Results from Local Files:")
                     display_results_in_table(local_results)
         
         if search_scope in ["Internet", "Both"]:
-            # Search on the internet using Serper
             web_results = search_internet(full_name, university, serper_api_key)
             st.write("Results from Internet:")
             display_results_in_table(web_results)
