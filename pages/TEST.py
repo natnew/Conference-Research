@@ -1,7 +1,10 @@
-import streamlit as st
+import os
 import pandas as pd
-from con_research.src.modules.scrapping_module import ContentScraper
-from con_research.src.modules.search_module import SerperDevTool
+from crewai_tools import SerperDevTool, ScrapeWebsiteTool
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema import HumanMessage
+import streamlit as st
 
 # App Sidebar Configuration
 st.sidebar.title("Conference Research Assistant")
@@ -20,30 +23,77 @@ with st.sidebar.expander("Capabilities", expanded=False):
     methodologies to deliver efficient and accurate results.
     """)
 
-# Internet Search Function
-def search_internet(full_name, university, serper_api_key):
-    """
-    Search for academic profiles on the internet using the Serper API.
-    Extract research interests, teaching interests, published papers, and contact details.
-    """
-    query = f"Generate a short bio of not more than 100 words with {full_name} {university} research teaching interests academic papers contact details"
-    tool = SerperDevTool(api_key=serper_api_key)
-    search_results = tool._run(query)
+# Configure API keys
+serper_api_key = os.getenv("SERPER_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
-    # Combine relevant content from search results
-    bio_content = ""
-    for url in search_results:
-        content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n\n"
+# Set up OpenAI Chat Model (LangChain)
+chat_model = ChatOpenAI(
+    model="gpt-3.5-turbo",  # Use "gpt-4" if available
+    temperature=0.7,
+    openai_api_key=openai_api_key
+)
+
+# Set up Serper Tool for Search
+serper_tool = SerperDevTool(api_key=serper_api_key)
+
+# Function to Scrape Websites (Optional)
+scrape_tool = ScrapeWebsiteTool()
+
+# Function to Query Serper API
+def search_with_serper(query: str):
+    """
+    Use Serper API to perform a web search.
+    """
+    results = serper_tool._run(query)
+    return results
+
+# Function to Summarize Results Using OpenAI Chat
+def summarize_content(content: str) -> str:
+    """
+    Summarize raw search content into a concise academic bio using OpenAI ChatCompletion.
+    """
+    # LangChain Chat Prompt
+    prompt = ChatPromptTemplate.from_template(
+        "You are an assistant that generates concise academic bios. Summarize the following information into a short bio:\n\n{content}"
+    )
+    # Format prompt
+    messages = prompt.format_messages(content=content)
     
-    return bio_content if bio_content else "No relevant information found online."
+    # Generate response
+    response = chat_model(messages)
+    return response.content.strip()
 
-st.title("BioGen - Automated Bio Generator")
+# Full Bio Generation Function
+def generate_bio(name: str, university: str) -> str:
+    """
+    Generate a bio by combining Serper search results and OpenAI summarization.
+    """
+    # Query Serper API
+    query = f"{name} {university} research interests, academic papers, contact details"
+    search_results = search_with_serper(query)
+    
+    if not search_results:
+        return "No relevant information found."
 
-# File Upload
+    # Combine results into a single text for summarization
+    combined_content = ""
+    for url in search_results:
+        try:
+            scraped_content = scrape_tool._run(url)
+            combined_content += scraped_content + "\n\n"
+        except Exception as e:
+            combined_content += f"Failed to scrape {url}: {str(e)}\n\n"
+
+    # Summarize using OpenAI Chat
+    return summarize_content(combined_content)
+
+# Streamlit App Title
+st.title("LangChain-Powered Bio Generator")
+
 uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=["csv", "xlsx"])
 if uploaded_file:
-    # Load File
+    # Load file
     if uploaded_file.name.endswith(".csv"):
         data = pd.read_csv(uploaded_file)
     else:
@@ -52,44 +102,40 @@ if uploaded_file:
     st.write("### File Preview:")
     st.write(data.head())
 
-    # Check if required columns are present
+    # Check required columns
     required_columns = ['Name', 'University']
     if all(col in data.columns for col in required_columns):
         st.success("File contains the required columns for processing.")
 
-        # Add a placeholder for the Bio column if not already present
+        # Add Bio column if not present
         if 'Bio' not in data.columns:
             data['Bio'] = ""
 
-        # Specify Chunk Size
+        # Chunk size input
         chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(data), value=10)
         total_chunks = (len(data) + chunk_size - 1) // chunk_size
         st.write(f"### Total Chunks: {total_chunks}")
 
-        # Select Chunk to Process
+        # Select chunk to process
         chunk_index = st.number_input("Select Chunk Index", min_value=0, max_value=total_chunks - 1, value=0, step=1)
         chunk_data = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
         st.write("### Current Chunk:")
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            serper_api_key = st.secrets["serper_api_key"]  # Access API key from secrets
-            
-            # Iterate through each row in the chunk
+            # Iterate through each row and generate bios
             for index, row in chunk_data.iterrows():
-                full_name = row['Name']
+                name = row['Name']
                 university = row['University']
+                bio = generate_bio(name, university)
+                data.at[index, 'Bio'] = bio
 
-                # Search internet for bio content
-                bio_content = search_internet(full_name, university, serper_api_key)
-                data.at[index, 'Bio'] = bio_content  # Update the bio column
-
-            # Display Updated Chunk
+            # Display updated chunk
             updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
             st.write("### Updated Chunk with Bios:")
             st.write(updated_chunk)
 
-            # Download Option
+            # Download updated chunk
             csv = updated_chunk.to_csv(index=False)
             st.download_button(
                 label="Download Current Chunk as CSV",
@@ -97,6 +143,5 @@ if uploaded_file:
                 file_name=f"chunk_{chunk_index}_bios.csv",
                 mime="text/csv"
             )
-        st.info("Use the Chunk Index to process the next set of rows.")
     else:
-        st.error(f"Uploaded file must contain the following columns: {required_columns}")
+        st.error(f"The uploaded file must contain the following columns: {required_columns}")
