@@ -6,6 +6,16 @@ from langchain.prompts import PromptTemplate
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
+with st.sidebar:
+    st.markdown("# About")
+    st.markdown(
+       "BioGen helps you generate academic bios for researchers and professionals. Using AI technologies, it extracts and structures information to create customized profiles."
+            )
+    st.markdown(
+       "This tool is a work in progress. "
+            )
+    openai_api_key = st.secrets["openai_api_key"]
+
 # Define your helper functions
 def search_local_file(df, full_name, university):
     name_parts = full_name.split()
