@@ -24,20 +24,23 @@ with st.sidebar.expander("Capabilities", expanded=False):
 def search_internet(full_name, university, serper_api_key):
     """
     Search for academic profiles on the internet using the Serper API.
-    Extract research interests, teaching interests, published papers, and contact details.
     """
-    query = f"Generate a short bio of not more than 100 words with {full_name} {university} research teaching interests academic papers contact details"
+    query = f"{full_name} {university} faculty profile, research interests, teaching experience, publications, contact details"
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
 
     # Combine relevant content from search results
     bio_content = ""
     for url in search_results:
-        content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n\n"
+        try:
+            content = ContentScraper.scrape_anything(url)
+            bio_content += content + "\n\n"
+        except Exception as e:
+            bio_content += f"Failed to scrape {url}: {str(e)}\n\n"
     
-    return bio_content if bio_content else "No relevant information found online."
+    return bio_content.strip() if bio_content else "No relevant information found online."
 
+# Streamlit App Title
 st.title("BioGen - Automated Bio Generator")
 
 # File Upload
@@ -73,30 +76,33 @@ if uploaded_file:
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            serper_api_key = st.secrets["serper_api_key"]  # Access API key from secrets
+            serper_api_key = st.secrets.get("serper_api_key")  # Access API key from secrets
             
-            # Iterate through each row in the chunk
-            for index, row in chunk_data.iterrows():
-                full_name = row['Name']
-                university = row['University']
+            if not serper_api_key:
+                st.error("Serper API key is missing. Please add it to the secrets file.")
+            else:
+                # Iterate through each row in the chunk
+                for index, row in chunk_data.iterrows():
+                    full_name = row['Name']
+                    university = row['University']
 
-                # Search internet for bio content
-                bio_content = search_internet(full_name, university, serper_api_key)
-                data.at[index, 'Bio'] = bio_content  # Update the bio column
+                    # Search internet for bio content
+                    bio_content = search_internet(full_name, university, serper_api_key)
+                    data.at[index, 'Bio'] = bio_content  # Update the bio column
 
-            # Display Updated Chunk
-            updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
-            st.write("### Updated Chunk with Bios:")
-            st.write(updated_chunk)
+                # Display Updated Chunk
+                updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
+                st.write("### Updated Chunk with Bios:")
+                st.write(updated_chunk)
 
-            # Download Option
-            csv = updated_chunk.to_csv(index=False)
-            st.download_button(
-                label="Download Current Chunk as CSV",
-                data=csv,
-                file_name=f"chunk_{chunk_index}_bios.csv",
-                mime="text/csv"
-            )
+                # Download Option
+                csv = updated_chunk.to_csv(index=False)
+                st.download_button(
+                    label="Download Current Chunk as CSV",
+                    data=csv,
+                    file_name=f"chunk_{chunk_index}_bios.csv",
+                    mime="text/csv"
+                )
         st.info("Use the Chunk Index to process the next set of rows.")
     else:
         st.error(f"Uploaded file must contain the following columns: {required_columns}")
