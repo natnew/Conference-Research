@@ -47,7 +47,7 @@ def extract_names_and_universities(text):
 
 # Streamlit App UI
 st.title("PDF Extractor - Names and Universities")
-st.write("Upload a PDF file, extract and clean its text, and find names and universities.")
+st.write("Upload a PDF file, extract and clean its text, and find names and universities. :balloon:")
 
 # Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
