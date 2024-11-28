@@ -28,7 +28,8 @@ def generate_bio(row):
     name = row.get('Name', 'N/A')
     profession = row.get('Profession', 'N/A')
     specialization = row.get('Specialization', 'N/A')
-    return f"{name} is a {profession} specializing in {specialization}."
+    university = row.get('University', 'N/A')
+    return f"{name} is a {profession} specializing in {specialization}, currently affiliated with {university}."
 
 # File Upload
 uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=["csv", "xlsx"])
@@ -57,7 +58,7 @@ if uploaded_file:
         # Add Generated Bios to Data
         chunk_data["Bio"] = chunk_data.apply(generate_bio, axis=1)
         st.write("### Generated Bios:")
-        st.write(chunk_data[["Name", "Bio"]])
+        st.write(chunk_data[["Name", "University", "Bio"]])
 
         # Download Option
         csv = chunk_data.to_csv(index=False)
