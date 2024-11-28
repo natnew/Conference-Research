@@ -1,4 +1,5 @@
-crewai[tools]==0.28.8  # Ensure only tools are included without embedding dependencies
+crewai[tools]==0.27.0  # Use an older, ChromaDB-free version
+
 selenium==4.19.0
 serpapi==0.1.5
 pdfminer.six==20221105
