@@ -4,45 +4,53 @@ from PyPDF2 import PdfReader
 import re
 from io import BytesIO
 
-# Function to extract names and universities from the PDF
-def extract_names_and_universities(pdf_file):
-    reader = PdfReader(pdf_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
+# Function to clean and normalize text
+def clean_text(text):
+    text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces/newlines with single space
+    text = re.sub(r'(\w)-\s+(\w)', r'\1\2', text)  # Fix hyphenated words split across lines
+    text = text.replace('  ', ' ')  # Extra clean-up for double spaces
+    return text
 
-    # Regex to find names and universities (simplified example, adjust based on your PDF structure)
-    name_univ_pattern = r"([A-Z][a-z]+ [A-Z][a-z]+)\s+(\bUniversity\b.*)"
+# Function to extract names and universities from text
+def extract_names_and_universities(text):
+    name_univ_pattern = r"([A-Z][a-z]+ [A-Z][a-z]+)\s+\(([^\)]+University[^\)]*)\)"  # Match names and universities
     matches = re.findall(name_univ_pattern, text)
-    
-    # Create a DataFrame
-    data = {"Name": [], "University": []}
-    for match in matches:
-        data["Name"].append(match[0])
-        data["University"].append(match[1])
-    
-    return pd.DataFrame(data)
+    return pd.DataFrame(matches, columns=["Name", "University"]) if matches else pd.DataFrame(columns=["Name", "University"])
 
-# Streamlit UI
+# Streamlit App UI
 st.title("PDF Extractor - Names and Universities")
-st.write("Upload a PDF file to extract names and associated universities. You can view and download the extracted data.")
+st.write("Upload a PDF file, extract and clean its text, and find names and universities.")
 
-# File uploader
+# Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
 if uploaded_file is not None:
     with st.spinner("Processing the PDF..."):
         try:
-            # Extract data from PDF
-            df = extract_names_and_universities(uploaded_file)
-            
+            # Extract text from PDF
+            reader = PdfReader(uploaded_file)
+            raw_text = ""
+            for page in reader.pages:
+                raw_text += page.extract_text()
+
+            # Show raw extracted text for debugging
+            st.write("### Raw Extracted Text")
+            st.text_area("Raw Text", raw_text, height=300)
+
+            # Clean and normalize the text
+            cleaned_text = clean_text(raw_text)
+            st.write("### Cleaned Text")
+            st.text_area("Cleaned Text", cleaned_text, height=300)
+
+            # Extract names and universities
+            df = extract_names_and_universities(cleaned_text)
+
             if not df.empty:
                 st.success("Extraction completed!")
-                # Display the extracted data
-                st.write("### Extracted Data")
+                st.write("### Extracted Names and Universities")
                 st.dataframe(df)
-                
-                # Download button
+
+                # Download as Excel
                 output = BytesIO()
                 df.to_excel(output, index=False, engine='openpyxl')
                 output.seek(0)
@@ -53,6 +61,6 @@ if uploaded_file is not None:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 )
             else:
-                st.warning("No names or universities were found in the uploaded PDF. Please try again with a different file.")
+                st.warning("No names or universities were found in the cleaned text.")
         except Exception as e:
             st.error(f"An error occurred: {e}")
