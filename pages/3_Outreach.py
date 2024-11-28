@@ -32,7 +32,7 @@ with st.sidebar:
     
 
 st.title("💬 Outreach - Email Generation")
-st.markdown("Craft emails to participants to reach out and engage with them before the conference.")
+st.markdown("Craft emails to participants to reach out and engage with them before the conference. :balloon:")
 
 def generate_response(input_text):
     try:
@@ -43,7 +43,7 @@ def generate_response(input_text):
         st.error(f"Error generating response: {e}")
 
 with st.form('my_form'):
-    text = st.text_area('Enter text:', 'Craft emails to participants to reach out and engage with them before the conference. :balloon:')
+    text = st.text_area('Enter text:', 'Craft emails to participants to reach out and engage with them before the conference.')
     submitted = st.form_submit_button('Submit')
     
     if submitted:
