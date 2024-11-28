@@ -50,7 +50,7 @@ def search_internet(full_name, university, serper_api_key, google_api_key, googl
 
     return bio_content if bio_content else "No relevant information found online."
 
-
+# App Title
 st.title("BioGen - Automated Bio Generator")
 
 # File Upload
@@ -86,7 +86,10 @@ if uploaded_file:
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            serper_api_key = st.secrets["serper_api_key"]  # Access API key from secrets
+            # Access API keys from secrets
+            serper_api_key = st.secrets["serper_api_key"]
+            google_api_key = st.secrets["google_api_key"]
+            google_cse_id = st.secrets["google_cse_id"]
             
             # Iterate through each row in the chunk
             for index, row in chunk_data.iterrows():
@@ -94,7 +97,7 @@ if uploaded_file:
                 university = row['University']
 
                 # Search internet for bio content
-                bio_content = search_internet(full_name, university, serper_api_key)
+                bio_content = search_internet(full_name, university, serper_api_key, google_api_key, google_cse_id)
                 data.at[index, 'Bio'] = bio_content  # Update the bio column
 
             # Display Updated Chunk
