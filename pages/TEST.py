@@ -29,7 +29,13 @@ def generate_bio(row):
     profession = row.get('Profession', 'N/A')
     specialization = row.get('Specialization', 'N/A')
     university = row.get('University', 'N/A')
-    return f"{name} is a {profession} specializing in {specialization}, currently affiliated with {university}."
+    research_interest = row.get('Research Interest', 'N/A')
+    teaching_interest = row.get('Teaching Interest', 'N/A')
+    contact_details = row.get('Contact Details', 'N/A')
+    
+    return (f"{name} is a {profession} specializing in {specialization}, currently affiliated with {university}. "
+            f"Their research interests include {research_interest}, and they are passionate about teaching {teaching_interest}. "
+            f"You can reach out to them at {contact_details}.")
 
 # File Upload
 uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=["csv", "xlsx"])
