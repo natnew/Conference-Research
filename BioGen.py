@@ -14,15 +14,19 @@ activities, it offers interconnected modules that streamline research tasks,
 whether for conferences, campus visits, or other events.
 """)
 
-st.sidebar.write("""
-This app leverages cutting-edge technologies to automate and enhance research 
-workflows. It combines generative AI, voice-to-action capabilities, 
-Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
-methodologies to deliver efficient and accurate results.
+# Sidebar Info Box as Dropdown
+with st.sidebar.expander("About This Tool", expanded=False):
+    st.write("""
+    This app leverages cutting-edge technologies to automate and enhance research 
+    workflows. It combines generative AI, voice-to-action capabilities, 
+    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
+    methodologies to deliver efficient and accurate results.
 
-Built for professionals, researchers, and academics, the tool is ideal for 
-planning and execution during conferences, campus visits, and collaborative events.
-""")
+    Built for professionals, researchers, and academics, the tool is ideal for 
+    planning and execution during conferences, campus visits, and collaborative events.
+    """)
+
+
 
 with st.sidebar:
     st.markdown("# About This Tool")
