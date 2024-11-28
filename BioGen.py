@@ -14,7 +14,7 @@ activities, it offers interconnected modules that streamline research tasks,
 whether for conferences, campus visits, or other events.
 """)
 
-st.info("""
+st.sidebar.write("""
 This app leverages cutting-edge technologies to automate and enhance research 
 workflows. It combines generative AI, voice-to-action capabilities, 
 Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
