@@ -26,7 +26,7 @@ def chat_with_gpt(api_key, model_name, prompt):
             max_tokens=200,  # Limit the token count for concise bios
         )
         return response['choices'][0]['message']['content'].strip()
-    except openai.error.OpenAIError as e:
+    except Exception as e:
         return f"Error: {e}"
 
 # Function to generate a bio prompt
