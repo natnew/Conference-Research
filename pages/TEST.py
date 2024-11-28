@@ -26,10 +26,7 @@ def search_internet(full_name, university, serper_api_key):
     Search for academic profiles on the internet using the Serper API.
     Extract research interests, teaching interests, published papers, and contact details.
     """
-    query = (
-        f'"{full_name}" "{university}" "research interests" '
-        f'"teaching interests" "academic papers" "contact details"'
-    )
+    query = f"{full_name} {university} research teaching interests academic papers contact details"
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
 
