@@ -1,21 +1,20 @@
-crewai==0.28.8
 crewai[tools]==0.28.8
 selenium==4.19.0
 serpapi==0.1.5
-pdfminer==20191125
+pdfminer.six==20221105  # Updated fork of pdfminer
 streamlit==1.32.2
-langchain==0.1.16
-langchain_openai==0.0.5
+langchain>=0.80.0  # Use latest LangChain for updated functionality
 openpyxl==3.1.2
 langchain_groq==0.1.2
 google==3.0.0
 google-generativeai==0.5.4
 xlsxwriter==3.2.0
 pandas==1.5.3
-openai>=1.0.0
-streamlit-authenticator
-PyPDF2==3.0.1  # Replace with your installed version
+openai>=0.28.0  # Ensure compatibility with latest ChatCompletion APIs
+streamlit-authenticator  # Version not specified, confirm latest
+PyPDF2==3.0.1
 tiktoken>=0.5.2,<0.6.0
+
 
 
 
