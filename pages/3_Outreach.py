@@ -11,8 +11,7 @@ with st.sidebar:
         "This tool is a work in progress."
     )
     openai_api_key = st.secrets["openai_api_key"]
-    st.markdown("[View the source code](https://github.com/natnew/Conference-Research/RAG.py)")
-    st.markdown("[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)")
+    
 
 st.title("💬 Outreach - Email Generation")
 st.markdown("Craft emails to participants to reach out and engage with them before the conference.")
