@@ -12,8 +12,7 @@ with st.sidebar:
        "This tool is a work in progress. "
             )
     openai_api_key = st.secrets["openai_api_key"]
-    "[View the source code](https://github.com/natnew/Conference-Research/RAG.py)"
-    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+   
 
 st.title("💬 RAG - Lead Generation")
 st.markdown("Search and Filter Conference Participants: Retrieve Relevant Information Based on University Affiliation and Year, Including Research and Teaching Areas")
