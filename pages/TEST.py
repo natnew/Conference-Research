@@ -21,22 +21,35 @@ with st.sidebar.expander("Capabilities", expanded=False):
     """)
 
 # Internet Search Function
-def search_internet(full_name, university, serper_api_key):
+def search_internet(full_name, university, serper_api_key, google_api_key, google_cse_id):
     """
-    Search for academic profiles on the internet using the Serper API.
-    Extract research interests, teaching interests, published papers, and contact details.
+    Search for academic profiles on the internet using Serper API and Google Custom Search API.
     """
-    query = f"Generate a short bio of not more than 100 words with {full_name} {university} research teaching interests academic papers contact details"
+    query = f"{full_name} {university} research teaching interests academic papers contact details"
+    
+    # Use Serper API
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
+    
+    # Use Google Custom Search API (optional as fallback)
+    google_results = []
+    if not search_results:
+        from googleapiclient.discovery import build
+        service = build("customsearch", "v1", developerKey=google_api_key)
+        google_results = service.cse().list(q=query, cx=google_cse_id).execute().get("items", [])
 
-    # Combine relevant content from search results
+    # Combine results
+    combined_results = search_results + google_results
+    
+    # Extract and scrape content
     bio_content = ""
-    for url in search_results:
+    for result in combined_results:
+        url = result.get("link")  # Extract URL
         content = ContentScraper.scrape_anything(url)
         bio_content += content + "\n\n"
-    
+
     return bio_content if bio_content else "No relevant information found online."
+
 
 st.title("BioGen - Automated Bio Generator")
 
