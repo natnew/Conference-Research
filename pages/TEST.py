@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import openai
+from openai import OpenAI
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
@@ -21,9 +21,9 @@ def scrape_for_missing_data(name, university):
     return None
 
 # GPT API Function
-def generate_from_gpt(name, university, research_interest, teaching_interest):
+def generate_bio(name, university, research_interest, teaching_interest):
     """
-    Use GPT to generate missing or plausible data for bios.
+    Generate a professional bio using GPT-3.5-turbo.
     """
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -32,12 +32,13 @@ def generate_from_gpt(name, university, research_interest, teaching_interest):
             f"Their research interests include {research_interest}, and they teach {teaching_interest}."
         )}
     ]
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+    response = client.chat.completions.create(
+        model="gpt-4",
         messages=messages,
         max_tokens=150
     )
-    return response.choices[0].message['content'].strip()
+    return response.choices[0].message.content.strip()
+
 
 # Bio Generation Function
 def generate_bio(row):
