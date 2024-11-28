@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
+from langchain_openai import ChatOpenAI
 
 # Sidebar Configuration
 st.sidebar.title("Conference Research Assistant")
@@ -31,6 +32,14 @@ with st.sidebar:
     openai_api_key = st.secrets["openai_api_key"]
 
 # Helper Functions
+def generate_short_bio(content):
+    """
+    Generates a short bio using a GPT-based LLM.
+    """
+    prompt = f"Generate a concise academic profile from the following content:\n{content}\nProfile:"
+    llm = ChatOpenAI(model="gpt-4", temperature=0)
+    return llm.generate_content(prompt).strip()
+
 def search_local_file(df, full_name, university):
     """
     Search for academic profiles in local CSV/XLSX files.
@@ -80,11 +89,9 @@ def search_internet(full_name, university, research_interest, serper_api_key):
 
     # Use GPT model to generate a concise bio
     if bio_content.strip():
-        formatted_bio = generate_short_bio(bio_content)
-        return formatted_bio
+        return generate_short_bio(bio_content)
     else:
         return "No relevant web results found."
-
 
 # Function to display results in a structured format
 def display_results(professor_data):
