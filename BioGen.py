@@ -1,112 +1,130 @@
-import openai
 import streamlit as st
+import pandas as pd
+from con_research.src.modules.scrapping_module import ContentScraper
+from con_research.src.modules.search_module import SerperDevTool
 
-# Function to call GPT API to generate a bio
-def chat_with_gpt(api_key, model_name, prompt):
+# Sidebar Configuration
+st.sidebar.title("Conference Research Assistant")
+st.sidebar.write("""
+A self-service app that automates the generation of biographical content 
+and assists in lead generation. Designed to support academic and professional 
+activities, it offers interconnected modules that streamline research tasks, 
+whether for conferences, campus visits, or other events.
+""")
+
+# Sidebar Info Box as Dropdown
+with st.sidebar.expander("Capabilities", expanded=False):
+    st.write("""
+    This app leverages cutting-edge technologies to automate and enhance research 
+    workflows. It combines generative AI, voice-to-action capabilities, 
+    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
+    methodologies to deliver efficient and accurate results.
+    """)
+
+# Additional Information in the Sidebar
+with st.sidebar:
+    st.markdown("# About This Tool")
+    st.markdown(
+        "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles."
+    )
+    st.markdown("This tool is a work in progress.")
+    openai_api_key = st.secrets["openai_api_key"]
+
+# Helper Functions
+def search_local_file(df, full_name, university):
     """
-    Function to send a prompt to OpenAI's GPT model and return the response.
-
-    Args:
-        api_key (str): The OpenAI API key.
-        model_name (str): The GPT model to use (e.g., "gpt-4").
-        prompt (str): The input prompt for the model.
-
-    Returns:
-        str: The response content from the GPT model.
+    Search for academic profiles in local CSV/XLSX files.
     """
-    # Set the OpenAI API key
-    openai.api_key = api_key
-    try:
-        # Call OpenAI's ChatCompletion endpoint
-        response = openai.ChatCompletion.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": "You are an expert academic bio generator."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.7,  # Adjust for creativity
-            max_tokens=200,  # Token limit for concise bios
-        )
-        # Return the content of the generated message
-        return response['choices'][0]['message']['content'].strip()
-    except openai.error.OpenAIError as e:
-        # Handle OpenAI API errors
-        return f"OpenAI API error: {e}"
-    except Exception as e:
-        # Handle any other errors
-        return f"Unexpected error: {e}"
+    # Split the full name into first and last name
+    name_parts = full_name.split()
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""  # Handle cases where there's no last name
+    
+    # Search for matching profiles in the uploaded file
+    result = df[(df['First Name'] == first_name) & (df['Last Name'] == last_name) & (df['University'] == university)]
+    if not result.empty:
+        return result.to_dict(orient='records')
+    return "No information found in local files."
 
-# Function to generate a bio prompt
-def generate_bio_prompt(full_name, university):
+def search_internet(full_name, university, research_interest, serper_api_key):
     """
-    Constructs a professional bio prompt for GPT.
-
-    Args:
-        full_name (str): The individual's name.
-        university (str): The university name.
-
-    Returns:
-        str: The formatted prompt for GPT.
+    Search for academic profiles on the internet using the Serper API.
     """
-    return f"""
-    Generate a professional academic bio for the following individual:
+    query = f"{full_name} {university} {research_interest} academic research"
+    
+    # Use SerperDevTool for web scraping and searching
+    tool = SerperDevTool(api_key=serper_api_key)
+    search_results = tool._run(query)
 
-    Name: {full_name}
-    University: {university}
+    bio_content = ""
+    for url in search_results:
+        content = ContentScraper.scrape_anything(url)
+        bio_content += content + "\n"
+    
+    return bio_content if bio_content else "No relevant web results found."
 
-    Please infer their research and teaching interests based on their academic background
-    and their likely expertise. Include notable achievements, focus areas, and recent publications 
-    if available. The bio should be concise, professional, and focused on the individual.
+# Function to display results in a structured format
+def display_results(professor_data):
     """
+    Display professor data in a clean and structured way.
+    """
+    for prof in professor_data:
+        st.write(f"### Name: {prof.get('Name', 'N/A')}")
+        st.write(f"**University**: {prof.get('University', 'N/A')}")
+        st.write(f"**Teaching Interest**: {prof.get('Teaching Interest', 'N/A')}")
+        st.write(f"**Research Interest**: {prof.get('Research Interest', 'N/A')}")
+        st.write(f"**Contact**: {prof.get('Contact', 'N/A')}")
+        st.write(f"**Bio**: {prof.get('Bio', 'N/A')}")
+        st.write("---")
 
-# Streamlit App for BioGen
+# Main App Function
 def main():
     # Page Title
     st.title("BioGen - Professional Bio Generator")
-    st.markdown("Generate professional academic bios using GPT models based on Name and University.")
+    st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet.")
 
-    # API Configuration
-    st.markdown("### API Configuration")
-    api_key = st.text_input("API Key", type="password", help="Enter your OpenAI API key.")
-    model_name = st.selectbox("Choose a Model", ["gpt-4", "gpt-3.5-turbo"], help="Select the GPT model to use.")
+    # API Key Inputs
+    groq_api_key = st.text_input("Groq API Key", type="password")
+    serper_api_key = st.secrets["serper_api_key"]
 
-    # User Inputs for Bio Generation
-    st.markdown("### Academic Profile Details")
+    # User Inputs
     full_name = st.text_input("Full Name (First and Last Name)", help="Enter the full name of the academic.")
-    university = st.text_input("University", help="Enter the university of the individual.")
+    research_interest = st.text_input("Research or Teaching Interest", help="Enter research or teaching interests.")
+    university = st.text_input("University", help="Enter the university name.")
 
-    # Generate Bio Button
-    if st.button("Generate Bio"):
-        # Validate Inputs
-        if not api_key:
-            st.error("Please provide an API key.")
-        elif not full_name:
-            st.error("Please provide the full name.")
-        elif not university:
-            st.error("Please provide the university.")
-        else:
-            with st.spinner("Generating bio..."):
-                # Construct the GPT prompt
-                prompt = generate_bio_prompt(full_name, university)
-                
-                # Call the GPT function to generate the bio
-                bio = chat_with_gpt(api_key, model_name, prompt)
-                
-                # Display the result
-                if "error" in bio.lower():
-                    st.error(bio)
-                else:
-                    st.success("Bio Generated Successfully!")
-                    st.markdown("### Generated Bio")
-                    st.write(bio)
+    # Search Scope
+    search_scope = st.selectbox("Where would you like to search?", ["Local Files", "Internet", "Both"])
 
-    # About Section in Sidebar
-    with st.sidebar.expander("Capabilities", expanded=False):
-        st.write("""
-        This tool uses advanced AI technologies to generate academic bios based on 
-        Name and University. By leveraging GPT models, it infers professional details, 
-        research interests, and achievements to create a concise and accurate bio.
-        """)
+    # File Upload Section for Local Search
+    uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
+
+    # Search Button
+    if st.button("Search"):
+        # Local File Search
+        if search_scope in ["Local Files", "Both"]:
+            if uploaded_files:
+                for file in uploaded_files:
+                    # Load the uploaded file
+                    if file.name.endswith(".csv"):
+                        df = pd.read_csv(file)
+                    elif file.name.endswith(".xlsx"):
+                        df = pd.read_excel(file)
+
+                    # Search the file for matching profiles
+                    local_results = search_local_file(df, full_name, university)
+                    st.write("### Results from Local Files:")
+                    if isinstance(local_results, list):
+                        display_results(local_results)
+                    else:
+                        st.write(local_results)
+            else:
+                st.warning("Please upload a file to search in local data.")
+
+        # Internet Search
+        if search_scope in ["Internet", "Both"]:
+            web_results = search_internet(full_name, university, research_interest, serper_api_key)
+            st.write("### Results from Internet:")
+            st.write(web_results)
 
 # Run the App
 if __name__ == "__main__":
