@@ -15,7 +15,8 @@ pandas==1.5.3
 openai>=1.0.0
 streamlit-authenticator
 PyPDF2==3.0.1  # Replace with your installed version
-tiktoken==0.8.0
+tiktoken>=0.5.2,<0.6.0
+
 
 
 
