@@ -73,7 +73,7 @@ def display_results(professor_data):
 # Main function
 def main():
     st.title("Desktop Research")
-    st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet.")
+    st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet. :balloon:")
     
     # API Key Inputs
     groq_api_key = st.text_input("Groq API Key", type="password")
