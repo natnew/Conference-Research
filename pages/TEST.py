@@ -24,19 +24,19 @@ with st.sidebar.expander("Capabilities", expanded=False):
 def search_internet(full_name, university, serper_api_key):
     """
     Search for academic profiles on the internet using the Serper API.
+    Extract research interests, teaching interests, published papers, and contact details.
     """
-    query = f"{full_name} {university} academic research"
-    
-    # Use SerperDevTool for web scraping and searching
+    query = f"{full_name} {university} research teaching interests academic papers contact details"
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
 
+    # Combine relevant content from search results
     bio_content = ""
     for url in search_results:
         content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n"
+        bio_content += content + "\n\n"
     
-    return bio_content if bio_content else "No relevant web results found."
+    return bio_content if bio_content else "No relevant information found online."
 
 st.title("BioGen - Automated Bio Generator")
 
@@ -74,6 +74,8 @@ if uploaded_file:
 
         if st.button("Generate Bios for Current Chunk"):
             serper_api_key = st.secrets["serper_api_key"]  # Access API key from secrets
+            
+            # Iterate through each row in the chunk
             for index, row in chunk_data.iterrows():
                 full_name = row['Name']
                 university = row['University']
@@ -82,11 +84,13 @@ if uploaded_file:
                 bio_content = search_internet(full_name, university, serper_api_key)
                 data.at[index, 'Bio'] = bio_content  # Update the bio column
 
+            # Display Updated Chunk
+            updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
             st.write("### Updated Chunk with Bios:")
-            st.write(chunk_data)
+            st.write(updated_chunk)
 
             # Download Option
-            csv = chunk_data.to_csv(index=False)
+            csv = updated_chunk.to_csv(index=False)
             st.download_button(
                 label="Download Current Chunk as CSV",
                 data=csv,
