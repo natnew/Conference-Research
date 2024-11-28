@@ -2,42 +2,8 @@ import streamlit as st
 import pandas as pd
 import re
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
-
-st.sidebar.title("Conference Research Assistant")
-st.sidebar.write("""
-A self-service app that automates the generation of biographical content 
-and assists in lead generation. Designed to support academic and professional 
-activities, it offers interconnected modules that streamline research tasks, 
-whether for conferences, campus visits, or other events.
-""")
-
-# Sidebar Info Box as Dropdown
-with st.sidebar.expander("Capabilities", expanded=False):
-    st.write("""
-    This app leverages cutting-edge technologies to automate and enhance research 
-    workflows. It combines generative AI, voice-to-action capabilities, 
-    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
-    methodologies to deliver efficient and accurate results.
-
-    """)
-
-
-
-with st.sidebar:
-    st.markdown("# About This Tool")
-    st.markdown(
-       "BioGen helps you generate academic bios for researchers and professionals. Using AI technologies, it extracts and structures information to create customized profiles."
-            )
-    st.markdown(
-       "This tool is a work in progress. "
-            )
-    st.markdown(
-       "Built by [Natasha Newbold](https://www.linkedin.com/in/natasha-newbold/) "
-            )
-    openai_api_key = st.secrets["openai_api_key"]
 
 # Define your helper functions
 def search_local_file(df, full_name, university):
@@ -49,10 +15,10 @@ def search_local_file(df, full_name, university):
         return result.to_dict(orient='records')
     return "No information found in local files."
 
-def search_internet(full_name, university, serper_api_key):
+def search_internet(full_name, university, api_key, model_name):
     query = f"{full_name} {university} academic research"
     
-    tool = SerperDevTool(api_key=serper_api_key)
+    tool = SerperDevTool(api_key=api_key)
     search_results = tool._run(query)
     
     bio_content = ""
@@ -64,19 +30,15 @@ def search_internet(full_name, university, serper_api_key):
         # Extract structured data from bio_content
         name = full_name
         email = extract_email(bio_content)
-        university_name = university
         university_location = extract_university_location(bio_content)
-        bio = extract_bio(bio_content, name, university_name)
-        social_handle = extract_social_handle(bio_content)
+        bio = extract_bio(bio_content, name)
         published_papers = extract_published_papers(bio_content)
         
         return [{
             "Name": name,
             "Email": email,
-            "University": university_name,
             "University Location": university_location,
             "Bio": bio,
-            "Social Handle": social_handle,
             "Published Papers": published_papers
         }]
     else:
@@ -88,32 +50,34 @@ def extract_email(content):
     return email_match.group(0) if email_match else "N/A"
 
 def extract_university_location(content):
-    location_match = re.search(r'(University of \w+)', content)
-    return location_match.group(0) if location_match else "N/A"
-
-def extract_teaching_research_interests(content):
-    interests_match = re.search(r"(class|gender|resistance|liberation|social justice|sovereignty|economic).*", content, re.IGNORECASE)
-    return interests_match.group(0) if interests_match else "class, gender, and liberation"
+    # Try to extract city, then country, and fallback to continent
+    city_match = re.search(r'\b(City of \w+|[A-Za-z ]+ City)\b', content)
+    if city_match:
+        return city_match.group(0)
+    country_match = re.search(r'\b(USA|UK|Canada|Germany|France|India|Australia)\b', content, re.IGNORECASE)
+    if country_match:
+        return country_match.group(0)
+    return "Europe"  # Fallback to continent
 
 def extract_published_papers(content):
-    publications_match = re.findall(r"“([^”]+)”", content)
-    if publications_match:
-        return ", ".join(publications_match[:3])
-    return "social justice and economic sovereignty"
+    # Look for titles of papers and their source
+    papers = re.findall(r"“([^”]+)”\s+\(([^)]+)\)", content)
+    if papers:
+        return ", ".join([f"{title} ({source})" for title, source in papers[:3]])
+    return "No published papers found"
 
-def extract_bio(content, name, university):
+def extract_bio(content, name):
     teaching_research_interests = extract_teaching_research_interests(content)
     publications = extract_published_papers(content)
     bio = (
-        f"{name} is a lecturer in International Relations at {university}, "
-        f"specializing in {teaching_research_interests}. "
-        f"Her work delves into {publications}."
+        f"{name} specializes in {teaching_research_interests}. "
+        f"Her recent work explores {publications}."
     )
     return bio
 
-def extract_social_handle(content):
-    handle_match = re.search(r'@[A-Za-z0-9_]+', content)
-    return handle_match.group(0) if handle_match else "N/A"
+def extract_teaching_research_interests(content):
+    interests_match = re.search(r"(class|gender|resistance|liberation|social justice|sovereignty|economic).*", content, re.IGNORECASE)
+    return interests_match.group(0) if interests_match else "varied academic interests"
 
 def display_results_in_table(results):
     if isinstance(results, list):
@@ -125,13 +89,14 @@ def display_results_in_table(results):
 # Main function
 def main():
     st.title("Desktop Research")
-    st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet. :balloon: ")
+    st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet.")
 
-    # API Key Inputs
-    groq_api_key = st.text_input("Groq API Key", type="password")
-    serper_api_key = st.secrets["serper_api_key"]  # Assuming Serper API is used for web scraping
+    # User inputs for API configuration
+    st.markdown("### API Configuration")
+    api_key = st.text_input("API Key", type="password", help="Enter your API key for accessing OpenAI or other models.")
+    model_name = st.selectbox("Choose a Model", ["OpenAI GPT-4", "OpenAI GPT-3.5", "Custom Model"], help="Select the model to use for extracting information.")
     
-    # User inputs for searching profiles (combine first name and last name)
+    # User inputs for searching profiles
     full_name = st.text_input("Full Name (First and Last Name)")
     university = st.text_input("University")
 
@@ -159,7 +124,7 @@ def main():
                     display_results_in_table(local_results)
         
         if search_scope in ["Internet", "Both"]:
-            web_results = search_internet(full_name, university, serper_api_key)
+            web_results = search_internet(full_name, university, api_key, model_name)
             st.write("Results from Internet:")
             display_results_in_table(web_results)
 
