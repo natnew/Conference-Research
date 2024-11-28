@@ -34,6 +34,9 @@ with st.sidebar:
     st.markdown(
        "This tool is a work in progress. "
             )
+    st.markdown(
+       "Built by [Natasha Newbold](https://www.linkedin.com/in/natasha-newbold/) "
+            )
     openai_api_key = st.secrets["openai_api_key"]
 
 # Define your helper functions
