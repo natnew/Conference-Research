@@ -1,2 +1,7 @@
 [theme]
-base="light"
+base = "dark"
+primaryColor = "#1e1e1e"  # Optional: Custom primary color
+backgroundColor = "#0e1117"  # Optional: Custom background color
+secondaryBackgroundColor = "#202020"  # Optional: Custom secondary background
+textColor = "#ffffff"  # Optional: Text color
+
