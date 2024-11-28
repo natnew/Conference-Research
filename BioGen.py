@@ -23,9 +23,7 @@ def generate_bio_with_gpt(api_key, model_name, full_name, interests, publication
             messages=[
                 {"role": "system", "content": "You are an expert academic bio generator."},
                 {"role": "user", "content": prompt}
-            ],
-            max_tokens=150,
-            temperature=0.7
+            ]
         )
         bio = response['choices'][0]['message']['content'].strip()
         return bio
