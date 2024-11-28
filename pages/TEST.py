@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import requests
-import openai
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
@@ -22,67 +20,24 @@ with st.sidebar.expander("Capabilities", expanded=False):
     methodologies to deliver efficient and accurate results.
     """)
 
-# Google Custom Search API Function
-def google_search(query, google_cse_id, google_api_key):
-    """
-    Perform a search using Google Custom Search JSON API.
-    """
-    url = "https://www.googleapis.com/customsearch/v1"
-    params = {
-        "q": query,  # Search query
-        "cx": google_cse_id,  # Custom Search Engine ID
-        "key": google_api_key,  # Google API Key
-    }
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {"error": response.status_code, "message": response.text}
-
-# OpenAI Summarization Function
-def summarize_bio(content, openai_api_key):
-    """
-    Use OpenAI's API to summarize the extracted content into a bio.
-    """
-    openai.api_key = openai_api_key
-    prompt = f"Summarize the following information into a concise academic bio:\n\n{content}"
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        max_tokens=200,
-        temperature=0.7,
-    )
-    return response["choices"][0]["text"].strip()
-
 # Internet Search Function
-def search_and_generate_bio(full_name, university, serper_api_key, google_cse_id, google_api_key, openai_api_key):
+def search_internet(full_name, university, serper_api_key):
     """
-    Use Serper API, Google Custom Search API, and OpenAI API to generate a short bio.
+    Search for academic profiles on the internet using the Serper API.
+    Extract research interests, teaching interests, published papers, and contact details.
     """
-    # Query Google Custom Search API
-    google_results = google_search(f"{full_name} {university}", google_cse_id, google_api_key)
-    google_content = "\n".join(
-        [f"{item['title']} - {item['snippet']}" for item in google_results.get("items", [])]
-    )
+    query = f"Generate a short bio of not more than 100 words with {full_name} {university} research teaching interests academic papers contact details"
+    tool = SerperDevTool(api_key=serper_api_key)
+    search_results = tool._run(query)
 
-    # Query Serper API
-    serper_tool = SerperDevTool(api_key=serper_api_key)
-    serper_results = serper_tool._run(f"{full_name} {university} research teaching")
+    # Combine relevant content from search results
+    bio_content = ""
+    for url in search_results:
+        content = ContentScraper.scrape_anything(url)
+        bio_content += content + "\n\n"
+    
+    return bio_content if bio_content else "No relevant information found online."
 
-    # Scrape content from Serper results
-    serper_content = ""
-    for url in serper_results:
-        try:
-            serper_content += ContentScraper.scrape_anything(url) + "\n\n"
-        except Exception as e:
-            serper_content += f"Failed to scrape {url}: {str(e)}\n\n"
-
-    # Combine content and summarize using OpenAI
-    combined_content = f"{google_content}\n{serper_content}"
-    bio = summarize_bio(combined_content, openai_api_key)
-    return bio
-
-# Streamlit App Title
 st.title("BioGen - Automated Bio Generator")
 
 # File Upload
@@ -118,40 +73,30 @@ if uploaded_file:
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            # Access API keys from Streamlit secrets
-            serper_api_key = st.secrets.get("serper_api_key")
-            google_cse_id = st.secrets.get("google_cse_id")
-            google_api_key = st.secrets.get("google_api_key")
-            openai_api_key = st.secrets.get("openai_api_key")
+            serper_api_key = st.secrets["serper_api_key"]  # Access API key from secrets
+            
+            # Iterate through each row in the chunk
+            for index, row in chunk_data.iterrows():
+                full_name = row['Name']
+                university = row['University']
 
-            if not (serper_api_key and google_cse_id and google_api_key and openai_api_key):
-                st.error("One or more API keys are missing. Please add them to the secrets file.")
-            else:
-                # Iterate through each row in the chunk
-                for index, row in chunk_data.iterrows():
-                    full_name = row['Name']
-                    university = row['University']
+                # Search internet for bio content
+                bio_content = search_internet(full_name, university, serper_api_key)
+                data.at[index, 'Bio'] = bio_content  # Update the bio column
 
-                    # Search and generate bio content
-                    bio_content = search_and_generate_bio(
-                        full_name, university,
-                        serper_api_key, google_cse_id, google_api_key, openai_api_key
-                    )
-                    data.at[index, 'Bio'] = bio_content  # Update the bio column
+            # Display Updated Chunk
+            updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
+            st.write("### Updated Chunk with Bios:")
+            st.write(updated_chunk)
 
-                # Display Updated Chunk
-                updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
-                st.write("### Updated Chunk with Bios:")
-                st.write(updated_chunk)
-
-                # Download Option
-                csv = updated_chunk.to_csv(index=False)
-                st.download_button(
-                    label="Download Current Chunk as CSV",
-                    data=csv,
-                    file_name=f"chunk_{chunk_index}_bios.csv",
-                    mime="text/csv"
-                )
+            # Download Option
+            csv = updated_chunk.to_csv(index=False)
+            st.download_button(
+                label="Download Current Chunk as CSV",
+                data=csv,
+                file_name=f"chunk_{chunk_index}_bios.csv",
+                mime="text/csv"
+            )
         st.info("Use the Chunk Index to process the next set of rows.")
     else:
         st.error(f"Uploaded file must contain the following columns: {required_columns}")
