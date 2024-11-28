@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
-from langchain_openai import ChatOpenAI
 
 # Sidebar Configuration
 st.sidebar.title("Conference Research Assistant")
@@ -32,14 +31,6 @@ with st.sidebar:
     openai_api_key = st.secrets["openai_api_key"]
 
 # Helper Functions
-def generate_short_bio(content):
-    """
-    Generates a short bio using a GPT-based LLM.
-    """
-    prompt = f"Generate a concise academic profile from the following content:\n{content}\nProfile:"
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
-    return llm.generate_content(prompt).strip()
-
 def search_local_file(df, full_name, university):
     """
     Search for academic profiles in local CSV/XLSX files.
@@ -57,41 +48,20 @@ def search_local_file(df, full_name, university):
 
 def search_internet(full_name, university, research_interest, serper_api_key):
     """
-    Enhanced internet search function that generates detailed academic profiles using scraping
-    and structured data processing.
+    Search for academic profiles on the internet using the Serper API.
     """
-    # Build a more specific query
-    query = (
-        f"Retrieve academic profile for {full_name}, a researcher at {university}. "
-        f"Include research interests (related to {research_interest}), teaching interests, "
-        f"contact information (email, LinkedIn), and links to publications or repositories."
-    )
+    query = f"{full_name} {university} {research_interest} academic research"
     
-    # Perform web search using SerperDevTool
+    # Use SerperDevTool for web scraping and searching
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
 
     bio_content = ""
     for url in search_results:
-        try:
-            # Scrape content from the URL
-            if url.endswith('.pdf'):
-                # Handle PDF scraping
-                content = ContentScraper._extract_text_from_pdf_url(url)
-            else:
-                # Handle HTML content
-                content = ContentScraper._scrape_text_from_url(url)
-            
-            bio_content += content + "\n"
-
-        except Exception as e:
-            st.warning(f"Error scraping {url}: {e}")
-
-    # Use GPT model to generate a concise bio
-    if bio_content.strip():
-        return generate_short_bio(bio_content)
-    else:
-        return "No relevant web results found."
+        content = ContentScraper.scrape_anything(url)
+        bio_content += content + "\n"
+    
+    return bio_content if bio_content else "No relevant web results found."
 
 # Function to display results in a structured format
 def display_results(professor_data):
@@ -159,3 +129,4 @@ def main():
 # Run the App
 if __name__ == "__main__":
     main()
+
