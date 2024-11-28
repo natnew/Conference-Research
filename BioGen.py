@@ -103,6 +103,10 @@ def main():
     uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
     
     if st.button("Search"):
+        if search_scope in ["Local Files", "Both"] and not uploaded_files and search_scope == "Local Files":
+            st.warning("You selected local file search but didn't upload any files. Switching to Internet search...")
+            search_scope = "Internet"
+            
         if search_scope in ["Local Files", "Both"]:
             # Process local file search
             if uploaded_files:
@@ -117,8 +121,6 @@ def main():
                     local_results = search_local_file(df, full_name, university)
                     st.write("Results from Local Files:")
                     display_results_in_table(local_results)
-            else:
-                st.warning("Please upload a file to search in local data.")
         
         if search_scope in ["Internet", "Both"]:
             # Search on the internet using Serper
