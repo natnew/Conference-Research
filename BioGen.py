@@ -15,7 +15,7 @@ whether for conferences, campus visits, or other events.
 """)
 
 # Sidebar Info Box as Dropdown
-with st.sidebar.expander("About This Tool", expanded=False):
+with st.sidebar.expander("Capabilities", expanded=False):
     st.write("""
     This app leverages cutting-edge technologies to automate and enhance research 
     workflows. It combines generative AI, voice-to-action capabilities, 
