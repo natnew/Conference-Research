@@ -3,6 +3,16 @@ import pandas as pd
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
+with st.sidebar:
+    st.markdown("# About")
+    st.markdown(
+       "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles."
+            )
+    st.markdown(
+       "This tool is a work in progress. "
+            )
+    openai_api_key = st.secrets["openai_api_key"]
+
 # Define your helper functions
 def search_local_file(df, full_name, university):
     # Split the full name into first and last name
