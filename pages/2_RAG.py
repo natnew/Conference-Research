@@ -34,7 +34,7 @@ with st.sidebar:
    
 
 st.title("💬 RAG - Lead Generation")
-st.markdown("Search and Filter Conference Participants: Retrieve Relevant Information Based on University Affiliation and Year, Including Research and Teaching Areas")
+st.markdown("Search and Filter Conference Participants: Retrieve Relevant Information Based on University Affiliation and Year, Including Research and Teaching Areas. :balloon:")
 uploaded_file = st.file_uploader("Upload an article", type=("txt", "md", "xlsx"))
 question = st.text_input(
     "Ask something about the article",
