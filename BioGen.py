@@ -14,20 +14,27 @@ def chat_with_gpt(api_key, model_name, prompt):
     Returns:
         str: The response content from the GPT model.
     """
+    # Set the OpenAI API key
     openai.api_key = api_key
     try:
+        # Call OpenAI's ChatCompletion endpoint
         response = openai.ChatCompletion.create(
             model=model_name,
             messages=[
                 {"role": "system", "content": "You are an expert academic bio generator."},
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.7,  # Creativity in responses
-            max_tokens=200,  # Limit the token count for concise bios
+            temperature=0.7,  # Adjust for creativity
+            max_tokens=200,  # Token limit for concise bios
         )
+        # Return the content of the generated message
         return response['choices'][0]['message']['content'].strip()
+    except openai.error.OpenAIError as e:
+        # Handle OpenAI API errors
+        return f"OpenAI API error: {e}"
     except Exception as e:
-        return f"Error: {e}"
+        # Handle any other errors
+        return f"Unexpected error: {e}"
 
 # Function to generate a bio prompt
 def generate_bio_prompt(full_name, university):
@@ -86,7 +93,7 @@ def main():
                 bio = chat_with_gpt(api_key, model_name, prompt)
                 
                 # Display the result
-                if "Error" in bio:
+                if "error" in bio.lower():
                     st.error(bio)
                 else:
                     st.success("Bio Generated Successfully!")
