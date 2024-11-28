@@ -25,14 +25,19 @@ def generate_from_gpt(name, university, research_interest, teaching_interest):
     """
     Use GPT to generate missing or plausible data for bios.
     """
-    prompt = (f"Generate a professional bio for {name}, an academic affiliated with {university}. "
-              f"Their research interests include {research_interest}, and they teach {teaching_interest}.")
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": (
+            f"Generate a professional bio for {name}, an academic affiliated with {university}. "
+            f"Their research interests include {research_interest}, and they teach {teaching_interest}."
+        )}
+    ]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
         max_tokens=150
     )
-    return response.choices[0].text.strip()
+    return response.choices[0].message['content'].strip()
 
 # Bio Generation Function
 def generate_bio(row):
