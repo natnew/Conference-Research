@@ -2,6 +2,7 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import os
+import tiktoken  # Token estimation library
 
 st.sidebar.title("Conference Research Assistant")
 st.sidebar.write("""
@@ -41,6 +42,43 @@ question = st.text_input(
     placeholder="Can you give me a short summary?",
     disabled=not uploaded_file,
 )
+
+
+########
+
+# Function to estimate tokens
+def estimate_tokens(text):
+    encoding = tiktoken.get_encoding("cl100k_base")  # GPT-4 uses this encoding
+    tokens = len(encoding.encode(text))
+    return tokens
+
+if uploaded_file:
+    if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.md'):
+        # Read text content
+        article = uploaded_file.read().decode('utf-8')
+    elif uploaded_file.name.endswith('.xlsx'):
+        # Read Excel content
+        df = pd.read_excel(uploaded_file)
+        article = df.to_string(index=False)
+    else:
+        st.error("Unsupported file type.")
+        article = None
+
+    if article:
+        # Estimate tokens
+        total_tokens = estimate_tokens(article) + estimate_tokens(question)
+        st.markdown(f"**Estimated Token Count:** {total_tokens}")
+        
+        # Warn if token count is too high
+        if total_tokens > 9000:  # Set a threshold slightly below 10,000
+            st.warning("The input size is too large and may exceed token limits. Consider reducing the file size.")
+
+        if question and total_tokens <= 9000:
+            st.success("Input is within acceptable token limits. Ready to process!")
+
+
+########
+
 
 
 # Process the uploaded file and question
