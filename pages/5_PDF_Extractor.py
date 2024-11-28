@@ -4,6 +4,16 @@ from PyPDF2 import PdfReader
 import re
 from io import BytesIO
 
+with st.sidebar:
+    st.markdown("# About")
+    st.markdown(
+       "Extract names, universities, and other relevant details from uploaded PDFs. Use this tool to analyze academic documents quickly and efficiently."
+            )
+    st.markdown(
+       "This tool is a work in progress. "
+            )
+    openai_api_key = st.secrets["openai_api_key"]
+
 # Function to clean and normalize text
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces/newlines with single space
