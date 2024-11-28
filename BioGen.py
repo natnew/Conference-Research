@@ -2,14 +2,14 @@ import openai
 import streamlit as st
 
 # Function to call GPT API to generate a bio
-def chat_with_gpt(prompt, api_key, model="gpt-4"):
+def chat_with_gpt(api_key, model_name, prompt):
     """
     Function to send a prompt to OpenAI's GPT model and return the response.
 
     Args:
-        prompt (str): The input prompt for the model.
         api_key (str): The OpenAI API key.
-        model (str): The GPT model to use (default is "gpt-4").
+        model_name (str): The GPT model to use (e.g., "gpt-4").
+        prompt (str): The input prompt for the model.
 
     Returns:
         str: The response content from the GPT model.
@@ -17,17 +17,17 @@ def chat_with_gpt(prompt, api_key, model="gpt-4"):
     openai.api_key = api_key
     try:
         response = openai.ChatCompletion.create(
-            model=model,
+            model=model_name,
             messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ]
+                {"role": "system", "content": "You are an expert academic bio generator."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,  # Creativity in responses
+            max_tokens=200,  # Limit the token count for concise bios
         )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error: {str(e)}"
+        return response['choices'][0]['message']['content'].strip()
+    except openai.error.OpenAIError as e:
+        return f"Error: {e}"
 
 # Function to generate a bio prompt
 def generate_bio_prompt(full_name, university):
@@ -83,7 +83,7 @@ def main():
                 prompt = generate_bio_prompt(full_name, university)
                 
                 # Call the GPT function to generate the bio
-                bio = chat_with_gpt(prompt, api_key, model_name)
+                bio = chat_with_gpt(api_key, model_name, prompt)
                 
                 # Display the result
                 if "Error" in bio:
