@@ -21,10 +21,13 @@ with st.sidebar.expander("Capabilities", expanded=False):
     """)
 
 # Internet Search Function
-def search_internet(full_name, university, research_interest, serper_api_key):
+def search_internet(full_name, university, research_interest):
     """
     Search for academic profiles on the internet using the Serper API.
     """
+    # Access the API key from Streamlit secrets
+    serper_api_key = st.secrets["serper_api_key"]
+    
     query = f"{full_name} {university} {research_interest} academic research"
     
     # Use SerperDevTool for web scraping and searching
@@ -37,9 +40,6 @@ def search_internet(full_name, university, research_interest, serper_api_key):
         bio_content += content + "\n"
     
     return bio_content if bio_content else "No relevant web results found."
-
-# API Key Input
-serper_api_key = st.sidebar.text_input("Enter Serper API Key", type="password", help="Required for internet searches.")
 
 st.title("BioGen - Chunk-Based Bio Generator")
 
@@ -106,9 +106,9 @@ university = st.text_input("University", help="Enter the university name.")
 research_interest = st.text_input("Research Interest", help="Enter a research or teaching interest.")
 
 if st.button("Search on Internet"):
-    if serper_api_key:
-        result = search_internet(full_name, university, research_interest, serper_api_key)
+    if "serper_api_key" in st.secrets:
+        result = search_internet(full_name, university, research_interest)
         st.write("### Internet Search Results:")
         st.write(result)
     else:
-        st.warning("Please enter your Serper API Key to search online.")
+        st.warning("Serper API Key is missing in Streamlit Secrets.")
