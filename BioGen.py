@@ -22,8 +22,6 @@ with st.sidebar.expander("Capabilities", expanded=False):
     Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
     methodologies to deliver efficient and accurate results.
 
-    Built for professionals, researchers, and academics, the tool is ideal for 
-    planning and execution during conferences, campus visits, and collaborative events.
     """)
 
 
