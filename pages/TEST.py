@@ -1,29 +1,43 @@
 import streamlit as st
 import pandas as pd
+import openai
+from con_research.src.modules.scrapping_module import ContentScraper
+from con_research.src.modules.search_module import SerperDevTool
 
-# App Sidebar Configuration
-st.sidebar.title("Conference Research Assistant")
-st.sidebar.write("""
-A self-service app that automates the generation of biographical content 
-and assists in lead generation. Designed to support academic and professional 
-activities, it offers interconnected modules that streamline research tasks, 
-whether for conferences, campus visits, or other events.
-""")
+# Set API Keys from Streamlit Secrets
+openai.api_key = st.secrets["openai_api_key"]
 
-with st.sidebar.expander("Capabilities", expanded=False):
-    st.write("""
-    This app leverages cutting-edge technologies to automate and enhance research 
-    workflows. It combines generative AI, voice-to-action capabilities, 
-    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
-    methodologies to deliver efficient and accurate results.
-    """)
+# Internet Scraping Function
+def scrape_for_missing_data(name, university):
+    """
+    Scrape the internet for missing information.
+    """
+    query = f"{name} {university} academic profile"
+    tool = SerperDevTool(api_key=st.secrets["serper_api_key"])
+    search_results = tool._run(query)
+    if search_results:
+        content = ContentScraper.scrape_anything(search_results[0])
+        return content
+    return None
 
-st.title("BioGen - Chunk-Based Bio Generator")
+# GPT API Function
+def generate_from_gpt(name, university, research_interest, teaching_interest):
+    """
+    Use GPT to generate missing or plausible data for bios.
+    """
+    prompt = (f"Generate a professional bio for {name}, an academic affiliated with {university}. "
+              f"Their research interests include {research_interest}, and they teach {teaching_interest}.")
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=150
+    )
+    return response.choices[0].text.strip()
 
-# Helper Function for Bio Generation
+# Bio Generation Function
 def generate_bio(row):
     """
-    Generate a bio for a given row of data.
+    Generate a bio for a given row, using scraping and GPT for missing data.
     """
     name = row.get('Name', 'N/A')
     profession = row.get('Profession', 'N/A')
@@ -32,12 +46,22 @@ def generate_bio(row):
     research_interest = row.get('Research Interest', 'N/A')
     teaching_interest = row.get('Teaching Interest', 'N/A')
     contact_details = row.get('Contact Details', 'N/A')
-    
+
+    # Scrape or Generate Missing Data
+    if profession == 'N/A' or specialization == 'N/A':
+        scraped_data = scrape_for_missing_data(name, university)
+        if scraped_data:
+            specialization = specialization if specialization != 'N/A' else "from scraping: " + scraped_data
+
+    if profession == 'N/A':
+        profession = generate_from_gpt(name, university, research_interest, teaching_interest)
+
     return (f"{name} is a {profession} specializing in {specialization}, currently affiliated with {university}. "
             f"Their research interests include {research_interest}, and they are passionate about teaching {teaching_interest}. "
             f"You can reach out to them at {contact_details}.")
 
-# File Upload
+# Streamlit App Configuration
+st.title("BioGen - Advanced Bio Generator with Scraping and GPT")
 uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=["csv", "xlsx"])
 if uploaded_file:
     # Load File
