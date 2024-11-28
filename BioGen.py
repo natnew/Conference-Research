@@ -14,8 +14,18 @@ activities, it offers interconnected modules that streamline research tasks,
 whether for conferences, campus visits, or other events.
 """)
 
+st.info("""
+This app leverages cutting-edge technologies to automate and enhance research 
+workflows. It combines generative AI, voice-to-action capabilities, 
+Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
+methodologies to deliver efficient and accurate results.
+
+Built for professionals, researchers, and academics, the tool is ideal for 
+planning and execution during conferences, campus visits, and collaborative events.
+""")
+
 with st.sidebar:
-    st.markdown("# About")
+    st.markdown("# About This Tool")
     st.markdown(
        "BioGen helps you generate academic bios for researchers and professionals. Using AI technologies, it extracts and structures information to create customized profiles."
             )
