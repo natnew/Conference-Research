@@ -30,25 +30,41 @@ def search_internet(full_name, university, serper_api_key, google_api_key, googl
     # Use Serper API
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
-    
+
     # Use Google Custom Search API (optional as fallback)
     google_results = []
     if not search_results:
         from googleapiclient.discovery import build
         service = build("customsearch", "v1", developerKey=google_api_key)
         google_results = service.cse().list(q=query, cx=google_cse_id).execute().get("items", [])
-
-    # Combine results
-    combined_results = search_results + google_results
+    
+    # Combine results (ensure both lists are handled appropriately)
+    combined_results = []
+    if isinstance(search_results, list):
+        combined_results.extend(search_results)
+    if isinstance(google_results, list):
+        combined_results.extend(google_results)
     
     # Extract and scrape content
     bio_content = ""
     for result in combined_results:
-        url = result.get("link")  # Extract URL
-        content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n\n"
+        # Handle dictionaries and strings gracefully
+        if isinstance(result, dict):
+            url = result.get("link")  # Extract URL if result is a dictionary
+        elif isinstance(result, str):
+            url = result  # Directly use the string if result is a URL string
+        else:
+            continue  # Skip if result is neither a dictionary nor a string
+
+        try:
+            content = ContentScraper.scrape_anything(url)
+            bio_content += content + "\n\n"
+        except Exception as e:
+            # Log scraping errors
+            st.warning(f"Could not scrape content from {url}: {e}")
 
     return bio_content if bio_content else "No relevant information found online."
+
 
 # App Title
 st.title("BioGen - Automated Bio Generator")
