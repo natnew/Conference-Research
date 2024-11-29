@@ -1,4 +1,6 @@
 import streamlit as st
+import openai
+
 from openai import OpenAI  # Ensure this is properly imported
 import pandas as pd
 from io import BytesIO
