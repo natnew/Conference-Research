@@ -30,103 +30,115 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
-# Helper Functions
-def search_local_file(df, full_name, university):
+# Internet Search Function
+def search_internet(full_name, university, serper_api_key, google_api_key, google_cse_id):
     """
-    Search for academic profiles in local CSV/XLSX files.
+    Search for academic profiles on the internet using Serper API and Google Custom Search API.
     """
-    # Split the full name into first and last name
-    name_parts = full_name.split()
-    first_name = name_parts[0]
-    last_name = name_parts[1] if len(name_parts) > 1 else ""  # Handle cases where there's no last name
+    query = f"{full_name} {university} research teaching interests academic papers contact details"
     
-    # Search for matching profiles in the uploaded file
-    result = df[(df['First Name'] == first_name) & (df['Last Name'] == last_name) & (df['University'] == university)]
-    if not result.empty:
-        return result.to_dict(orient='records')
-    return "No information found in local files."
-
-def search_internet(full_name, university, research_interest, serper_api_key):
-    """
-    Search for academic profiles on the internet using the Serper API.
-    """
-    query = f"{full_name} {university} {research_interest} academic research"
-    
-    # Use SerperDevTool for web scraping and searching
+    # Use Serper API
     tool = SerperDevTool(api_key=serper_api_key)
     search_results = tool._run(query)
 
-    bio_content = ""
-    for url in search_results:
-        content = ContentScraper.scrape_anything(url)
-        bio_content += content + "\n"
+    # Use Google Custom Search API (optional as fallback)
+    google_results = []
+    if not search_results:
+        from googleapiclient.discovery import build
+        service = build("customsearch", "v1", developerKey=google_api_key)
+        google_results = service.cse().list(q=query, cx=google_cse_id).execute().get("items", [])
     
-    return bio_content if bio_content else "No relevant web results found."
+    # Combine results (ensure both lists are handled appropriately)
+    combined_results = []
+    if isinstance(search_results, list):
+        combined_results.extend(search_results)
+    if isinstance(google_results, list):
+        combined_results.extend(google_results)
+    
+    # Extract and scrape content
+    bio_content = ""
+    for result in combined_results:
+        # Handle dictionaries and strings gracefully
+        if isinstance(result, dict):
+            url = result.get("link")  # Extract URL if result is a dictionary
+        elif isinstance(result, str):
+            url = result  # Directly use the string if result is a URL string
+        else:
+            continue  # Skip if result is neither a dictionary nor a string
 
-# Function to display results in a structured format
-def display_results(professor_data):
-    """
-    Display professor data in a clean and structured way.
-    """
-    for prof in professor_data:
-        st.write(f"### Name: {prof.get('Name', 'N/A')}")
-        st.write(f"**University**: {prof.get('University', 'N/A')}")
-        st.write(f"**Teaching Interest**: {prof.get('Teaching Interest', 'N/A')}")
-        st.write(f"**Research Interest**: {prof.get('Research Interest', 'N/A')}")
-        st.write(f"**Contact**: {prof.get('Contact', 'N/A')}")
-        st.write(f"**Bio**: {prof.get('Bio', 'N/A')}")
-        st.write("---")
+        try:
+            content = ContentScraper.scrape_anything(url)
+            bio_content += content + "\n\n"
+        except Exception as e:
+            # Log scraping errors
+            st.warning(f"Could not scrape content from {url}: {e}")
 
-# Main App Function
-def main():
-    # Page Title
-    st.title("BioGen - Professional Bio Generator")
-    st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet.")
+    return bio_content if bio_content else "No relevant information found online."
 
-    # API Key Inputs
-    groq_api_key = st.text_input("Groq API Key", type="password")
-    serper_api_key = st.secrets["serper_api_key"]
 
-    # User Inputs
-    full_name = st.text_input("Full Name (First and Last Name)", help="Enter the full name of the academic.")
-    research_interest = st.text_input("Research or Teaching Interest", help="Enter research or teaching interests.")
-    university = st.text_input("University", help="Enter the university name.")
+# App Title
+st.title("BioGen - Automated Bio Generator")
 
-    # Search Scope
-    search_scope = st.selectbox("Where would you like to search?", ["Local Files", "Internet", "Both"])
+# File Upload
+uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=["csv", "xlsx"])
+if uploaded_file:
+    # Load File
+    if uploaded_file.name.endswith(".csv"):
+        data = pd.read_csv(uploaded_file)
+    else:
+        data = pd.read_excel(uploaded_file)
 
-    # File Upload Section for Local Search
-    uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
+    st.write("### File Preview:")
+    st.write(data.head())
 
-    # Search Button
-    if st.button("Search"):
-        # Local File Search
-        if search_scope in ["Local Files", "Both"]:
-            if uploaded_files:
-                for file in uploaded_files:
-                    # Load the uploaded file
-                    if file.name.endswith(".csv"):
-                        df = pd.read_csv(file)
-                    elif file.name.endswith(".xlsx"):
-                        df = pd.read_excel(file)
+    # Check if required columns are present
+    required_columns = ['Name', 'University']
+    if all(col in data.columns for col in required_columns):
+        st.success("File contains the required columns for processing.")
 
-                    # Search the file for matching profiles
-                    local_results = search_local_file(df, full_name, university)
-                    st.write("### Results from Local Files:")
-                    if isinstance(local_results, list):
-                        display_results(local_results)
-                    else:
-                        st.write(local_results)
-            else:
-                st.warning("Please upload a file to search in local data.")
+        # Add a placeholder for the Bio column if not already present
+        if 'Bio' not in data.columns:
+            data['Bio'] = ""
 
-        # Internet Search
-        if search_scope in ["Internet", "Both"]:
-            web_results = search_internet(full_name, university, research_interest, serper_api_key)
-            st.write("### Results from Internet:")
-            st.write(web_results)
+        # Specify Chunk Size
+        chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(data), value=10)
+        total_chunks = (len(data) + chunk_size - 1) // chunk_size
+        st.write(f"### Total Chunks: {total_chunks}")
 
-# Run the App
-if __name__ == "__main__":
-    main()
+        # Select Chunk to Process
+        chunk_index = st.number_input("Select Chunk Index", min_value=0, max_value=total_chunks - 1, value=0, step=1)
+        chunk_data = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
+        st.write("### Current Chunk:")
+        st.write(chunk_data)
 
+        if st.button("Generate Bios for Current Chunk"):
+            # Access API keys from secrets
+            serper_api_key = st.secrets["serper_api_key"]
+            google_api_key = st.secrets["google_api_key"]
+            google_cse_id = st.secrets["google_cse_id"]
+            
+            # Iterate through each row in the chunk
+            for index, row in chunk_data.iterrows():
+                full_name = row['Name']
+                university = row['University']
+
+                # Search internet for bio content
+                bio_content = search_internet(full_name, university, serper_api_key, google_api_key, google_cse_id)
+                data.at[index, 'Bio'] = bio_content  # Update the bio column
+
+            # Display Updated Chunk
+            updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
+            st.write("### Updated Chunk with Bios:")
+            st.write(updated_chunk)
+
+            # Download Option
+            csv = updated_chunk.to_csv(index=False)
+            st.download_button(
+                label="Download Current Chunk as CSV",
+                data=csv,
+                file_name=f"chunk_{chunk_index}_bios.csv",
+                mime="text/csv"
+            )
+        st.info("Use the Chunk Index to process the next set of rows.")
+    else:
+        st.error(f"Uploaded file must contain the following columns: {required_columns}")
