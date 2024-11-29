@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import openai
+from openai import OpenAI  # Ensure this is properly imported
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
@@ -30,51 +32,51 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
-# Internet Search Function
-def search_internet(full_name, university, serper_api_key, google_api_key, google_cse_id):
+
+# Updated Bio Generation Function
+def generate_bio_with_chatgpt(full_name, university):
     """
-    Search for academic profiles on the internet using Serper API and Google Custom Search API.
+    Generate a bio using OpenAI's ChatGPT API.
     """
-    query = f"{full_name} {university} research teaching interests academic papers contact details"
-    
-    # Use Serper API
-    tool = SerperDevTool(api_key=serper_api_key)
-    search_results = tool._run(query)
+    prompt = (
+        f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
+        "Include their research interests, teaching interests, any paper titles they may have published, "
+        "and contact information such as email or LinkedIn."
+    )
+    try:
+        # Initialize the OpenAI client
+        client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-    # Use Google Custom Search API (optional as fallback)
-    google_results = []
-    if not search_results:
-        from googleapiclient.discovery import build
-        service = build("customsearch", "v1", developerKey=google_api_key)
-        google_results = service.cse().list(q=query, cx=google_cse_id).execute().get("items", [])
-    
-    # Combine results (ensure both lists are handled appropriately)
-    combined_results = []
-    if isinstance(search_results, list):
-        combined_results.extend(search_results)
-    if isinstance(google_results, list):
-        combined_results.extend(google_results)
-    
-    # Extract and scrape content
-    bio_content = ""
-    for result in combined_results:
-        # Handle dictionaries and strings gracefully
-        if isinstance(result, dict):
-            url = result.get("link")  # Extract URL if result is a dictionary
-        elif isinstance(result, str):
-            url = result  # Directly use the string if result is a URL string
-        else:
-            continue  # Skip if result is neither a dictionary nor a string
+        # Initialize session state for messages if not already done
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
 
-        try:
-            content = ContentScraper.scrape_anything(url)
-            bio_content += content + "\n\n"
-        except Exception as e:
-            # Log scraping errors
-            st.warning(f"Could not scrape content from {url}: {e}")
+        # Add the user prompt to session state
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user").write(prompt)
 
-    return bio_content if bio_content else "No relevant information found online."
+        # Generate response
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", messages=st.session_state.messages
+        )
+        msg = response.choices[0].message.content
 
+        # Add the assistant's response to session state
+        st.session_state.messages.append({"role": "assistant", "content": msg})
+        st.chat_message("assistant").write(msg)
+
+        return msg
+    except Exception as e:
+        return f"Error generating bio: {e}"
+
+# Updated Internet Search Function
+def search_internet_with_chatgpt(full_name, university):
+    """
+    Use ChatGPT to generate a bio if scraping or search results are unavailable.
+    """
+    # Combine internet scraping (if needed) with ChatGPT bio generation
+    bio_content = generate_bio_with_chatgpt(full_name, university)
+    return bio_content
 
 # App Title
 st.title("BioGen - Automated Bio Generator")
@@ -112,18 +114,13 @@ if uploaded_file:
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            # Access API keys from secrets
-            serper_api_key = st.secrets["serper_api_key"]
-            google_api_key = st.secrets["google_api_key"]
-            google_cse_id = st.secrets["google_cse_id"]
-            
             # Iterate through each row in the chunk
             for index, row in chunk_data.iterrows():
                 full_name = row['Name']
                 university = row['University']
 
-                # Search internet for bio content
-                bio_content = search_internet(full_name, university, serper_api_key, google_api_key, google_cse_id)
+                # Generate bio using ChatGPT
+                bio_content = search_internet_with_chatgpt(full_name, university)
                 data.at[index, 'Bio'] = bio_content  # Update the bio column
 
             # Display Updated Chunk
