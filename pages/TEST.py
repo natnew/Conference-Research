@@ -63,8 +63,23 @@ if uploaded_file:
     # Read the uploaded file
     content = uploaded_file.read().decode("utf-8")
     lines = content.strip().split("\n")
-    data = [line.split(",") for line in lines if "," in line]  # Expecting "Name, University" format
+    
+    data = []
+    invalid_lines = []
+    
+    for line in lines:
+        parts = line.split(",", 1)  # Split into at most two parts
+        if len(parts) == 2:
+            name, university = parts
+            data.append((name.strip(), university.strip()))
+        else:
+            invalid_lines.append(line)
 
+    if invalid_lines:
+        st.warning("Some lines were ignored due to invalid format:")
+        for line in invalid_lines:
+            st.text(f"- {line}")
+    
     if data:
         st.write("Names and Universities found in the file:")
         for name, university in data:
