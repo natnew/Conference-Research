@@ -59,10 +59,6 @@ if excel_file:
 st.header("Step 2: Generate Bios from TXT")
 uploaded_file = st.file_uploader("Upload a text file containing names and universities (one per line)", type="txt")
 
-# Section 2: Generate bios from TXT
-st.header("Step 2: Generate Bios from TXT")
-uploaded_file = st.file_uploader("Upload a text file containing names and universities (one per line)", type="txt")
-
 if uploaded_file:
     # Read the uploaded file
     content = uploaded_file.read().decode("utf-8")
