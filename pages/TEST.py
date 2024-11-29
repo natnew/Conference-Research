@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 
 # Load the Chat API key from Streamlit secrets
-openai_api_key = st.secrets["openai_api_key"]
+openai.api_key = st.secrets["openai_api_key"]
 
 # Helper function to generate bio using ChatGPT API
 def generate_bio(name, university):
@@ -25,8 +25,38 @@ def generate_bio(name, university):
     except Exception as e:
         return f"Error generating bio: {e}"
 
-# Upload the text file
+# App title
 st.title("Academic Bio Generator")
+
+# Section 1: Excel to TXT conversion
+st.header("Step 1: Convert Excel to TXT")
+excel_file = st.file_uploader("Upload an Excel file with 'Name' and 'University' columns", type="xlsx")
+
+if excel_file:
+    # Read Excel file
+    df_excel = pd.read_excel(excel_file)
+
+    # Validate column names
+    if "Name" in df_excel.columns and "University" in df_excel.columns:
+        st.write("Excel file preview:")
+        st.dataframe(df_excel)
+
+        # Convert to TXT format
+        txt_data = "\n".join(f"{row['Name']}, {row['University']}" for _, row in df_excel.iterrows())
+        txt_bytes = txt_data.encode("utf-8")
+
+        # Provide download link for TXT file
+        st.download_button(
+            label="Download as TXT",
+            data=txt_bytes,
+            file_name="names_and_universities.txt",
+            mime="text/plain"
+        )
+    else:
+        st.error("The Excel file must have 'Name' and 'University' columns.")
+
+# Section 2: Generate bios from TXT
+st.header("Step 2: Generate Bios from TXT")
 uploaded_file = st.file_uploader("Upload a text file containing names and universities (one per line)", type="txt")
 
 if uploaded_file:
@@ -62,7 +92,4 @@ if uploaded_file:
             label="Download Bios as Excel",
             data=output,
             file_name="academic_bios.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    else:
-        st.error("No valid entries found in the file. Make sure each line contains a name and a university separated by a comma.")
+            mi
