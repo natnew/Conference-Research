@@ -26,41 +26,13 @@ def generate_bio(name, university):
         return f"Error generating bio: {e}"
 
 # App title
-st.title("Academic Bio Generator")
+st.title("Academic Bio Generator with Batch Processing")
 
-# Section 1: Excel to TXT conversion
-st.header("Step 1: Convert Excel to TXT")
-excel_file = st.file_uploader("Upload an Excel file with 'Name' and 'University' columns", type="xlsx")
-
-if excel_file:
-    # Read Excel file
-    df_excel = pd.read_excel(excel_file)
-
-    # Validate column names
-    if "Name" in df_excel.columns and "University" in df_excel.columns:
-        st.write("Excel file preview:")
-        st.dataframe(df_excel)
-
-        # Convert to TXT format
-        txt_data = "\n".join(f"{row['Name']}, {row['University']}" for _, row in df_excel.iterrows())
-        txt_bytes = txt_data.encode("utf-8")
-
-        # Provide download link for TXT file
-        st.download_button(
-            label="Download as TXT",
-            data=txt_bytes,
-            file_name="names_and_universities.txt",
-            mime="text/plain"
-        )
-    else:
-        st.error("The Excel file must have 'Name' and 'University' columns.")
-
-# Section 2: Generate bios from TXT
-st.header("Step 2: Generate Bios from TXT")
+# Step 1: Upload TXT File
 uploaded_file = st.file_uploader("Upload a text file containing names and universities (one per line)", type="txt")
 
 if uploaded_file:
-    # Read the uploaded file
+    # Read and process the TXT file
     content = uploaded_file.read().decode("utf-8")
     lines = content.strip().split("\n")
     
@@ -75,41 +47,64 @@ if uploaded_file:
         else:
             invalid_lines.append(line)
 
+    # Warn about invalid lines
     if invalid_lines:
         st.warning("Some lines were ignored due to invalid format:")
         for line in invalid_lines:
             st.text(f"- {line}")
     
+    # If valid data exists, proceed
     if data:
-        # Display a scrollable table for the parsed data
-        st.write("### Names and Universities Found in the File:")
-        st.dataframe(pd.DataFrame(data))  # Display as a scrollable table
+        # Display total rows and allow batch processing
+        df = pd.DataFrame(data)
+        total_rows = len(df)
         
-        # Generate bios
-        st.write("Generating bios...")
-        bios = []
-        for entry in data:
-            name = entry["Name"]
-            university = entry["University"]
-            st.write(f"Generating bio for {name} ({university})...")
-            bio = generate_bio(name, university)
-            bios.append({"Name": name, "University": university, "Bio": bio})
+        st.success(f"File contains {total_rows} rows.")
         
-        # Convert to DataFrame
-        df = pd.DataFrame(bios)
-
-        # Convert DataFrame to Excel
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df.to_excel(writer, index=False, sheet_name="Bios")
-        output.seek(0)
-
-        # Provide download link
-        st.download_button(
-            label="Download Bios as Excel",
-            data=output,
-            file_name="academic_bios.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        # Select batch size
+        batch_size = st.number_input("Number of rows per chunk", min_value=1, max_value=total_rows, value=10, step=1)
+        
+        # Calculate number of chunks
+        total_chunks = (total_rows + batch_size - 1) // batch_size
+        st.write(f"### Total Chunks: {total_chunks}")
+        
+        # Select chunk index
+        chunk_index = st.number_input("Select Chunk Index", min_value=0, max_value=total_chunks - 1, value=0, step=1)
+        
+        # Extract current chunk
+        start_idx = chunk_index * batch_size
+        end_idx = min(start_idx + batch_size, total_rows)
+        current_chunk = df.iloc[start_idx:end_idx].copy()
+        
+        st.write("### Current Chunk:")
+        st.dataframe(current_chunk)
+        
+        # Add column for generated bios
+        if st.button("Generate Bios for Current Chunk"):
+            st.write("Generating bios...")
+            current_chunk["Bio"] = current_chunk.apply(
+                lambda row: generate_bio(row["Name"], row["University"]), axis=1
+            )
+            st.success("Bios generated successfully!")
+            
+            # Display updated chunk with bios
+            st.write("### Updated Chunk with Bios:")
+            st.dataframe(current_chunk)
+            
+            # Save the current chunk to a downloadable file
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                current_chunk.to_excel(writer, index=False, sheet_name="Bios")
+            output.seek(0)
+            
+            # Provide download link
+            st.download_button(
+                label="Download Current Chunk as Excel",
+                data=output,
+                file_name=f"bios_chunk_{chunk_index + 1}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        
+        st.info("Use the Chunk Index to process the next set of rows.")
     else:
         st.error("No valid entries found in the file. Make sure each line contains a name and a university separated by a comma.")
