@@ -92,4 +92,7 @@ if uploaded_file:
             label="Download Bios as Excel",
             data=output,
             file_name="academic_bios.xlsx",
-            mi
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.error("No valid entries found in the file. Make sure each line contains a name and a university separated by a comma.")
