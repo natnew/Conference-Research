@@ -1,12 +1,13 @@
 import streamlit as st
-import openai
+from openai import OpenAI  # Ensure this is properly imported
 import pandas as pd
 from io import BytesIO
 
 # Load the Chat API key from Streamlit secrets
 openai.api_key = st.secrets["openai_api_key"]
 
-# Helper function to generate bio using ChatGPT API
+
+# Helper function to generate bio using OpenAI client
 def generate_bio(name, university):
     prompt = (
         f"Generate a professional bio for {name}, who is affiliated with {university}. "
@@ -14,14 +15,28 @@ def generate_bio(name, university):
         "and contact information such as email or LinkedIn."
     )
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=200,
-            temperature=0.7,
+        # Initialize the OpenAI client
+        client = OpenAI(api_key=st.secrets["openai_api_key"])
+
+        # Initialize session state for messages if not already done
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        # Add the user prompt to session state
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user").write(prompt)
+
+        # Generate response
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", messages=st.session_state.messages
         )
-        bio = response.choices[0].message["content"]
-        return bio
+        msg = response.choices[0].message.content
+
+        # Add the assistant's response to session state
+        st.session_state.messages.append({"role": "assistant", "content": msg})
+        st.chat_message("assistant").write(msg)
+
+        return msg
     except Exception as e:
         return f"Error generating bio: {e}"
 
