@@ -71,7 +71,7 @@ if uploaded_file:
         parts = line.split(",", 1)  # Split into at most two parts
         if len(parts) == 2:
             name, university = parts
-            data.append((name.strip(), university.strip()))
+            data.append({"Name": name.strip(), "University": university.strip()})
         else:
             invalid_lines.append(line)
 
@@ -81,17 +81,19 @@ if uploaded_file:
             st.text(f"- {line}")
     
     if data:
-        st.write("Names and Universities found in the file:")
-        for name, university in data:
-            st.write(f"- {name} ({university})")
+        # Display a scrollable table for the parsed data
+        st.write("### Names and Universities Found in the File:")
+        st.dataframe(pd.DataFrame(data))  # Display as a scrollable table
         
         # Generate bios
         st.write("Generating bios...")
         bios = []
-        for name, university in data:
+        for entry in data:
+            name = entry["Name"]
+            university = entry["University"]
             st.write(f"Generating bio for {name} ({university})...")
-            bio = generate_bio(name.strip(), university.strip())
-            bios.append({"Name": name.strip(), "University": university.strip(), "Bio": bio})
+            bio = generate_bio(name, university)
+            bios.append({"Name": name, "University": university, "Bio": bio})
         
         # Convert to DataFrame
         df = pd.DataFrame(bios)
