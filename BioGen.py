@@ -41,7 +41,7 @@ def generate_bio_with_chatgpt(full_name, university):
     prompt = (
         f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
         "Include their research interests, teaching interests, any paper titles they may have published, "
-        "and contact information such as email or LinkedIn."
+        "and contact information such as email or University page."
     )
     try:
         # Initialize the OpenAI client
