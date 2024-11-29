@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 
 # Load the Chat API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai_api_key = st.secrets["openai_api_key"]
 
 # Helper function to generate bio using ChatGPT API
 def generate_bio(name, university):
