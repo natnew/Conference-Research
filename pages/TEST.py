@@ -59,6 +59,10 @@ if excel_file:
 st.header("Step 2: Generate Bios from TXT")
 uploaded_file = st.file_uploader("Upload a text file containing names and universities (one per line)", type="txt")
 
+# Section 2: Generate bios from TXT
+st.header("Step 2: Generate Bios from TXT")
+uploaded_file = st.file_uploader("Upload a text file containing names and universities (one per line)", type="txt")
+
 if uploaded_file:
     # Read the uploaded file
     content = uploaded_file.read().decode("utf-8")
@@ -84,32 +88,51 @@ if uploaded_file:
         # Display a scrollable table for the parsed data
         st.write("### Names and Universities Found in the File:")
         st.dataframe(pd.DataFrame(data))  # Display as a scrollable table
-        
-        # Generate bios
-        st.write("Generating bios...")
-        bios = []
-        for entry in data:
-            name = entry["Name"]
-            university = entry["University"]
-            st.write(f"Generating bio for {name} ({university})...")
-            bio = generate_bio(name, university)
-            bios.append({"Name": name, "University": university, "Bio": bio})
-        
-        # Convert to DataFrame
-        df = pd.DataFrame(bios)
 
-        # Convert DataFrame to Excel
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df.to_excel(writer, index=False, sheet_name="Bios")
-        output.seek(0)
+        # Batch processing
+        batch_size = st.number_input("Number of rows to process in each batch", min_value=1, max_value=len(data), value=10)
+        total_batches = (len(data) + batch_size - 1) // batch_size
+        st.write(f"### Total Batches: {total_batches}")
 
-        # Provide download link
-        st.download_button(
-            label="Download Bios as Excel",
-            data=output,
-            file_name="academic_bios.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        # Select current batch
+        batch_index = st.number_input("Select Batch Index", min_value=0, max_value=total_batches - 1, value=0)
+
+        # Extract current batch
+        start_idx = batch_index * batch_size
+        end_idx = min(start_idx + batch_size, len(data))
+        current_batch = data[start_idx:end_idx]
+
+        st.write(f"### Processing Batch {batch_index + 1}/{total_batches}")
+        st.dataframe(pd.DataFrame(current_batch))
+
+        # Generate bios for the current batch
+        if st.button("Generate Bios for Current Batch"):
+            st.write("Generating bios for the current batch...")
+            bios = []
+            for entry in current_batch:
+                name = entry["Name"]
+                university = entry["University"]
+                st.write(f"Generating bio for {name} ({university})...")
+                bio = generate_bio(name, university)
+                bios.append({"Name": name, "University": university, "Bio": bio})
+
+            # Convert to DataFrame
+            df = pd.DataFrame(bios)
+
+            # Convert DataFrame to Excel
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                df.to_excel(writer, index=False, sheet_name=f"Bios_Batch_{batch_index + 1}")
+            output.seek(0)
+
+            # Provide download link
+            st.download_button(
+                label=f"Download Batch {batch_index + 1} as Excel",
+                data=output,
+                file_name=f"academic_bios_batch_{batch_index + 1}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        
+        st.info("Use the Batch Index to process other batches sequentially.")
     else:
         st.error("No valid entries found in the file. Make sure each line contains a name and a university separated by a comma.")
