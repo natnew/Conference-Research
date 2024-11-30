@@ -101,6 +101,8 @@ if uploaded_file:
         # Add a placeholder for the Bio column if not already present
         if 'Bio' not in data.columns:
             data['Bio'] = ""
+        if 'Email' not in data.columns:
+            data['Email'] = ""
 
         # Specify Chunk Size
         chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(data), value=10)
@@ -122,6 +124,14 @@ if uploaded_file:
                 # Generate bio using ChatGPT
                 bio_content = search_internet_with_chatgpt(full_name, university)
                 data.at[index, 'Bio'] = bio_content  # Update the bio column
+
+                # Extract email from the bio content (if applicable)
+                email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
+                email_address = email_match.group() if email_match else "Email not found"
+
+                # Update the DataFrame
+                data.at[index, 'Bio'] = bio_content
+                data.at[index, 'Email'] = email_address
 
             # Display Updated Chunk
             updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
