@@ -1,9 +1,5 @@
 import streamlit as st
 from langchain.llms import OpenAI
-import streamlit.components.v1 as components
-
-
-
 
 st.sidebar.title("Conference Research Assistant")
 st.sidebar.write("""
