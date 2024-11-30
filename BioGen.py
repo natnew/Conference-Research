@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import openai
+import re
 from openai import OpenAI  # Ensure this is properly imported
 from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
