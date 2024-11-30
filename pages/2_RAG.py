@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import tiktoken  # Token estimation library
 
-st.sidebar.title("Conference Research Assistant")
+st.sidebar.title(":streamlit: Conference Research Assistant")
 st.sidebar.write("""
 A self-service app that automates the generation of biographical content 
 and assists in lead generation. Designed to support academic and professional 
