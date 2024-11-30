@@ -6,7 +6,7 @@ from con_research.src.modules.scrapping_module import ContentScraper
 from con_research.src.modules.search_module import SerperDevTool
 
 # Sidebar Configuration
-st.sidebar.title("📊 Conference Research Assistant")
+st.sidebar.title(":streamlit: Conference Research Assistant")
 st.sidebar.write("""
 A self-service app that automates the generation of biographical content 
 and assists in lead generation. Designed to support academic and professional 
