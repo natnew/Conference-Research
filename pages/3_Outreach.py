@@ -150,7 +150,7 @@ particles_js = """
 """
 
 # Render the Particles.js Background
-components.html(particles_js, height=0, width=0)
+components.html(particles_js, height=800, width=800)
 
 #####
 ####
