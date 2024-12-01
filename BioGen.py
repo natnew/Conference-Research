@@ -30,7 +30,7 @@ with st.sidebar.expander("Capabilities", expanded=False):
 with st.sidebar:
     st.markdown("# About This Tool")
     st.markdown(
-        "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles."
+        "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles. "
     )
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
@@ -85,7 +85,7 @@ def search_internet_with_chatgpt(full_name, university):
 st.title("BioGen - Automated Bio Generator")
 
 # File Upload
-uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=["csv", "xlsx"])
+uploaded_file = st.file_uploader("Upload your CSV/XLSX file :balloon:", type=["csv", "xlsx"])
 if uploaded_file:
     # Load File
     if uploaded_file.name.endswith(".csv"):
