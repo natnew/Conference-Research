@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from con_research.src.modules.scrapping_module import ContentScraper
-from con_research.src.modules.search_module import SerperDevTool
+#from con_research.src.modules.scrapping_module import ContentScraper
+#from con_research.src.modules.search_module import SerperDevTool
 
 st.sidebar.title(":streamlit: Conference Research Assistant")
 st.sidebar.write("""
