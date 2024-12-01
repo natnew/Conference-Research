@@ -3,8 +3,8 @@ import pandas as pd
 import openai
 import re
 from openai import OpenAI  
-from con_research.src.modules.scrapping_module import ContentScraper
-from con_research.src.modules.search_module import SerperDevTool
+#from con_research.src.modules.scrapping_module import ContentScraper
+#from con_research.src.modules.search_module import SerperDevTool
   
 
 # Sidebar Configuration
