@@ -3,7 +3,7 @@ crewai[tools]==0.27.0  # Use an older, ChromaDB-free version
 selenium==4.19.0
 serpapi==0.1.5
 pdfminer.six==20221105
-streamlit==1.40.0
+streamlit==1.32.2
 
 openpyxl==3.1.2
 google==3.0.0
