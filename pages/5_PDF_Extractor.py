@@ -4,6 +4,7 @@ from PyPDF2 import PdfReader
 import re
 from io import BytesIO
 
+st.snow()
 st.sidebar.title(":streamlit: Conference Research Assistant")
 st.sidebar.write("""
 A self-service app that automates the generation of biographical content 
