@@ -17,6 +17,10 @@ activities, it offers interconnected modules that streamline research tasks,
 whether for conferences, campus visits, or other events.
 """)
 
+st.sidebar.write(
+       "Built by [Natasha Newbold](https://www.linkedin.com/in/natasha-newbold/) "
+            )
+
 # Sidebar Info Box as Dropdown
 with st.sidebar.expander("Capabilities", expanded=False):
     st.write("""
