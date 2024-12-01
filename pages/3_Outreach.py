@@ -1,6 +1,8 @@
 import streamlit as st
 from langchain.llms import OpenAI
 
+st.snow()
+
 st.sidebar.title(":streamlit: Conference Research Assistant")
 st.sidebar.write("""
 A self-service app that automates the generation of biographical content 
