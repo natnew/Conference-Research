@@ -4,7 +4,7 @@ selenium==4.19.0
 serpapi==0.1.5
 pdfminer.six==20221105
 streamlit==1.40.0
-langchain==0.1.16
+
 openpyxl==3.1.2
 google==3.0.0
 
