@@ -6,6 +6,7 @@ from openai import OpenAI
 #from con_research.src.modules.scrapping_module import ContentScraper
 #from con_research.src.modules.search_module import SerperDevTool
   
+st.snow()
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference Research Assistant")
