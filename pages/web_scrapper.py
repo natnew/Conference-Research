@@ -136,48 +136,50 @@ class GenericConferenceScraper:
         
         return academics
 
+def main():
+    st.title("Conference Website Academic Scraper")
 
-st.title("Web Scraper")
+    url = st.text_input("Enter conference website URL:")
+    wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
+    min_confidence = st.slider("Minimum confidence score", 0.0, 1.0, 0.7)
 
-url = st.text_input("Enter website URL:")
-wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
-min_confidence = st.slider("Minimum confidence score", 0.0, 1.0, 0.7)
-
-if st.button("Extract  Information"):
-if url:
-try:
-    with st.spinner("Initializing scraper..."):
-        scraper = GenericConferenceScraper()
-    
-    with st.spinner("Scraping webpage..."):
-        content = scraper.scrape_webpage(url, wait_time)
-    
-    if content:
-        with st.spinner("Extracting  information..."):
-            academics = scraper.find_academics(content, min_confidence)
-        
-        if academics:
-            df = pd.DataFrame(academics)
-            st.success(f"Found {len(academics)} academics!")
-            
-            st.subheader("Results")
-            st.dataframe(df)
-            
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                "Download Results as CSV",
-                csv,
-                "conference_academics.csv",
-                "text/csv",
-                key='download-csv'
-            )
+    if st.button("Extract Academic Information"):
+        if url:
+            try:
+                with st.spinner("Initializing scraper..."):
+                    scraper = GenericConferenceScraper()
+                
+                with st.spinner("Scraping webpage..."):
+                    content = scraper.scrape_webpage(url, wait_time)
+                
+                if content:
+                    with st.spinner("Extracting academic information..."):
+                        academics = scraper.find_academics(content, min_confidence)
+                    
+                    if academics:
+                        df = pd.DataFrame(academics)
+                        st.success(f"Found {len(academics)} academics!")
+                        
+                        st.subheader("Results")
+                        st.dataframe(df)
+                        
+                        csv = df.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            "Download Results as CSV",
+                            csv,
+                            "conference_academics.csv",
+                            "text/csv",
+                            key='download-csv'
+                        )
+                    else:
+                        st.warning("No academic information found. Try adjusting the confidence threshold or wait time.")
+                else:
+                    st.error("Failed to retrieve content from the URL.")
+            except Exception as e:
+                st.error(f"An error occurred: {str(e)}")
+                st.error("Please try again with different parameters or check the URL.")
         else:
-            st.warning("No academic information found. Try adjusting the confidence threshold or wait time.")
-    else:
-        st.error("Failed to retrieve content from the URL.")
-except Exception as e:
-    st.error(f"An error occurred: {str(e)}")
-    st.error("Please try again with different parameters or check the URL.")
-else:
-st.warning("Please enter a URL.")
+            st.warning("Please enter a URL.")
 
+if __name__ == "__main__":
+    main()
