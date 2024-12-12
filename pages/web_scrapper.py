@@ -18,12 +18,7 @@ def get_chrome_driver():
     """Initialize and cache the Chrome WebDriver with proper options for Streamlit Cloud"""
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--disable-software-rasterizer')
-    chrome_options.add_argument('--remote-debugging-port=9222')
     
     try:
         service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
@@ -137,13 +132,13 @@ class GenericConferenceScraper:
         return academics
 
 def main():
-    st.title("Conference Website Academic Scraper")
+    st.title("Web Scraper")
 
-    url = st.text_input("Enter conference website URL:")
+    url = st.text_input("Enter  website URL:")
     wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
     min_confidence = st.slider("Minimum confidence score", 0.0, 1.0, 0.7)
 
-    if st.button("Extract Academic Information"):
+    if st.button("Extract Information"):
         if url:
             try:
                 with st.spinner("Initializing scraper..."):
@@ -153,7 +148,7 @@ def main():
                     content = scraper.scrape_webpage(url, wait_time)
                 
                 if content:
-                    with st.spinner("Extracting academic information..."):
+                    with st.spinner("Extracting  information..."):
                         academics = scraper.find_academics(content, min_confidence)
                     
                     if academics:
