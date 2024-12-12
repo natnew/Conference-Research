@@ -13,7 +13,7 @@ import pandas as pd
 import time
 from typing import Dict, List, Optional
 
-@st.cache_resource
+
 def get_chrome_driver():
     """Initialize and cache the Chrome WebDriver with proper options for Streamlit Cloud"""
     chrome_options = Options()
