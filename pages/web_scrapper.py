@@ -6,31 +6,50 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from bs4 import BeautifulSoup
 import re
 import pandas as pd
 import time
 from typing import Dict, List, Optional
 
+@st.cache_resource
+def get_chrome_driver():
+    """Initialize and cache the Chrome WebDriver with proper options for Streamlit Cloud"""
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-software-rasterizer')
+    chrome_options.add_argument('--remote-debugging-port=9222')
+    
+    try:
+        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+    except Exception as e:
+        st.error(f"Failed to initialize Chrome driver: {str(e)}")
+        return None
+
 class GenericConferenceScraper:
     """Generic scraper for conference websites with configurable patterns"""
     
     def __init__(self):
-        """Initialize the scraper with Selenium WebDriver"""
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        
-        # Set up Chrome driver with options
-        service = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
-        
+        """Initialize the scraper with cached Selenium WebDriver"""
+        self.driver = get_chrome_driver()
+        if not self.driver:
+            st.error("Failed to initialize the scraper")
+            st.stop()
+    
     def __del__(self):
         """Clean up the WebDriver"""
-        if hasattr(self, 'driver'):
-            self.driver.quit()
+        if hasattr(self, 'driver') and self.driver:
+            try:
+                self.driver.quit()
+            except:
+                pass
 
     @staticmethod
     def is_likely_name(text: str) -> bool:
@@ -72,6 +91,9 @@ class GenericConferenceScraper:
 
     def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
         """Scrape webpage content with configurable wait time"""
+        if not self.driver:
+            return ""
+            
         try:
             st.info(f"Accessing URL: {url}")
             self.driver.get(url)
@@ -114,42 +136,48 @@ class GenericConferenceScraper:
         
         return academics
 
-st.title("Conference Website Academic Scraper")
 
-url = st.text_input("Enter conference website URL:")
+st.title("Web Scraper")
+
+url = st.text_input("Enter website URL:")
 wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
 min_confidence = st.slider("Minimum confidence score", 0.0, 1.0, 0.7)
 
-if st.button("Extract Academic Information"):
-    if url:
-        with st.spinner("Initializing scraper..."):
-            scraper = GenericConferenceScraper()
+if st.button("Extract  Information"):
+if url:
+try:
+    with st.spinner("Initializing scraper..."):
+        scraper = GenericConferenceScraper()
+    
+    with st.spinner("Scraping webpage..."):
+        content = scraper.scrape_webpage(url, wait_time)
+    
+    if content:
+        with st.spinner("Extracting  information..."):
+            academics = scraper.find_academics(content, min_confidence)
         
-        with st.spinner("Scraping webpage..."):
-            content = scraper.scrape_webpage(url, wait_time)
-        
-        if content:
-            with st.spinner("Extracting academic information..."):
-                academics = scraper.find_academics(content, min_confidence)
+        if academics:
+            df = pd.DataFrame(academics)
+            st.success(f"Found {len(academics)} academics!")
             
-            if academics:
-                df = pd.DataFrame(academics)
-                st.success(f"Found {len(academics)} academics!")
-                
-                st.subheader("Results")
-                st.dataframe(df)
-                
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    "Download Results as CSV",
-                    csv,
-                    "conference_academics.csv",
-                    "text/csv",
-                    key='download-csv'
-                )
-            else:
-                st.warning("No academic information found. Try adjusting the confidence threshold or wait time.")
+            st.subheader("Results")
+            st.dataframe(df)
+            
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "Download Results as CSV",
+                csv,
+                "conference_academics.csv",
+                "text/csv",
+                key='download-csv'
+            )
         else:
-            st.error("Failed to retrieve content from the URL.")
+            st.warning("No academic information found. Try adjusting the confidence threshold or wait time.")
     else:
-        st.warning("Please enter a URL.")
+        st.error("Failed to retrieve content from the URL.")
+except Exception as e:
+    st.error(f"An error occurred: {str(e)}")
+    st.error("Please try again with different parameters or check the URL.")
+else:
+st.warning("Please enter a URL.")
+
