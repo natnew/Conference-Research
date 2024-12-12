@@ -19,7 +19,7 @@ def get_chrome_driver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
-    
+
     try:
         service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -30,14 +30,14 @@ def get_chrome_driver():
 
 class GenericConferenceScraper:
     """Generic scraper for conference websites with configurable patterns"""
-    
+
     def __init__(self):
         """Initialize the scraper with cached Selenium WebDriver"""
         self.driver = get_chrome_driver()
         if not self.driver:
             st.error("Failed to initialize the scraper")
             st.stop()
-    
+
     def __del__(self):
         """Clean up the WebDriver"""
         if hasattr(self, 'driver') and self.driver:
@@ -71,12 +71,12 @@ class GenericConferenceScraper:
             r'^(.*?)\s+(?:at|from)\s+(.*?)$',
             r'^(.*?)\s*[-–]\s*(.*?)$',
         ]
-        
+
         for pattern in patterns:
             match = re.match(pattern, text)
             if match:
                 name, affiliation = match.groups()
-                if (self.is_likely_name(name) and 
+                if (self.is_likely_name(name) and
                     self.is_likely_affiliation(affiliation)):
                     return {
                         'name': name.strip(),
@@ -88,16 +88,16 @@ class GenericConferenceScraper:
         """Scrape webpage content with configurable wait time"""
         if not self.driver:
             return ""
-            
+
         try:
             st.info(f"Accessing URL: {url}")
             self.driver.get(url)
             time.sleep(wait_time)
-            
+
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
-            
+
             return self.driver.page_source
         except Exception as e:
             st.error(f"Error accessing URL: {str(e)}")
@@ -107,34 +107,34 @@ class GenericConferenceScraper:
         """Find academic information in content with confidence scoring"""
         soup = BeautifulSoup(content, 'html.parser')
         academics = []
-        
+
         elements = soup.find_all(['p', 'div', 'span', 'td', 'li'])
-        
+
         for element in elements:
             text = element.get_text(strip=True)
             if not text or len(text) < 10:
                 continue
-                
+
             result = self.extract_name_affiliation(text)
             if result:
                 confidence = 0.0
                 name = result['name']
                 affiliation = result['affiliation']
-                
+
                 if self.is_likely_name(name):
                     confidence += 0.5
                 if self.is_likely_affiliation(affiliation):
                     confidence += 0.5
-                    
+
                 if confidence >= min_confidence:
                     academics.append(result)
-        
+
         return academics
 
 def main():
     st.title("Web Scraper")
 
-    url = st.text_input("Enter  website URL:")
+    url = st.text_input("Enter website URL:")
     wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
     min_confidence = st.slider("Minimum confidence score", 0.0, 1.0, 0.7)
 
@@ -143,21 +143,21 @@ def main():
             try:
                 with st.spinner("Initializing scraper..."):
                     scraper = GenericConferenceScraper()
-                
+
                 with st.spinner("Scraping webpage..."):
                     content = scraper.scrape_webpage(url, wait_time)
-                
+
                 if content:
-                    with st.spinner("Extracting  information..."):
+                    with st.spinner("Extracting information..."):
                         academics = scraper.find_academics(content, min_confidence)
-                    
+
                     if academics:
                         df = pd.DataFrame(academics)
                         st.success(f"Found {len(academics)} academics!")
-                        
+
                         st.subheader("Results")
                         st.dataframe(df)
-                        
+
                         csv = df.to_csv(index=False).encode('utf-8')
                         st.download_button(
                             "Download Results as CSV",
@@ -178,3 +178,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
