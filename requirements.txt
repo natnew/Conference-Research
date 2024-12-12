@@ -15,6 +15,10 @@ openai>=0.28.0
 streamlit-authenticator
 PyPDF2==3.0.1
 tiktoken>=0.5.2,<0.6.0
+selenium 
+webdriver-manager
+beautifulsoup4 
+
 
 
 
