@@ -17,7 +17,7 @@ st.snow()
 
 
 def get_chrome_driver():
-    """Initialize and cache the Chrome WebDriver with proper options for Streamlit Cloud"""
+    """Initialize  the Chrome WebDriver with proper options for Streamlit Cloud"""
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
@@ -105,6 +105,20 @@ class GenericConferenceScraper:
             st.error(f"Error accessing URL: {str(e)}")
             return ""
 
+    def get_readable_text(self, content: str) -> str:
+        """Extract readable text from HTML content"""
+        soup = BeautifulSoup(content, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(['script', 'style']):
+            script.decompose()
+            
+        # Get text and clean it up
+        text = soup.get_text(separator='\n', strip=True)
+        # Remove multiple newlines
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+        return text
+
     def find_academics(self, content: str, min_confidence: float = 0.7) -> List[Dict[str, str]]:
         """Find academic information in content with confidence scoring"""
         soup = BeautifulSoup(content, 'html.parser')
@@ -150,6 +164,13 @@ def main():
                     content = scraper.scrape_webpage(url, wait_time)
 
                 if content:
+                    # Extract and display readable text
+                    with st.spinner("Processing raw text..."):
+                        readable_text = scraper.get_readable_text(content)
+                        st.subheader("Raw Scraped Text")
+                        with st.expander("Click to view raw text", expanded=False):
+                            st.text_area("", readable_text, height=300)
+
                     with st.spinner("Extracting information..."):
                         academics = scraper.find_academics(content, min_confidence)
 
@@ -180,4 +201,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
