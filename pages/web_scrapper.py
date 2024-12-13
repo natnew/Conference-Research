@@ -38,6 +38,23 @@ with st.sidebar.expander("Capabilities", expanded=False):
     - Export results to CSV format
     """)
 
+def get_chrome_driver():
+    """Initialize  the Chrome WebDriver with proper options for Streamlit Cloud"""
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--enable-javascript')
+    
+    try:
+        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+    except Exception as e:
+        st.error(f"Failed to initialize Chrome driver: {str(e)}")
+        return None
+
 class GenericConferenceScraper:
     def __init__(self):
         """Initialize the scraper with cached Selenium WebDriver and Groq client"""
@@ -130,7 +147,7 @@ class GenericConferenceScraper:
                     {"role": "system", "content": "You are a helpful assistant that extracts structured information about academics from text."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0
+                temperature=0.1
             )
             
             result = completion.choices[0].message.content
