@@ -16,6 +16,39 @@ from typing import Dict, List, Optional
 
 st.snow()
 
+# Sidebar content
+st.sidebar.title(":streamlit: Conference Research Assistant")
+st.sidebar.write("""
+A specialized web scraping tool designed to extract academic profiles from conference 
+websites and institutional pages. Automatically identifies and extracts names, 
+affiliations, and other relevant information while handling dynamic content and 
+cookie consents.
+""")
+
+# Sidebar Info Box as Dropdown
+with st.sidebar.expander("Capabilities", expanded=False):
+    st.write("""
+    This scraper includes advanced capabilities:
+    - Automated cookie consent handling
+    - Dynamic content loading support
+    - Smart name and affiliation detection
+    - Confidence-based information extraction
+    - Customizable wait times and thresholds
+    - Export results to CSV format
+    """)
+    
+with st.sidebar:
+    st.markdown("# About This Tool")
+    st.markdown(
+        "Simply paste a URL from a conference website or academic page. "
+        "The scraper will navigate through cookie notices, wait for content to load, "
+        "and extract structured information about academics and their affiliations."
+    )
+    st.markdown(
+        "This tool is continuously being improved to better handle various website layouts "
+        "and data formats. Your feedback helps us enhance its capabilities."
+    )
+
 
 def get_chrome_driver():
     """Initialize  the Chrome WebDriver with proper options for Streamlit Cloud"""
