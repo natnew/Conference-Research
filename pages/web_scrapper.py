@@ -72,6 +72,8 @@ def get_chrome_driver():
 class AcademicInfo(BaseModel):
     name: str
     affiliation: str
+class ParticipantList(BaseModel):
+    participant_details: Optional[List[AcademicInfo]] = Field(description="List of names and their affiliations.")
 
 class GenericConferenceScraper:
     """Generic scraper for conference websites with configurable patterns"""
@@ -196,7 +198,7 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
             {"role": "system", "content": "Extract the names and affiliations from the following text. Return the results as a JSON array of objects with 'name' and 'affiliation' keys."},
             {"role": "user", "content": text}
         ],
-        response_format={"type": "json_object"},
+        response_format=ParticipantList
     )
 
     results = response.choices[0].message.content
@@ -232,10 +234,10 @@ def main():
 
                     if academics:
                         # Parse the JSON response
-                        academics_list = json.loads(academics)
+                        academics_dict = json.loads(academics)
+                        academics_list = academics_dict.get("participant_details", [])
                         df = pd.DataFrame(academics_list)
-                        st.success(f"Found {len(academics_list)} academics!")
-
+                        
                         st.subheader("Results")
                         st.dataframe(df)
 
