@@ -199,7 +199,8 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     )
 
     results = response.choices[0].message.parsed
-    return [{'name': result.name, 'affiliation': result.affiliation} for result in results]
+    st.info(results)
+    return results
 
 def main():
     st.title("Web Scraper")
