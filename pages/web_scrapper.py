@@ -14,7 +14,8 @@ import pandas as pd
 import time
 import re
 from typing import Dict, List, Optional
-from groq import Groq
+from pydantic import BaseModel
+from openai import OpenAI
 
 st.snow()
 
@@ -67,6 +68,10 @@ def get_chrome_driver():
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None
 
+class AcademicInfo(BaseModel):
+    name: str
+    affiliation: str
+
 class GenericConferenceScraper:
     """Generic scraper for conference websites with configurable patterns"""
 
@@ -76,7 +81,7 @@ class GenericConferenceScraper:
         if not self.driver:
             st.error("Failed to initialize the scraper")
             st.stop()
-        self.groq_client = Groq(api_key=st.secrets["groq_api_key"])
+        self.openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
 
     def __del__(self):
         """Clean up the WebDriver"""
@@ -142,26 +147,21 @@ class GenericConferenceScraper:
             return False
 
     def extract_name_affiliation(self, text: str) -> Optional[Dict[str, str]]:
-        """Extract name and affiliation from text using Groq LLM"""
-        response = self.groq_client.chat.completions.create(
+        """Extract name and affiliation from text using OpenAI LLM"""
+        response = self.openai_client.beta.chat.completions.parse(
+            model="gpt-4o-mini-2024-07-18",
             messages=[
-                {
-                    "role": "user",
-                    "content": f"Extract the name and affiliation from the following text: {text}"
-                }
+                {"role": "system", "content": "Extract the name and affiliation from the following text."},
+                {"role": "user", "content": text}
             ],
-            model="llama-3.3-70b-versatile",
+            response_format=AcademicInfo,
         )
 
-        result = response.choices[0].message.content
-        try:
-            name, affiliation = result.split(',')
-            return {
-                'name': name.strip(),
-                'affiliation': affiliation.strip()
-            }
-        except ValueError:
-            return None
+        result = response.choices[0].message.parsed
+        return {
+            'name': result.name,
+            'affiliation': result.affiliation
+        }
 
     def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
         """Scrape webpage content with cookie handling and dynamic content waiting"""
@@ -276,3 +276,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
