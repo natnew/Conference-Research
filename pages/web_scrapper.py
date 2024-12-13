@@ -196,7 +196,7 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
             {"role": "system", "content": "Extract the names and affiliations from the following text. Return the results as a JSON array of objects with 'name' and 'affiliation' keys."},
             {"role": "user", "content": text}
         ],
-        response_format=AcademicInfo
+        response_format={"type": "json_object"},
     )
 
     results = response.choices[0].message.content
@@ -228,7 +228,7 @@ def main():
 
                     with st.spinner("Extracting information..."):
                         openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
-                        academics = extract_academic_info(readable_text, openai_client)
+                        academics = extract_academic_info(content, openai_client)
 
                     if academics:
                         # Parse the JSON response
