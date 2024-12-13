@@ -12,7 +12,12 @@ from bs4 import BeautifulSoup
 import re
 import pandas as pd
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List
+import json
+from groq import Groq
+
+# Get API key from secrets
+groq_api_key = st.secrets["groq_api_key"]
 
 st.snow()
 
@@ -20,59 +25,24 @@ st.snow()
 st.sidebar.title(":streamlit: Conference Research Assistant")
 st.sidebar.write("""
 A specialized web scraping tool designed to extract academic profiles from conference 
-websites and institutional pages. Automatically identifies and extracts names, 
-affiliations, and other relevant information while handling dynamic content and 
-cookie consents.
+websites and institutional pages using LLM-powered extraction.
 """)
 
 # Sidebar Info Box as Dropdown
 with st.sidebar.expander("Capabilities", expanded=False):
     st.write("""
     This scraper includes advanced capabilities:
+    - LLM-powered name and affiliation extraction
     - Automated cookie consent handling
     - Dynamic content loading support
-    - Smart name and affiliation detection
-    - Confidence-based information extraction
-    - Customizable wait times and thresholds
     - Export results to CSV format
     """)
-    
-with st.sidebar:
-    st.markdown("# About This Tool")
-    st.markdown(
-        "Simply paste a URL from a conference website or academic page. "
-        "The scraper will navigate through cookie notices, wait for content to load, "
-        "and extract structured information about academics and their affiliations."
-    )
-    st.markdown(
-        "This tool is continuously being improved to better handle various website layouts "
-        "and data formats. Your feedback helps us enhance its capabilities."
-    )
-
-
-def get_chrome_driver():
-    """Initialize  the Chrome WebDriver with proper options for Streamlit Cloud"""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--enable-javascript')
-    
-    try:
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        return driver
-    except Exception as e:
-        st.error(f"Failed to initialize Chrome driver: {str(e)}")
-        return None
 
 class GenericConferenceScraper:
-    """Generic scraper for conference websites with configurable patterns"""
-
     def __init__(self):
-        """Initialize the scraper with cached Selenium WebDriver"""
+        """Initialize the scraper with cached Selenium WebDriver and Groq client"""
         self.driver = get_chrome_driver()
+        self.groq_client = Groq(api_key=groq_api_key)
         if not self.driver:
             st.error("Failed to initialize the scraper")
             st.stop()
@@ -88,14 +58,12 @@ class GenericConferenceScraper:
     def handle_cookie_consent(self):
         """Handle cookie consent popups"""
         try:
-            # Wait for cookie consent button (adjust selectors based on the actual page)
             cookie_buttons = [
                 "//button[contains(text(), 'Accept')]",
                 "//button[contains(text(), 'accept')]",
                 "//button[contains(@class, 'accept')]",
                 "//button[contains(text(), 'Allow')]",
                 "//button[contains(text(), 'Agree')]",
-                # Add specific button for your site
                 "//button[text()='Accept']"
             ]
             
@@ -105,7 +73,7 @@ class GenericConferenceScraper:
                         EC.element_to_be_clickable((By.XPATH, button_xpath))
                     ).click()
                     st.info("Cookie consent handled")
-                    time.sleep(2)  # Wait for the popup to disappear
+                    time.sleep(2)
                     return True
                 except (TimeoutException, ElementClickInterceptedException):
                     continue
@@ -118,8 +86,6 @@ class GenericConferenceScraper:
     def wait_for_content(self, timeout=30):
         """Wait for dynamic content to load"""
         try:
-            # Wait for specific elements that indicate content has loaded
-            # Adjust these selectors based on the actual page structure
             content_indicators = [
                 "//div[contains(@class, 'faculty')]",
                 "//div[contains(@class, 'speakers')]",
@@ -140,43 +106,44 @@ class GenericConferenceScraper:
             st.warning(f"Content loading wait failed: {str(e)}")
             return False
 
-    @staticmethod
-    def is_likely_name(text: str) -> bool:
-        """Check if text looks like a person's name"""
-        titles = r'(?:Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.|PhD|MD|MA|BSc|MSc)'
-        name_pattern = rf'^(?:{titles}\s*)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+'
-        return bool(re.match(name_pattern, text))
-
-    @staticmethod
-    def is_likely_affiliation(text: str) -> bool:
-        """Check if text looks like an institutional affiliation"""
-        institution_keywords = [
-            'University', 'College', 'Institute', 'School',
-            'Department', 'Lab', 'Laboratory', 'Center', 'Centre',
-            'Faculty', 'Academia', 'Research'
+    def extract_academics_with_llm(self, text: str) -> List[Dict[str, str]]:
+        """Extract academic information using Groq LLM"""
+        prompt = f"""
+        Extract names and affiliations of academics from the following text. 
+        Return the results as a JSON array where each object has 'name' and 'affiliation' keys.
+        Only include entries where you are confident about both the name and affiliation.
+        
+        Text to analyze:
+        {text}
+        
+        Expected format:
+        [
+            {{"name": "John Smith", "affiliation": "Stanford University"}},
+            {{"name": "Jane Doe", "affiliation": "MIT"}}
         ]
-        return any(keyword.lower() in text.lower() for keyword in institution_keywords)
-
-    def extract_name_affiliation(self, text: str) -> Optional[Dict[str, str]]:
-        """Extract name and affiliation from text using various patterns"""
-        patterns = [
-            r'^(.*?),\s*(.*?)$',
-            r'^(.*?)\s*\((.*?)\)$',
-            r'^(.*?)\s+(?:at|from)\s+(.*?)$',
-            r'^(.*?)\s*[-–]\s*(.*?)$',
-        ]
-
-        for pattern in patterns:
-            match = re.match(pattern, text)
-            if match:
-                name, affiliation = match.groups()
-                if (self.is_likely_name(name) and
-                    self.is_likely_affiliation(affiliation)):
-                    return {
-                        'name': name.strip(),
-                        'affiliation': affiliation.strip()
-                    }
-        return None
+        """
+        
+        try:
+            completion = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that extracts structured information about academics from text."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0
+            )
+            
+            result = completion.choices[0].message.content
+            try:
+                academics = json.loads(result)
+                return academics
+            except json.JSONDecodeError:
+                st.error("Failed to parse LLM response as JSON")
+                return []
+                
+        except Exception as e:
+            st.error(f"Error calling Groq API: {str(e)}")
+            return []
 
     def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
         """Scrape webpage content with cookie handling and dynamic content waiting"""
@@ -186,21 +153,18 @@ class GenericConferenceScraper:
         try:
             st.info(f"Accessing URL: {url}")
             self.driver.get(url)
-            time.sleep(wait_time)  # Initial wait for page load
+            time.sleep(wait_time)
 
-            # Handle cookie consent
             if self.handle_cookie_consent():
                 st.info("Cookies accepted, waiting for content to load...")
             else:
                 st.warning("Cookie consent not found or couldn't be handled")
 
-            # Wait for dynamic content
             if self.wait_for_content():
                 st.info("Content loaded successfully")
             else:
                 st.warning("Content loading timeout - proceeding with available content")
 
-            # Get the page source after all handling
             return self.driver.page_source
         except Exception as e:
             st.error(f"Error accessing URL: {str(e)}")
@@ -210,50 +174,18 @@ class GenericConferenceScraper:
         """Extract readable text from HTML content"""
         soup = BeautifulSoup(content, 'html.parser')
         
-        # Remove script and style elements
         for script in soup(['script', 'style']):
             script.decompose()
             
-        # Get text and clean it up
         text = soup.get_text(separator='\n', strip=True)
-        # Remove multiple newlines
         text = re.sub(r'\n\s*\n', '\n\n', text)
         return text
 
-    def find_academics(self, content: str, min_confidence: float = 0.7) -> List[Dict[str, str]]:
-        """Find academic information in content with confidence scoring"""
-        soup = BeautifulSoup(content, 'html.parser')
-        academics = []
-
-        elements = soup.find_all(['p', 'div', 'span', 'td', 'li'])
-
-        for element in elements:
-            text = element.get_text(strip=True)
-            if not text or len(text) < 10:
-                continue
-
-            result = self.extract_name_affiliation(text)
-            if result:
-                confidence = 0.0
-                name = result['name']
-                affiliation = result['affiliation']
-
-                if self.is_likely_name(name):
-                    confidence += 0.5
-                if self.is_likely_affiliation(affiliation):
-                    confidence += 0.5
-
-                if confidence >= min_confidence:
-                    academics.append(result)
-
-        return academics
-
 def main():
-    st.title("Web Scraper")
+    st.title("Academic Information Extractor")
 
     url = st.text_input("Enter website URL:")
     wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
-    min_confidence = st.slider("Minimum confidence score", 0.0, 1.0, 0.7)
 
     if st.button("Extract Information"):
         if url:
@@ -265,15 +197,14 @@ def main():
                     content = scraper.scrape_webpage(url, wait_time)
 
                 if content:
-                    # Extract and display readable text
                     with st.spinner("Processing raw text..."):
                         readable_text = scraper.get_readable_text(content)
                         st.subheader("Raw Scraped Text")
                         with st.expander("Click to view raw text", expanded=False):
                             st.text_area("", readable_text, height=300)
 
-                    with st.spinner("Extracting information..."):
-                        academics = scraper.find_academics(content, min_confidence)
+                    with st.spinner("Extracting information using LLM..."):
+                        academics = scraper.extract_academics_with_llm(readable_text)
 
                     if academics:
                         df = pd.DataFrame(academics)
@@ -291,7 +222,7 @@ def main():
                             key='download-csv'
                         )
                     else:
-                        st.warning("No academic information found. Try adjusting the confidence threshold or wait time.")
+                        st.warning("No academic information found. The LLM might need adjustments or the content might not contain the expected information.")
                 else:
                     st.error("Failed to retrieve content from the URL.")
             except Exception as e:
