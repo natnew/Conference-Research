@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 from bs4 import BeautifulSoup
 import re
 import pandas as pd
@@ -21,7 +22,10 @@ def get_chrome_driver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
-
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--enable-javascript')
+    
     try:
         service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -47,6 +51,61 @@ class GenericConferenceScraper:
                 self.driver.quit()
             except:
                 pass
+
+    def handle_cookie_consent(self):
+        """Handle cookie consent popups"""
+        try:
+            # Wait for cookie consent button (adjust selectors based on the actual page)
+            cookie_buttons = [
+                "//button[contains(text(), 'Accept')]",
+                "//button[contains(text(), 'accept')]",
+                "//button[contains(@class, 'accept')]",
+                "//button[contains(text(), 'Allow')]",
+                "//button[contains(text(), 'Agree')]",
+                # Add specific button for your site
+                "//button[text()='Accept']"
+            ]
+            
+            for button_xpath in cookie_buttons:
+                try:
+                    WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.XPATH, button_xpath))
+                    ).click()
+                    st.info("Cookie consent handled")
+                    time.sleep(2)  # Wait for the popup to disappear
+                    return True
+                except (TimeoutException, ElementClickInterceptedException):
+                    continue
+            
+            return False
+        except Exception as e:
+            st.warning(f"Cookie consent handling failed: {str(e)}")
+            return False
+
+    def wait_for_content(self, timeout=30):
+        """Wait for dynamic content to load"""
+        try:
+            # Wait for specific elements that indicate content has loaded
+            # Adjust these selectors based on the actual page structure
+            content_indicators = [
+                "//div[contains(@class, 'faculty')]",
+                "//div[contains(@class, 'speakers')]",
+                "//div[contains(@class, 'content')]"
+            ]
+            
+            for indicator in content_indicators:
+                try:
+                    WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.XPATH, indicator))
+                    )
+                    return True
+                except TimeoutException:
+                    continue
+            
+            return False
+        except Exception as e:
+            st.warning(f"Content loading wait failed: {str(e)}")
+            return False
 
     @staticmethod
     def is_likely_name(text: str) -> bool:
@@ -87,19 +146,28 @@ class GenericConferenceScraper:
         return None
 
     def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
-        """Scrape webpage content with configurable wait time"""
+        """Scrape webpage content with cookie handling and dynamic content waiting"""
         if not self.driver:
             return ""
 
         try:
             st.info(f"Accessing URL: {url}")
             self.driver.get(url)
-            time.sleep(wait_time)
+            time.sleep(wait_time)  # Initial wait for page load
 
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
+            # Handle cookie consent
+            if self.handle_cookie_consent():
+                st.info("Cookies accepted, waiting for content to load...")
+            else:
+                st.warning("Cookie consent not found or couldn't be handled")
 
+            # Wait for dynamic content
+            if self.wait_for_content():
+                st.info("Content loaded successfully")
+            else:
+                st.warning("Content loading timeout - proceeding with available content")
+
+            # Get the page source after all handling
             return self.driver.page_source
         except Exception as e:
             st.error(f"Error accessing URL: {str(e)}")
