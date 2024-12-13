@@ -230,7 +230,7 @@ def main():
 
                     with st.spinner("Extracting information..."):
                         openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
-                        academics = extract_academic_info(content, openai_client)
+                        academics = extract_academic_info(readable_text, openai_client)
 
                     if academics:
                         # Parse the JSON response
