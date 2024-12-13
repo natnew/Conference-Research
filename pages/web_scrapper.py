@@ -192,10 +192,10 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract the names and affiliations from the following text."},
+            {"role": "system", "content": "Extract the names and affiliations from the following text. Return the results as a JSON array of objects with 'name' and 'affiliation' keys."},
             {"role": "user", "content": text}
         ],
-        response_format=AcademicInfo,
+        response_format=AcademicInfo
     )
 
     results = response.choices[0].message.content
@@ -230,8 +230,10 @@ def main():
                         academics = extract_academic_info(readable_text, openai_client)
 
                     if academics:
-                        df = pd.DataFrame(academics)
-                        # st.success(f"Found {len(academics)} academics!")
+                        # Parse the JSON response
+                        academics_list = json.loads(academics)
+                        df = pd.DataFrame(academics_list)
+                        st.success(f"Found {len(academics_list)} academics!")
 
                         st.subheader("Results")
                         st.dataframe(df)
