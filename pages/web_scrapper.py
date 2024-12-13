@@ -203,7 +203,6 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     )
 
     results = response.choices[0].message.content
-    st.info(results)
     return results
 
 def main():
