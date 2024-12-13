@@ -231,7 +231,7 @@ def main():
 
                     if academics:
                         df = pd.DataFrame(academics)
-                        st.success(f"Found {len(academics)} academics!")
+                        # st.success(f"Found {len(academics)} academics!")
 
                         st.subheader("Results")
                         st.dataframe(df)
