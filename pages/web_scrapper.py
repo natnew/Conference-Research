@@ -195,7 +195,7 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
             {"role": "system", "content": "Extract the names and affiliations from the following text."},
             {"role": "user", "content": text}
         ],
-        response_format=List[AcademicInfo],
+        response_format=AcademicInfo,
     )
 
     results = response.choices[0].message.parsed
