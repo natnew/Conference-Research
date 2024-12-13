@@ -81,7 +81,6 @@ class GenericConferenceScraper:
         if not self.driver:
             st.error("Failed to initialize the scraper")
             st.stop()
-        self.openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
 
     def __del__(self):
         """Clean up the WebDriver"""
@@ -146,23 +145,6 @@ class GenericConferenceScraper:
             st.warning(f"Content loading wait failed: {str(e)}")
             return False
 
-    def extract_name_affiliation(self, text: str) -> Optional[Dict[str, str]]:
-        """Extract name and affiliation from text using OpenAI LLM"""
-        response = self.openai_client.beta.chat.completions.parse(
-            model="gpt-4o-mini-2024-07-18",
-            messages=[
-                {"role": "system", "content": "Extract the name and affiliation from the following text."},
-                {"role": "user", "content": text}
-            ],
-            response_format=AcademicInfo,
-        )
-
-        result = response.choices[0].message.parsed
-        return {
-            'name': result.name,
-            'affiliation': result.affiliation
-        }
-
     def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
         """Scrape webpage content with cookie handling and dynamic content waiting"""
         if not self.driver:
@@ -205,23 +187,19 @@ class GenericConferenceScraper:
         text = re.sub(r'\n\s*\n', '\n\n', text)
         return text
 
-    def find_academics(self, content: str) -> List[Dict[str, str]]:
-        """Find academic information in content"""
-        soup = BeautifulSoup(content, 'html.parser')
-        academics = []
+def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, str]]:
+    """Extract academic information from text using OpenAI LLM"""
+    response = openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini-2024-07-18",
+        messages=[
+            {"role": "system", "content": "Extract the names and affiliations from the following text."},
+            {"role": "user", "content": text}
+        ],
+        response_format=List[AcademicInfo],
+    )
 
-        elements = soup.find_all(['p', 'div', 'span', 'td', 'li'])
-
-        for element in elements:
-            text = element.get_text(strip=True)
-            if not text or len(text) < 10:
-                continue
-
-            result = self.extract_name_affiliation(text)
-            if result:
-                academics.append(result)
-
-        return academics
+    results = response.choices[0].message.parsed
+    return [{'name': result.name, 'affiliation': result.affiliation} for result in results]
 
 def main():
     st.title("Web Scraper")
@@ -247,7 +225,8 @@ def main():
                             st.text_area("", readable_text, height=300)
 
                     with st.spinner("Extracting information..."):
-                        academics = scraper.find_academics(content)
+                        openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+                        academics = extract_academic_info(readable_text, openai_client)
 
                     if academics:
                         df = pd.DataFrame(academics)
@@ -276,4 +255,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
