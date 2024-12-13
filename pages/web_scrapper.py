@@ -12,6 +12,7 @@ from selenium.common.exceptions import TimeoutException, ElementClickIntercepted
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import re
 from typing import Dict, List, Optional
 from groq import Groq
 
