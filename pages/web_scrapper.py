@@ -198,7 +198,7 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
         response_format=AcademicInfo,
     )
 
-    results = response.choices[0].message.parsed
+    results = response.choices[0].message.content
     st.info(results)
     return results
 
