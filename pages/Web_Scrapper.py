@@ -209,7 +209,13 @@ def main():
     st.title("Web Scraper")
 
     url = st.text_input("Enter website URL:")
-    wait_time = st.slider("Page load wait time (seconds)", 1, 15, 5)
+    wait_time = st.slider(
+        "Page Load Wait Time (seconds)", 
+        min_value=1, 
+        max_value=15, 
+        value=5, 
+        help="Adjust this slider to control how long the scraper waits for a webpage to load. If the website is slow or has complex dynamic content, increase this time to ensure all information is captured. A longer wait time helps with websites that load content gradually or have multiple loading stages."
+    )
 
     if st.button("Extract Information"):
         if url:
