@@ -22,7 +22,7 @@ from openai import OpenAI
 st.snow()
 
 # Sidebar content
-st.sidebar.title(":streamlit: Conference Research Assistant")
+st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
 A specialized web scraping tool designed to extract academic profiles from conference
 websites and institutional pages. Automatically identifies and extracts names,
