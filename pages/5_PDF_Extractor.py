@@ -5,7 +5,7 @@ import re
 from io import BytesIO
 
 st.snow()
-st.sidebar.title(":streamlit: Conference Research Assistant")
+st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
 A self-service app that automates the generation of biographical content 
 and assists in lead generation. Designed to support academic and professional 
