@@ -176,16 +176,10 @@ def main():
         # Display course details if available
         if st.session_state.selected_course_details:
             st.subheader("Course Details")
-            st.write(f"**Course Name:** {st.session_state.selected_course_details.course_name}")
-            st.write(f"**Overview:** {st.session_state.selected_course_details.course_overview}")
-            st.write(f"**Details:** {st.session_state.selected_course_details.course_details}")
-
-            st.write("**Module Leaders/Coordinators:**")
-            for leader in st.session_state.selected_course_details.module_leaders:
-                st.write(f"- {leader['name']} ({leader['email']})")
-
-            st.write("**Reading List:**")
-            st.write("\n".join(st.session_state.selected_course_details.reading_list))
+            # Normalize the JSON data
+            course_detail_df = pd.json_normalize(st.session_state.selected_course_details)
+            # Display DataFrame
+            st.dataframe(course_detail_df)
 
 if __name__ == "__main__":
     main()
