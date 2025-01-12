@@ -26,6 +26,19 @@ class CourseDetail(BaseModel):
     course_name: str
     course_overview: str
     course_details: str
+    module_leaders: str = Field(
+        ...,
+        description="the name of the leaders of the module for example John Doe."
+    )
+    module_leaders_email: str = Field(
+        ...,
+        description="the email of the module leaders i.e 'john.doe@example.com'."
+    )
+    reading_list: List[str] = Field(
+        ...,
+        description=" a list of recommended or required books, articles, or other resources for the course."
+    )
+    
 
 class CourseCatalogueResponse(BaseModel):
     courses: List[CoursePreview]
@@ -106,8 +119,9 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         response_format=CourseDetailResponse
     )
     course_detail_data = response.choices[0].message.content
-    course_detail_data_dict = json.loads(course_detail_data)
-    return course_detail_data_dict.course_detail
+    st.write("Debug: course_detail_data", course_detail_data)
+    course_detail_data_parsed = json.loads(course_detail_data)
+    return course_detail_data_parsed
 
 # Updated Streamlit App with state management
 def main():
