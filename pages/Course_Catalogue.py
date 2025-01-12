@@ -26,8 +26,6 @@ class CourseDetail(BaseModel):
     course_name: str
     course_overview: str
     course_details: str
-    module_leaders: List[Dict[str, str]] = Field(..., description="This is an example of the module leaders: {'name': 'John Doe', 'email': 'john.doe@example.com'}")
-    reading_list: List[str]
 
 class CourseCatalogueResponse(BaseModel):
     courses: List[CoursePreview]
