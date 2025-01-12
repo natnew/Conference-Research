@@ -26,13 +26,13 @@ class CourseDetail(BaseModel):
     course_name: str
     course_overview: str
     course_details: str
-    module_leaders: str = Field(
+    module_leader_name: str = Field(
         ...,
         description="the name of the leaders of the module for example John Doe."
     )
-    module_leaders_email: str = Field(
+    module_leader_email: Optional[str] = Field(
         ...,
-        description="the email of the module leaders i.e 'john.doe@example.com'."
+        description="the email of the module leaders."
     )
     reading_list: List[str] = Field(
         ...,
