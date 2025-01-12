@@ -106,7 +106,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
             {"role": "system", "content": "Extract detailed information about the course from the following text."},
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
         ],
-        response_format=CourseDetailResponse
+        response_format=CourseDetail
     )
     course_detail_data = response.choices[0].message.content
     course_detail_data_dict = json.loads(course_detail_data)
