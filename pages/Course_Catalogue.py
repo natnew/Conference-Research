@@ -121,7 +121,8 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     course_detail_data = response.choices[0].message.content
     st.write("Debug: course_detail_data", course_detail_data)
     course_detail_data_parsed = json.loads(course_detail_data)
-    return course_detail_data_parsed
+    course_details = course_detail_data_parsed.get("course_detail", [])
+    return course_details
 
 # Updated Streamlit App with state management
 def main():
