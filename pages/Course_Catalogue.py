@@ -21,7 +21,6 @@ from openai import OpenAI
 # Pydantic models for structured output
 class CoursePreview(BaseModel):
     course_name: str
-    course_overview: str
 
 class CourseDetail(BaseModel):
     course_name: str
@@ -95,9 +94,7 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     )
     courses_data = response.choices[0].message.content
     st.write("Debug: courses_data", courses_data)
-    courses_data_dict = json.loads(courses_data)  # Convert the JSON string to a dictionary
-    course_catalogue_response = CourseCatalogueResponse(**courses_data_dict)  # Parse the dictionary into the model
-    return courses_data.courses 
+    return courses_data 
 
 # Extract course details using LLM
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
@@ -111,9 +108,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     )
     course_detail_data = response.choices[0].message.content
     st.write("Debug: course_detail_data", course_detail_data) 
-    course_detail_data_dict = json.loads(course_detail_data)  # Convert the JSON string to a dictionary
-    course_detail_response = CourseDetailResponse(**course_detail_data_dict)  # Parse the dictionary into the model
-    return course_detail_data.course_detail
+    return course_detail_data
 
 # Streamlit App
 def main():
@@ -133,10 +128,12 @@ def main():
             if content:
                 raw_text = scraper.extract_text(content)
                 courses = extract_courses(raw_text, openai_client)
+                courses_df = pd.json_normalize(course_catalogue_response.dict())
 
                 st.subheader("Course Preview")
+                st.dataframe(courses_df)
                 selected_course_name = st.selectbox(
-                    "Select a course to view details:", [course.course_name for course in courses]
+                    "Select a course to view details:", courses_df['course_name']
                 )
 
                 if selected_course_name:
