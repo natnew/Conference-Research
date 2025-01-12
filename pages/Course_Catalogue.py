@@ -109,7 +109,9 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     )
     course_detail_data = response.choices[0].message.content
     st.write("Debug: course_detail_data", course_detail_data) 
-    return course_detail_data
+    course_detail_data_dict = json.loads(course_detail_data)  # Convert the JSON string to a dictionary
+    course_detail_response = CourseDetailResponse(**course_detail_data_dict)
+    return course_detail_response.course_detail
 
 # Streamlit App
 def main():
@@ -120,6 +122,14 @@ def main():
     # URL Input
     url = st.text_input("Enter Course Catalogue URL:")
     wait_time = st.slider("Page Load Wait Time (seconds)", min_value=1, max_value=15, value=5)
+     if 'courses_df' not in st.session_state:
+        st.session_state.courses_df = pd.DataFrame()
+
+    if 'selected_course_name' not in st.session_state:
+        st.session_state.selected_course_name = ""
+
+    if 'course_details' not in st.session_state:
+        st.session_state.course_details = None
 
     if st.button("Extract Courses"):
         if url:
@@ -129,43 +139,70 @@ def main():
             if content:
                 raw_text = scraper.extract_text(content)
                 courses = extract_courses(raw_text, openai_client)
-                courses_df = pd.json_normalize(courses)
-
-                st.subheader("Course Preview")
-                selected_course_name = st.selectbox(
-                    "Select a course to view details:", courses_df['course_name']
+                # courses_df = pd.json_normalize(courses)
+                st.session_state.courses_df = pd.json_normalize(courses)
+            if not st.session_state.courses_df.empty:
+                st.session_state.selected_course_name = st.selectbox(
+                    "Select a course to view details:", st.session_state.courses_df['course_name']
                 )
-
-                if selected_course_name:
-                    if st.button("View Course Details"):
-                        course_details = extract_course_details(selected_course_name, raw_text, openai_client)
-
-                        st.subheader("Course Details")
-                        st.write(f"**Course Name:** {course_details.course_name}")
-                        st.write(f"**Overview:** {course_details.course_overview}")
-                        st.write(f"**Details:** {course_details.course_details}")
-
-                        st.write("**Module Leaders/Coordinators:**")
-                        for leader in course_details.module_leaders:
-                            st.write(f"- {leader['name']} ({leader['email']})")
-
-                        st.write("**Reading List:**")
-                        st.write("\n".join(course_details.reading_list))
-            else:
-                st.error("Failed to scrape the page.")
-        else:
-            st.warning("Please provide a URL.")
-
-    # # Manual Course Input
-    # st.subheader("Add a Course Manually")
-    # manual_description = st.text_area("Enter course description:")
-
-    # if st.button("Find Similar Courses"):
-    #     if manual_description:
-    #         similar_courses = extract_courses(manual_description, openai_client)
-    #         st.write(similar_courses)
-    #     else:
-    #         st.warning("Please provide a course description.")
+        
+                if st.session_state.selected_course_name:
+                    if st.session_state.course_details is None or st.session_state.course_details.course_name != st.session_state.selected_course_name:
+                        scraper = CourseScraper()
+                        content = scraper.scrape_page(url, wait_time)
+                        raw_text = scraper.extract_text(content)
+                        st.session_state.course_details = extract_course_details(st.session_state.selected_course_name, raw_text, openai_client)
+        
+                    st.subheader("Course Details")
+                    st.write(f"**Course Name:** {st.session_state.course_details.course_name}")
+                    st.write(f"**Overview:** {st.session_state.course_details.course_overview}")
+                    st.write(f"**Details:** {st.session_state.course_details.course_details}")
+        
+                    st.write("**Module Leaders/Coordinators:**")
+                    for leader in st.session_state.course_details.module_leaders:
+                        st.write(f"- {leader['name']} ({leader['email']})")
+        
+                    st.write("**Reading List:**")
+                    st.write("\n".join(st.session_state.course_details.reading_list))
 
 if __name__ == "__main__":
     main()
+
+#                 st.subheader("Course Preview")
+#                 selected_course_name = st.selectbox(
+#                     "Select a course to view details:", courses_df['course_name']
+#                 )
+
+#                 if selected_course_name:
+#                     if st.button("View Course Details"):
+#                         course_details = extract_course_details(selected_course_name, raw_text, openai_client)
+
+#                         st.subheader("Course Details")
+#                         st.write(f"**Course Name:** {course_details.course_name}")
+#                         st.write(f"**Overview:** {course_details.course_overview}")
+#                         st.write(f"**Details:** {course_details.course_details}")
+
+#                         st.write("**Module Leaders/Coordinators:**")
+#                         for leader in course_details.module_leaders:
+#                             st.write(f"- {leader['name']} ({leader['email']})")
+
+#                         st.write("**Reading List:**")
+#                         st.write("\n".join(course_details.reading_list))
+#             else:
+#                 st.error("Failed to scrape the page.")
+#         else:
+#             st.warning("Please provide a URL.")
+
+#     # # Manual Course Input
+#     # st.subheader("Add a Course Manually")
+#     # manual_description = st.text_area("Enter course description:")
+
+#     # if st.button("Find Similar Courses"):
+#     #     if manual_description:
+#     #         similar_courses = extract_courses(manual_description, openai_client)
+#     #         st.write(similar_courses)
+#     #     else:
+#     #         st.warning("Please provide a course description.")
+
+# if __name__ == "__main__":
+#     main()
