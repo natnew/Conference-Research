@@ -34,6 +34,7 @@ class CourseCatalogueResponse(BaseModel):
 
 class CourseDetailResponse(BaseModel):
     course_detail: CourseDetail
+    required: List[str] = ["course_name", "course_overview", "course_details", "module_leaders", "reading_list"]
 
 # Selenium WebDriver setup remains the same
 def get_chrome_driver():
