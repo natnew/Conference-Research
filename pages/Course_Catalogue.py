@@ -42,7 +42,7 @@ def get_chrome_driver():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    
+
     try:
         service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -95,7 +95,7 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     courses_data = response.choices[0].message.content
     courses_parsed = json.loads(courses_data)
     courses_list = courses_parsed.get("courses", [])
-    return courses_list 
+    return courses_list
 
 # Extract course details using LLM
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
@@ -108,7 +108,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         response_format=CourseDetailResponse
     )
     course_detail_data = response.choices[0].message.content
-    st.write("Debug: course_detail_data", course_detail_data) 
+    st.write("Debug: course_detail_data", course_detail_data)
     course_detail_data_dict = json.loads(course_detail_data)  # Convert the JSON string to a dictionary
     course_detail_response = CourseDetailResponse(**course_detail_data_dict)
     return course_detail_response.course_detail
@@ -122,7 +122,8 @@ def main():
     # URL Input
     url = st.text_input("Enter Course Catalogue URL:")
     wait_time = st.slider("Page Load Wait Time (seconds)", min_value=1, max_value=15, value=5)
-     if 'courses_df' not in st.session_state:
+
+    if 'courses_df' not in st.session_state:
         st.session_state.courses_df = pd.DataFrame()
 
     if 'selected_course_name' not in st.session_state:
@@ -139,29 +140,29 @@ def main():
             if content:
                 raw_text = scraper.extract_text(content)
                 courses = extract_courses(raw_text, openai_client)
-                # courses_df = pd.json_normalize(courses)
                 st.session_state.courses_df = pd.json_normalize(courses)
+
             if not st.session_state.courses_df.empty:
                 st.session_state.selected_course_name = st.selectbox(
                     "Select a course to view details:", st.session_state.courses_df['course_name']
                 )
-        
+
                 if st.session_state.selected_course_name:
                     if st.session_state.course_details is None or st.session_state.course_details.course_name != st.session_state.selected_course_name:
                         scraper = CourseScraper()
                         content = scraper.scrape_page(url, wait_time)
                         raw_text = scraper.extract_text(content)
                         st.session_state.course_details = extract_course_details(st.session_state.selected_course_name, raw_text, openai_client)
-        
+
                     st.subheader("Course Details")
                     st.write(f"**Course Name:** {st.session_state.course_details.course_name}")
                     st.write(f"**Overview:** {st.session_state.course_details.course_overview}")
                     st.write(f"**Details:** {st.session_state.course_details.course_details}")
-        
+
                     st.write("**Module Leaders/Coordinators:**")
                     for leader in st.session_state.course_details.module_leaders:
                         st.write(f"- {leader['name']} ({leader['email']})")
-        
+
                     st.write("**Reading List:**")
                     st.write("\n".join(st.session_state.course_details.reading_list))
 
