@@ -33,8 +33,7 @@ class CourseCatalogueResponse(BaseModel):
     courses: List[CoursePreview]
 
 class CourseDetailResponse(BaseModel):
-    course_detail: CourseDetail
-    required: List[str] = ["course_name", "course_overview", "course_details", "module_leaders", "reading_list"]
+    course_detail:List[CourseDetail]
 
 # Selenium WebDriver setup remains the same
 def get_chrome_driver():
@@ -99,14 +98,14 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     return courses_list
 
 # Extract course details function remains the same
-def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
+def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> List[CourseDetail]:
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {"role": "system", "content": "Extract detailed information about the course from the following text."},
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
         ],
-        response_format=CourseDetail
+        response_format=CourseDetailResponse
     )
     course_detail_data = response.choices[0].message.content
     course_detail_data_dict = json.loads(course_detail_data)
