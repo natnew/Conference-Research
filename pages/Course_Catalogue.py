@@ -109,8 +109,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     )
     course_detail_data = response.choices[0].message.content
     course_detail_data_dict = json.loads(course_detail_data)
-    course_detail_response = CourseDetailResponse(**course_detail_data_dict)
-    return course_detail_response.course_detail
+    return course_detail_data_dict.course_detail
 
 # Updated Streamlit App with state management
 def main():
