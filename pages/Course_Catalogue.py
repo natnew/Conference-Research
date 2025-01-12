@@ -137,19 +137,20 @@ def main():
                 )
 
                 if selected_course_name:
-                    course_details = extract_course_details(selected_course_name, raw_text, openai_client)
+                    if st.button("View Course Details"):
+                        course_details = extract_course_details(selected_course_name, raw_text, openai_client)
 
-                    st.subheader("Course Details")
-                    st.write(f"**Course Name:** {course_details.course_name}")
-                    st.write(f"**Overview:** {course_details.course_overview}")
-                    st.write(f"**Details:** {course_details.course_details}")
+                        st.subheader("Course Details")
+                        st.write(f"**Course Name:** {course_details.course_name}")
+                        st.write(f"**Overview:** {course_details.course_overview}")
+                        st.write(f"**Details:** {course_details.course_details}")
 
-                    st.write("**Module Leaders/Coordinators:**")
-                    for leader in course_details.module_leaders:
-                        st.write(f"- {leader['name']} ({leader['email']})")
+                        st.write("**Module Leaders/Coordinators:**")
+                        for leader in course_details.module_leaders:
+                            st.write(f"- {leader['name']} ({leader['email']})")
 
-                    st.write("**Reading List:**")
-                    st.write("\n".join(course_details.reading_list))
+                        st.write("**Reading List:**")
+                        st.write("\n".join(course_details.reading_list))
             else:
                 st.error("Failed to scrape the page.")
         else:
