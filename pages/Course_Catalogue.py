@@ -181,9 +181,9 @@ def main():
             # Display DataFrame
             st.dataframe(course_detail_df)
             
-    # Manual Course Input
-    st.subheader("Add a Course Manually")
-    manual_description = st.text_area("Enter course description:")
+    # # Manual Course Input
+    # st.subheader("Add a Course Manually")
+    # manual_description = st.text_area("Enter course description:")
 
     # if st.button("Find Similar Courses"):
     #     if manual_description:
