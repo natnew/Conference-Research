@@ -141,7 +141,8 @@ def main():
                 raw_text = scraper.extract_text(content)
                 st.session_state.raw_text = raw_text
                 courses = extract_courses(raw_text, openai_client)
-                st.session_state.courses = courses
+                st.session_state.courses =  courses
+                courses_df = pd.json_normalize(st.session_state.courses)
                 st.session_state.selected_course_name = ""
                 st.session_state.course_details = None
             else:
@@ -152,7 +153,7 @@ def main():
     if st.session_state.courses:
         st.subheader("Course Preview")
         st.session_state.selected_course_name = st.selectbox(
-            "Select a course to view details:", [course.course_name for course in st.session_state.courses]
+            "Select a course to view details:", courses_df ['course_name']
         )
 
         if st.session_state.selected_course_name:
