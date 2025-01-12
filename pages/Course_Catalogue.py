@@ -132,7 +132,6 @@ def main():
                 courses_df = pd.json_normalize(courses)
 
                 st.subheader("Course Preview")
-                st.dataframe(courses_df)
                 selected_course_name = st.selectbox(
                     "Select a course to view details:", courses_df['course_name']
                 )
