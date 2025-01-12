@@ -93,10 +93,8 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
         response_format=CourseCatalogueResponse
     )
     courses_data = response.choices[0].message.content
-    st.write("Debug: courses_data", courses_data)
     courses_parsed = json.loads(courses_data)
     courses_list = courses_parsed.get("courses", [])
-    st.write("Debug: courses_list", courses_list)
     return courses_list 
 
 # Extract course details using LLM
