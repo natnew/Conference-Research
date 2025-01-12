@@ -94,6 +94,7 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
         response_format=CourseCatalogueResponse
     )
     courses_data = response.choices[0].message.content
+    st.write("Debug: courses_data", courses_data) 
     return courses_data.courses 
 
 # Extract course details using LLM
@@ -107,6 +108,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         response_format=CourseDetailResponse
     )
     course_detail_data = response.choices[0].message.content
+    st.write("Debug: course_detail_data", course_detail_data) 
     return course_detail_data.course_detail
 
 # Streamlit App
