@@ -128,7 +128,7 @@ def main():
             if content:
                 raw_text = scraper.extract_text(content)
                 courses = extract_courses(raw_text, openai_client)
-                courses_df = pd.json_normalize(courses['courses'])
+                courses_df = pd.json_normalize(courses)
 
                 st.subheader("Course Preview")
                 st.dataframe(courses_df)
