@@ -17,6 +17,7 @@ import json
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from openai import OpenAI
+import requests
 
 # Pydantic models remain the same
 class CoursePreview(BaseModel):
@@ -123,6 +124,16 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     course_details = course_detail_data_parsed.get("course_detail", [])
     return course_details
 
+# Function to search DuckDuckGo
+def search_duckduckgo(query: str) -> str:
+    search_url = f"https://duckduckgo.com/?q={query}&format=json"
+    response = requests.get(search_url)
+    if response.status_code == 200:
+        results = response.json()
+        if results and 'AbstractURL' in results:
+            return results['AbstractURL']
+    return ""
+
 # Updated Streamlit App with state management
 def main():
     st.title("Course Catalogue")
@@ -181,16 +192,28 @@ def main():
             # Display DataFrame
             st.dataframe(course_detail_df)
             
-    # # Manual Course Input
-    # st.subheader("Add a Course Manually")
-    # manual_description = st.text_area("Enter course description:")
+    # Manual Course Input
+    st.subheader("Add a Course Manually")
+    manual_description = st.text_area("Enter course description:")
 
-    # if st.button("Find Similar Courses"):
-    #     if manual_description:
-    #         similar_courses = extract_courses(manual_description, openai_client)
-    #         st.write(similar_courses)
-    #     else:
-    #         st.warning("Please provide a course description.")
+    if st.button("Find Similar Courses"):
+        if manual_description:
+            search_query = f"course catalogue {manual_description}"
+            url = search_duckduckgo(search_query)
+            if url:
+                scraper = CourseScraper()
+                content = scraper.scrape_page(url, wait_time)
+
+                if content:
+                    st.session_state.raw_text = scraper.extract_text(content)
+                    st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                    st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                else:
+                    st.error("Failed to scrape the page.")
+            else:
+                st.warning("No relevant URL found.")
+        else:
+            st.warning("Please provide a course description.")
 
 if __name__ == "__main__":
     main()
