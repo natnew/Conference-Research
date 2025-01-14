@@ -40,7 +40,6 @@ class CourseDetail(BaseModel):
         ...,
         description=" a list of recommended or required books, articles, or other resources for the course."
     )
-    
 
 class CourseCatalogueResponse(BaseModel):
     courses: List[CoursePreview]
@@ -100,7 +99,7 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract a list of courses with their names and overviews from the following text. Return results as a structured output defined in the response mode of the model."},
+            {"role": "system", "content": "Extract a detailed list, of course, names as described  from the provided text. Return results as a structured output defined in the response mode of the model."},
             {"role": "user", "content": text}
         ],
         response_format=CourseCatalogueResponse
@@ -115,7 +114,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract detailed information about the course from the following text."},
+            {"role": "system", "content": "Extract detailed information about the course from the provided text."},
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
         ],
         response_format=CourseDetailResponse
@@ -147,9 +146,10 @@ def main():
     openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
 
     # URL Input
+    st.subheader("Enter Course Catalogue URL")
     url = st.text_input("Enter Course Catalogue URL:")
     wait_time = st.slider("Page Load Wait Time (seconds)", min_value=1, max_value=15, value=5)
-    
+
     # Extract Courses Button
     if st.button("Extract Courses"):
         if url:
@@ -165,31 +165,6 @@ def main():
         else:
             st.warning("Please provide a URL.")
 
-    # Display courses if available
-    if st.session_state.courses:
-        courses_df = pd.json_normalize(st.session_state.courses)
-        st.subheader("Course Preview")
-        selected_course_name = st.selectbox(
-            "Select a course to view details:",
-            courses_df['course_name']
-        )
-
-        # View Course Details Button
-        if selected_course_name and st.button("View Course Details"):
-            st.session_state.selected_course_details = extract_course_details(
-                selected_course_name,
-                st.session_state.raw_text,
-                openai_client
-            )
-
-        # Display course details if available
-        if st.session_state.selected_course_details:
-            st.subheader("Course Details")
-            # Normalize the JSON data
-            course_detail_df = pd.json_normalize(st.session_state.selected_course_details)
-            # Display DataFrame
-            st.dataframe(course_detail_df)
-            
     # Manual Course Input
     st.subheader("Add a Course Manually")
     manual_description = st.text_area("Enter course description:")
@@ -212,6 +187,31 @@ def main():
                 st.warning("No relevant URL found.")
         else:
             st.warning("Please provide a course description.")
+
+    # Display courses if available
+    if st.session_state.courses:
+        st.subheader("Course Preview")
+        courses_df = pd.json_normalize(st.session_state.courses)
+        selected_course_name = st.selectbox(
+            "Select a course to view details:",
+            courses_df['course_name']
+        )
+
+        # View Course Details Button
+        if selected_course_name and st.button("View Course Details"):
+            st.session_state.selected_course_details = extract_course_details(
+                selected_course_name,
+                st.session_state.raw_text,
+                openai_client
+            )
+
+        # Display course details if available
+        if st.session_state.selected_course_details:
+            st.subheader("Course Details")
+            # Normalize the JSON data
+            course_detail_df = pd.json_normalize(st.session_state.selected_course_details)
+            # Display DataFrame
+            st.dataframe(course_detail_df)
 
 if __name__ == "__main__":
     main()
