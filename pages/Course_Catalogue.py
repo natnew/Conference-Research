@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from openai import OpenAI
 import requests
+from duckduckgo_search import DDGS
 
 # Pydantic models remain the same
 class CoursePreview(BaseModel):
@@ -126,12 +127,9 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
 
 # Function to search DuckDuckGo
 def search_duckduckgo(query: str) -> str:
-    search_url = f"https://duckduckgo.com/?q={query}&format=json"
-    response = requests.get(search_url)
-    if response.status_code == 200:
-        results = response.json()
-        if results and 'AbstractURL' in results:
-            return results['AbstractURL']
+    results = DDGS().text(query, max_results=5)
+    if results:
+        return results[0]['href']  # Return the first URL found
     return ""
 
 # Updated Streamlit App with state management
