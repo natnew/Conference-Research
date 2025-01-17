@@ -49,10 +49,6 @@ def get_reading_list(university: str, course: str):
 def main():
     st.title("Course Reading List")
     
-    st.info("""### Course Materials
-    This page provides access to recommended or required reading lists for university courses.
-    Enter the details below to get the full list.
-    """)
     #University name Input Text Field
     university = st.text_input(
         "University Name",
