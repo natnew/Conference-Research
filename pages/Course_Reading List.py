@@ -41,7 +41,7 @@ def get_reading_list(university: str, course: str):
     #         Give a comprehensive detailed reading list  that includes books with the links to the book, recommended articles with their links
     #         and avoid such text in your response`Please note that these are just a few examples,
     #          and there are many other relevant books and articles that could be included in a comprehensive reading list for a course...`"""
-     query = f"""Generate a focused reading list for {course} at {university}. Include only:
+    query = f"""Generate a focused reading list for {course} at {university}. Include only:
 
             1. Core Textbooks (3-5):
             - Title, author, edition
