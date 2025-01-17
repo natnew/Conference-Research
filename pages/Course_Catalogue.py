@@ -20,6 +20,41 @@ from openai import OpenAI
 import requests
 from duckduckgo_search import DDGS
 
+st.snow()
+
+# Sidebar content
+st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
+st.sidebar.write("""
+A comprehensive tool designed to extract and summarize
+course details from educational websites. It enables efficient retrieval of structured
+information such as course names, descriptions, module leaders, and reading lists.
+""")
+
+# Sidebar Info Box as Dropdown
+with st.sidebar.expander("Capabilities", expanded=False):
+    st.write("""
+    This tool provides the following advanced capabilities:
+    - Automated web scraping with Selenium
+    - Text extraction and processing using BeautifulSoup
+    - AI-powered extraction of course summaries and details using OpenAI models
+    - Customizable page load times
+    - Support for manual course entry and search via DuckDuckGo
+    - Export results to structured formats like DataFrame
+    """)
+
+with st.sidebar:
+    st.markdown("# About This Tool")
+    st.markdown(
+        "This application enables users to get course information from educational websites "
+        "process text to extract key details, and leverage AI for summarization and detailed data extraction. "
+        "It is ideal for educators, students, and institutions looking to streamline course catalogues "
+        "and enhance their data collection processes."
+    )
+    st.markdown(
+        "The tool is continually updated to improve its data collection and retrieval accuracy and compatibility "
+        "with different website layouts. User feedback is highly valued to ensure robust performance."
+    )
+
 # Pydantic models remain the same
 class CoursePreview(BaseModel):
     course_name: str
