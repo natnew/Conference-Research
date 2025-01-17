@@ -182,7 +182,7 @@ def main():
 
     # URL Input
     st.subheader("Enter Course Catalogue URL")
-     url = st.text_input(
+    url = st.text_input(
         "URL:",
         placeholder="Enter the URL of the course catalogue (e.g., https://example.com/courses)",
         help="Provide the link to the webpage containing the course catalogue."
