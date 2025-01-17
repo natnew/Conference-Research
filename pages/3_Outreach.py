@@ -1,7 +1,6 @@
 import streamlit as st
 from langchain.llms import OpenAI
 
-st.snow()
 
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
