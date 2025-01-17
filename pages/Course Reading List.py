@@ -1,10 +1,44 @@
 import streamlit as st
 from duckduckgo_search import DDGS
 
+st.snow()
+
+# Sidebar content
+st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
+st.sidebar.write("""
+A dedicated tool to help students and educators retrieve and summarize reading lists for
+university courses. The tool combines AI and web search to provide comprehensive
+information on books, articles, and lecture materials related to specific courses.
+""")
+
+# Sidebar Info Box as Dropdown
+with st.sidebar.expander("Capabilities", expanded=False):
+    st.write("""
+    This tool provides the following advanced capabilities:
+    - AI-driven retrieval of books, articles, and lecture materials
+    - User-friendly interface for customized queries
+    - Support for fetching course-specific reading lists with source links
+    - Efficient use of DuckDuckGo for search results
+    """)
+
+with st.sidebar:
+    st.markdown("# About This Tool")
+    st.markdown(
+        "This application enables users to access detailed reading lists for university courses. "
+        "It retrieves books, articles, and lecture materials using AI and web search. "
+        "The tool is ideal for educators, students, and researchers looking for quick access to structured "
+        "course reading materials and sources."
+    )
+    st.markdown(
+        "The tool is continuously improved to enhance its search accuracy and relevance. "
+        "Your feedback helps us deliver better results."
+    )
+
+
 # Function to fetch the reading list using DuckDuckGo
 
 def get_reading_list(university: str, course: str):
-    query = f"{university}, {course} reading list with links"
+    query = f"{university}, {course} reading list including books, articles, and lecture materials with links"
     results = DDGS().chat(query, model="claude-3-haiku")
     if results:
         return results
@@ -15,7 +49,7 @@ def get_reading_list(university: str, course: str):
 def main():
     st.title("Course Reading List")
     
-    st.write("""### Course Materials
+    st.info("""### Course Materials
     This page provides access to recommended or required reading lists for university courses.
     Enter the details below to get the full list.
     """)
