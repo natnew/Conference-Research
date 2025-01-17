@@ -3,7 +3,6 @@ import pandas as pd
 import re
 from openai import OpenAI
 
-st.snow()
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
