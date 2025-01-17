@@ -37,12 +37,14 @@ with st.sidebar:
 # Function to fetch the reading list using DuckDuckGo
 
 def get_reading_list(university: str, course: str):
-    query = f"{university}, {course} reading list including books, articles, and lecture materials with links"
+    query = f"You are a course professional with the  following {university}, {course} please give me a suitable   reading list  which includes books, peer-reviewed articles, and lecture materials from the university with their links"
     results = DDGS().chat(query, model="claude-3-haiku")
     if results:
+        sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources data and AI recommendations."
+        return results, sources_info
         return results
     else:
-        return "No results found. Please try a different query."
+        return "No results found. Please try a different query.", ""
 
 
 def main():
@@ -62,9 +64,15 @@ def main():
     if st.button("Get Reading List"):
         with st.spinner("Fetching reading list..."):
             if university and course:
-                results = get_reading_list(university, course)
+                results, sources_info = get_reading_list(university, course)
+                st.write("### Recommended Resources")
+                st.info("Information Source: " + sources_info)
                 st.write("### Reading List")
-                st.write(results)
+                if isinstance(results, list):
+                    for item in results:
+                        st.write(f"- {item}")
+                else:
+                    st.write(results)
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
