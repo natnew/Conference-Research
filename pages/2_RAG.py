@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import tiktoken  # Token estimation library
 
-st.snow()
+
 
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
