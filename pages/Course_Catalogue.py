@@ -182,8 +182,16 @@ def main():
 
     # URL Input
     st.subheader("Enter Course Catalogue URL")
-    url = st.text_input("Enter Course Catalogue URL:")
-    wait_time = st.slider("Page Load Wait Time (seconds)", min_value=1, max_value=15, value=5)
+     url = st.text_input(
+        "URL:",
+        placeholder="Enter the URL of the course catalogue (e.g., https://example.com/courses)",
+        help="Provide the link to the webpage containing the course catalogue."
+    )
+    wait_time = st.slider(
+        "Page Load Wait Time (seconds)",
+        min_value=1, max_value=15, value=5,
+        help="Set the wait time to allow the page to fully load before scraping."
+    )
 
     # Extract Courses Button
     if st.button("Extract Courses"):
@@ -202,7 +210,11 @@ def main():
 
     # Manual Course Input
     st.subheader("Add a Course Manually")
-    manual_description = st.text_area("Enter course description:")
+    manual_description = st.text_area(
+        "Enter course description:",
+        placeholder="Provide a brief description of the course...",
+        help="Use this field to manually describe a course if no URL is available."
+    )
 
     if st.button("Find Similar Courses"):
         if manual_description:
@@ -229,7 +241,8 @@ def main():
         courses_df = pd.json_normalize(st.session_state.courses)
         selected_course_name = st.selectbox(
             "Select a course to view details:",
-            courses_df['course_name']
+            courses_df['course_name'],
+            help="Choose a course from the extracted list to see detailed information."
         )
 
         # View Course Details Button
