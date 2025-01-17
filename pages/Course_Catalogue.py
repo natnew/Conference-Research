@@ -20,7 +20,7 @@ from openai import OpenAI
 import requests
 from duckduckgo_search import DDGS
 
-st.snow()
+
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -65,7 +65,7 @@ class CourseDetail(BaseModel):
     course_details: str
     module_leader_name: str = Field(
         ...,
-        description="the name of the leaders of the module for example John Doe."
+        description="the name of the leaders of the module explicitly mentioned in the text."
     )
     module_leader_email: Optional[str] = Field(
         ...,
@@ -149,7 +149,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract detailed information about the course from the provided text."},
+            {"role": "system", "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is not  explicitly mentioned  just leave it as an empty string '' or None."},
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
         ],
         response_format=CourseDetailResponse
