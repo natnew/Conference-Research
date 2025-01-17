@@ -22,11 +22,23 @@ def main():
     #University name Input Text Field
     university = st.text_input(
         "University Name",
-        placeholder="eg; Havard Law School"
-        )
+        placeholder="e.g., Harvard Law School"
+    )
     #Course Name Input text field
     course = st.text_input(
         "Course Name",
-        placeholder=""eg;Criminal Law")
-        )
-    st.spinner("Fetching reading list...")
+        placeholder="e.g., Criminal Law"
+    )
+    
+    if st.button("Get Reading List"):
+        with st.spinner("Fetching reading list..."):
+            if university and course:
+                results = get_reading_list(university, course)
+                st.write("### Reading List")
+                st.write(results)
+            else:
+                st.warning("Please provide both the University Name and Course Name.")
+
+if __name__ == "__main__":
+    main()
+
