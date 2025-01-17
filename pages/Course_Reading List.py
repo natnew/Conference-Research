@@ -1,7 +1,6 @@
 import streamlit as st
 from duckduckgo_search import DDGS
 
-st.snow()
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
