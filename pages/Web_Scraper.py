@@ -19,7 +19,7 @@ from pydantic import BaseModel,Field
 from typing import List, Optional, Dict
 from openai import OpenAI
 
-st.snow()
+
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
