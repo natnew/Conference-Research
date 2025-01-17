@@ -37,10 +37,30 @@ with st.sidebar:
 # Function to fetch the reading list using DuckDuckGo
 
 def get_reading_list(university: str, course: str):
-    query = f"""You are a course professional with the  following {university} name  and the  {course} of interest provided. 
-            Give a comprehensive detailed reading list  that includes books with the links to the book, recommended articles with their links
-            and avoid such text in your response`Please note that these are just a few examples,
-             and there are many other relevant books and articles that could be included in a comprehensive reading list for a course...`"""
+    # query = f"""You are a course professional with the  following {university} name  and the  {course} of interest provided. 
+    #         Give a comprehensive detailed reading list  that includes books with the links to the book, recommended articles with their links
+    #         and avoid such text in your response`Please note that these are just a few examples,
+    #          and there are many other relevant books and articles that could be included in a comprehensive reading list for a course...`"""
+     query = f"""Generate a focused reading list for {course} at {university}. Include only:
+
+            1. Core Textbooks (3-5):
+            - Title, author, edition
+            - Direct link to publisher/retailer
+            - Brief description of coverage (2-3 sentences)
+            
+            2. Essential Articles (5-7):
+            - Full citation (author, title, journal, year)
+            - DOI or stable URL
+            - Key takeaways (1-2 sentences)
+            
+            3. Supplementary Resources:
+            - Online lecture notes/videos if available
+            - Relevant academic papers
+            - Practice problems/workbooks
+            
+            Format the response as a clean list without any introductory text or concluding remarks.
+            Do not include phrases like "here is" or "comprehensive" or "please note".
+            Simply start with the content directly."""
     results = DDGS().chat(query, model="claude-3-haiku")
     if results:
         sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources data and AI recommendations on supporting materials like articles and lecture materials."
