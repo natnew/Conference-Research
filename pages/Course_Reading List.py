@@ -37,7 +37,7 @@ with st.sidebar:
 # Function to fetch the reading list using DuckDuckGo
 
 def get_reading_list(university: str, course: str):
-    query = f"You are a course professional with the  following {university} name  and the  {course} of interest. Please give me a suitable  reading list  which includes books, recommended articles, and lecture materials from the university with their links if present"
+    query = f"You are a course professional with the  following {university} name  and the  {course} of interest. Please give me a  reading list  which includes books, recommended articles with their links, and  recommended lecture materials from the university with their links if present and if not just suggest the lecture material like that"
     results = DDGS().chat(query, model="claude-3-haiku")
     if results:
         sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources data and AI recommendations on supporting materials like articles and lecture materials."
