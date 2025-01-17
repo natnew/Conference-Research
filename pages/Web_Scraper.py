@@ -208,7 +208,10 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
 def main():
     st.title("Web Scraper")
 
-    url = st.text_input("Enter website URL:")
+    url = st.text_input(
+           "Enter website URL:",
+           placeholder="e.g., https://example.com"
+        )
     wait_time = st.slider(
         "Page Load Wait Time (seconds)", 
         min_value=1, 
