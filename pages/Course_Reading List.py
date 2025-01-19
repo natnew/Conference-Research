@@ -68,7 +68,7 @@ with st.sidebar:
 #         return "No results found. Please try a different query.", ""
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
-    query = f"{university} {course} reading list including core textbooks, articles, journals and revision materials"
+    query = f"{university} {course}  reading list site:.edu OR site:.ac.uk OR site:.org OR site:.com"
     results = DDGS().text(query, max_results=10)
     
     if results:
