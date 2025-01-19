@@ -37,19 +37,15 @@ with st.sidebar:
 # Function to fetch the reading list using DuckDuckGo
 
 def get_reading_list(university: str, course: str):
-    # query = f"""You are a course professional with the  following {university} name  and the  {course} of interest provided. 
-    #         Give a comprehensive detailed reading list  that includes books with the links to the book, recommended articles with their links
-    #         and avoid such text in your response`Please note that these are just a few examples,
-    #          and there are many other relevant books and articles that could be included in a comprehensive reading list for a course...`"""
-    query = f"""Generate a focused reading list for {course} at {university}. Include only:
+    query = f"""Generate a detailed reading list for {course} at {university}. Include only:
 
             1. Core Textbooks (3-5):
-            - Title, author, edition
+            - Title, author, edition,publisher, year
             - Direct link to publisher/retailer
             - Brief description of coverage (2-3 sentences)
             
             2. Recommended Essential  Articles (5-7):
-            - Full citation (author, title, journal, year)
+            - Full citation (author, title, journal, year, volume, issue, pages)
             - DOI or stable URL
             - Key takeaways (1-2 sentences)
             
