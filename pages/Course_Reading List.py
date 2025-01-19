@@ -56,6 +56,7 @@ def get_reading_list(university: str, course: str):
             - Direct link to these resources
             
             Format the response as a clean list without any introductory text or concluding remarks.
+            Ensure that URLs provided are not fabricated. If a stable URL or DOI is not available, leave the field empty
             Do not include phrases like "here is" or "comprehensive" or "please note".
             Simply start with the content directly."""
     results = DDGS().chat(query, model="claude-3-haiku")
