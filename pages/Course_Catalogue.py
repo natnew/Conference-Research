@@ -218,7 +218,7 @@ def main():
 
     if st.button("Find Similar Courses"):
         if manual_description:
-            search_query = f"course catalogue {manual_description}"
+            search_query = f" a similar course catalogue for {manual_description}"
             url = search_duckduckgo(search_query)
             if url:
                 scraper = CourseScraper()
