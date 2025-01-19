@@ -36,34 +36,51 @@ with st.sidebar:
 
 # Function to fetch the reading list using DuckDuckGo
 
-def get_reading_list(university: str, course: str):
-    query = f"""Generate a detailed reading list for {course} at {university}. Include only:
+# def get_reading_list(university: str, course: str):
+#     query = f"""Generate a detailed reading list for {course} at {university}. Include only:
 
-            1. Core Textbooks (3-5):
-            - Title, author, edition,publisher, year
-            - Direct link to publisher/retailer
-            - Brief description of coverage (2-3 sentences)
+#             1. Core Textbooks (3-5):
+#             - Title, author, edition,publisher, year
+#             - Direct link to publisher/retailer
+#             - Brief description of coverage (2-3 sentences)
             
-            2. Recommended Essential  Articles (5-7):
-            - Full citation (author, title, journal, year, volume, issue, pages)
-            - DOI or stable URL
-            - Key takeaways (1-2 sentences)
+#             2. Recommended Essential  Articles (5-7):
+#             - Full citation (author, title, journal, year, volume, issue, pages)
+#             - DOI or stable URL
+#             - Key takeaways (1-2 sentences)
             
-            3. Recommended Supplementary Resources:
-            - Online lecture notes/videos if available
-            - Relevant academic papers
-            - Practice problems/workbooks
-            - Direct link to these resources
+#             3. Recommended Supplementary Resources:
+#             - Online lecture notes/videos if available
+#             - Relevant academic papers
+#             - Practice problems/workbooks
+#             - Direct link to these resources
             
-            Format the response as a clean list without any introductory text or concluding remarks.
-            Ensure that URLs provided are not fabricated. If a stable URL or DOI is not available, leave the field empty
-            Do not include phrases like "here is" or "comprehensive" or "please note".
-            Simply start with the content directly."""
-    results = DDGS().chat(query, model="claude-3-haiku")
+#             Format the response as a clean list without any introductory text or concluding remarks.
+#             Ensure that URLs provided are not fabricated. If a stable URL or DOI is not available, leave the field empty
+#             Do not include phrases like "here is" or "comprehensive" or "please note".
+#             Simply start with the content directly."""
+#     results = DDGS().chat(query, model="claude-3-haiku")
+#     if results:
+#         sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources data and AI recommendations on supporting materials like articles and supplementary lecture materials."
+#         return results, sources_info
+#         return results
+#     else:
+#         return "No results found. Please try a different query.", ""
+# Function to fetch the reading list using DuckDuckGo
+def get_reading_list(university: str, course: str):
+    query = f"{university} {course} reading list including core textbooks, articles, journals and revision materials"
+    results = DDGS().text(query, max_results=10)
+
     if results:
-        sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources data and AI recommendations on supporting materials like articles and supplementary lecture materials."
-        return results, sources_info
-        return results
+        reading_list = []
+        for result in results:
+            title = result.get('title', '')
+            href = result.get('href', '')
+            body = result.get('body', '')
+            reading_list.append(f"- **Title:** {title}\n  **Link:** {href}\n  **Description:** {body}\n")
+
+        sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources."
+        return reading_list, sources_info
     else:
         return "No results found. Please try a different query.", ""
 
