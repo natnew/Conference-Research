@@ -70,14 +70,20 @@ with st.sidebar:
 def get_reading_list(university: str, course: str):
     query = f"{university} {course} reading list including core textbooks, articles, journals and revision materials"
     results = DDGS().text(query, max_results=10)
-
+    
     if results:
         reading_list = []
         for result in results:
             title = result.get('title', '')
             href = result.get('href', '')
             body = result.get('body', '')
-            reading_list.append(f"- **Title:** {title}\n  **Link:** {href}\n  **Description:** {body}\n")
+            reading_list.append(f"""
+            **Title:** {title}
+    
+            **Link:** {href}
+    
+            **Description:** {body}
+            """)
 
         sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources."
         return reading_list, sources_info
@@ -107,7 +113,7 @@ def main():
                 st.write("### Reading List with recommended supporting materials")
                 if isinstance(results, list):
                     for item in results:
-                        st.write(f"- {item}")
+                         st.markdown(item)
                 else:
                     st.write(results)
             else:
