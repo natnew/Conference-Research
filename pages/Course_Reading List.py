@@ -191,7 +191,10 @@ def main():
         st.session_state.query = ""
     if 'reading_list_df' not in st.session_state:
         st.session_state.reading_list_df = pd.DataFrame()
-
+    if 'show_info' not in st.session_state:
+        st.session_state.show_info = False
+    if 'show_header' not in st.session_state:
+        st.session_state.show_header = False
     # University name Input Text Field
     university = st.text_input(
         "University Name",
@@ -213,8 +216,8 @@ def main():
                     if reading_list_items:
                         st.session_state.reading_list_items = reading_list_items
                         st.session_state.query = query
-                        st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
-                        st.write("### Reading List with recommended supporting materials")
+                        st.session_state.show_info = True
+                        st.session_state.show_header = True
                         reading_list_df = pd.DataFrame(reading_list_items)
                         st.session_state.reading_list_df = reading_list_df
                     else:
@@ -224,6 +227,13 @@ def main():
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
+     # Display the informational message if it exists in the session state
+    if st.session_state.show_info:
+        st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
+
+    # Display the section header if it exists in the session state
+    if st.session_state.show_header:
+        st.write("### Reading List with recommended supporting materials")
     # Display the DataFrame if it exists in the session state
     if not st.session_state.reading_list_df.empty:
         st.dataframe(st.session_state.reading_list_df)
