@@ -189,6 +189,8 @@ def main():
         st.session_state.reading_list_items = []
     if 'query' not in st.session_state:
         st.session_state.query = ""
+    if 'reading_list_df' not in st.session_state:
+        st.session_state.reading_list_df = pd.DataFrame()
 
     # University name Input Text Field
     university = st.text_input(
@@ -215,7 +217,6 @@ def main():
                         st.write("### Reading List with recommended supporting materials")
                         reading_list_df = pd.DataFrame(reading_list_items)
                         st.session_state.reading_list_df = reading_list_df
-                        st.dataframe(reading_list_df)
                     else:
                         st.warning("No relevant reading list items found.")
                 else:
@@ -224,7 +225,7 @@ def main():
                 st.warning("Please provide both the University Name and Course Name.")
 
     # Display the DataFrame if it exists in the session state
-    if 'reading_list_df' in st.session_state:
+    if not st.session_state.reading_list_df.empty:
         st.dataframe(st.session_state.reading_list_df)
         # Export the results as a CSV
         csv = st.session_state.reading_list_df.to_csv(index=False)
