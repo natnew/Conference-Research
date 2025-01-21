@@ -1,6 +1,22 @@
 import streamlit as st
 from duckduckgo_search import DDGS
-
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import re
+import json
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict
+from openai import OpenAI
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -33,89 +49,168 @@ with st.sidebar:
         "Your feedback helps us deliver better results."
     )
 
+# Pydantic models
+class ReadingListItem(BaseModel):
+    title: str = Field(
+        ...,
+        description="The title of the resource (e.g., book, article, or lecture notes)."
+    )
+    author: Optional[str] = Field(
+        None,
+        description="The author of the resource, if applicable."
+    )
+    edition: Optional[str] = Field(
+        None,
+        description="The edition of the resource, if applicable."
+    )
+    publisher: Optional[str] = Field(
+        None,
+        description="The publisher of the resource, if applicable."
+    )
+    year: Optional[str] = Field(
+        None,
+        description="The year of publication or release of the resource."
+    )
+    link: Optional[str] = Field(
+        None,
+        description="A URL link to access the resource, if available."
+    )
+    description: Optional[str] = Field(
+        None,
+        description="A brief description or summary of the resource."
+    )
+    citation: Optional[str] = Field(
+        None,
+        description="A formatted citation for the resource."
+    )
+    doi: Optional[str] = Field(
+        None,
+        description="The Digital Object Identifier (DOI) for the resource, if applicable."
+    )
+    key_takeaways: Optional[str] = Field(
+        None,
+        description="Key insights or takeaways from the resource."
+    )
+    resource_type: str = Field(
+        ...,
+        description="The type of resource (e.g., 'Book', 'Article', 'Lecture Notes')."
+    )
 
-# Function to fetch the reading list using DuckDuckGo
+class ReadingListResponse(BaseModel):
+    reading_list: List[ReadingListItem]
 
-# def get_reading_list(university: str, course: str):
-#     query = f"""Generate a detailed reading list for {course} at {university}. Include only:
+# Selenium WebDriver setup
+def get_chrome_driver():
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
 
-#             1. Core Textbooks (3-5):
-#             - Title, author, edition,publisher, year
-#             - Direct link to publisher/retailer
-#             - Brief description of coverage (2-3 sentences)
-            
-#             2. Recommended Essential  Articles (5-7):
-#             - Full citation (author, title, journal, year, volume, issue, pages)
-#             - DOI or stable URL
-#             - Key takeaways (1-2 sentences)
-            
-#             3. Recommended Supplementary Resources:
-#             - Online lecture notes/videos if available
-#             - Relevant academic papers
-#             - Practice problems/workbooks
-#             - Direct link to these resources
-            
-#             Format the response as a clean list without any introductory text or concluding remarks.
-#             Ensure that URLs provided are not fabricated. If a stable URL or DOI is not available, leave the field empty
-#             Do not include phrases like "here is" or "comprehensive" or "please note".
-#             Simply start with the content directly."""
-#     results = DDGS().chat(query, model="claude-3-haiku")
-#     if results:
-#         sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources data and AI recommendations on supporting materials like articles and supplementary lecture materials."
-#         return results, sources_info
-#         return results
-#     else:
-#         return "No results found. Please try a different query.", ""
+    try:
+        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+    except Exception as e:
+        st.error(f"Failed to initialize Chrome driver: {str(e)}")
+        return None
+
+# Scraper class
+class ReadingListScraper:
+    def __init__(self):
+        self.driver = get_chrome_driver()
+        if not self.driver:
+            st.error("Failed to initialize the scraper")
+            st.stop()
+
+    def __del__(self):
+        if self.driver:
+            try:
+                self.driver.quit()
+            except:
+                pass
+
+    def scrape_page(self, url: str, wait_time: int = 5) -> str:
+        try:
+            self.driver.get(url)
+            time.sleep(wait_time)
+            return self.driver.page_source
+        except Exception as e:
+            st.error(f"Error accessing URL: {str(e)}")
+            return ""
+
+    def extract_text(self, content: str) -> str:
+        soup = BeautifulSoup(content, 'html.parser')
+        for script in soup(['script', 'style']):
+            script.decompose()
+        text = soup.get_text(separator='\n', strip=True)
+        return re.sub(r'\n\s*\n', '\n\n', text)
+
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
-    query = f"{university} {course} reading list OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
+    query = f"The following {course} offered in this  {university} available reading list OR course materials OR syllabus from  site:.edu OR site:.ac.uk OR site:.org"
     results = DDGS().text(query, max_results=10)
-    
+
     if results:
         reading_list = []
+        scraper = ReadingListScraper()
         for result in results:
-            title = result.get('title', '')
-            href = result.get('href', '')
-            body = result.get('body', '')
-            reading_list.append(f"""
-            **Title:** {title}
-    
-            **Link:** {href}
-    
-            **Description:** {body}
-            """)
-
-        sources_info = "The information is retrieved from DuckDuckGo searches, which includes publicly available resources."
-        return reading_list, sources_info
+            url = result.get('href', '')
+            content = scraper.scrape_page(url)
+            if content:
+                text = scraper.extract_text(content)
+                reading_list.append((text, url))
+        return reading_list
     else:
-        return "No results found. Please try a different query.", ""
+        return []
 
+# Function to process text with LLM
+def process_text_with_llm(texts_urls: List[tuple], openai_client: OpenAI) -> List[ReadingListItem]:
+    reading_list_items = []
+    for text, url in texts_urls:
+        response = openai_client.beta.chat.completions.parse(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {"role": "system", "content": "You are provided with scraped text and you are a professional lecturer that can use this text to curate detailed reading list items from the provided text. Use the provided URL to populate the link field. Return results as a structured output defined in the response model."},
+                {"role": "user", "content": f"Text: {text}\nURL: {url}"}
+            ],
+            response_format=ReadingListResponse
+        )
+        reading_list_data = response.choices[0].message.content
+        reading_list_data_parsed = json.loads(reading_list_data)
+        reading_list_items.extend(reading_list_data_parsed.get("reading_list", []))
+    return reading_list_items
 
 def main():
     st.title("Course Reading List")
-    
-    #University name Input Text Field
+
+    # University name Input Text Field
     university = st.text_input(
         "University Name",
         placeholder="e.g., Harvard Law School"
     )
-    #Course Name Input text field
+    # Course Name Input text field
     course = st.text_input(
         "Course Name",
         placeholder="e.g., Criminal Law"
     )
-    
+
     if st.button("Get Reading List"):
         with st.spinner("Fetching reading list..."):
             if university and course:
-                results, sources_info = get_reading_list(university, course)
-                st.info("Information Source: " + sources_info)
-                st.write("### Reading List with recommended supporting materials")
-                if isinstance(results, list):
-                    for item in results:
-                         st.markdown(item)
+                openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+                texts_urls = get_reading_list(university, course)
+                if texts_urls:
+                    reading_list_items = process_text_with_llm(texts_urls, openai_client)
+                    if reading_list_items:
+                        st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
+                        st.write("### Reading List with recommended supporting materials")
+                        reading_list_df = pd.DataFrame(reading_list_items)
+                        st.dataframe(reading_list_df)
+                    else:
+                        st.warning("No relevant reading list items found.")
                 else:
-                    st.write(results)
+                    st.warning("No results found. Please try a different query.")
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
