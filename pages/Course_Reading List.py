@@ -230,20 +230,5 @@ def main():
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
-    # Display the results if they exist in the session state
-    if st.session_state.reading_list_items:
-        st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
-        st.write("### Reading List with recommended supporting materials")
-        reading_list_df = pd.DataFrame(st.session_state.reading_list_items)
-        st.dataframe(reading_list_df)
-        # Export the results as a  CSV
-        csv = reading_list_df.to_csv(index=False)
-        st.download_button(
-            label="Export the Reading List as CSV",
-            data=csv,
-            file_name="reading_list.csv",
-            mime="text/csv",
-        )
-
 if __name__ == "__main__":
     main()  
