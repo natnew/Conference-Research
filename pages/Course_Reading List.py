@@ -149,7 +149,7 @@ class ReadingListScraper:
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
     query = f"The following {course} offered in {university} reading list OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
-    results = DDGS().text(query, max_results=6)
+    results = DDGS().text(query, max_results=3)
 
     if results:
         reading_list = []
@@ -214,15 +214,8 @@ def main():
                         st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
                         st.write("### Reading List with recommended supporting materials")
                         reading_list_df = pd.DataFrame(reading_list_items)
+                        st.session_state.reading_list_df = reading_list_df
                         st.dataframe(reading_list_df)
-                        # Export the results as a  CSV
-                        csv = reading_list_df.to_csv(index=False)
-                        st.download_button(
-                            label="Export the Reading List as CSV",
-                            data=csv,
-                            file_name="reading_list.csv",
-                            mime="text/csv",
-                        )
                     else:
                         st.warning("No relevant reading list items found.")
                 else:
@@ -230,5 +223,17 @@ def main():
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
+    # Display the DataFrame if it exists in the session state
+    if 'reading_list_df' in st.session_state:
+        st.dataframe(st.session_state.reading_list_df)
+        # Export the results as a CSV
+        csv = st.session_state.reading_list_df.to_csv(index=False)
+        st.download_button(
+            label="Export the Reading List as CSV",
+            data=csv,
+            file_name="reading_list.csv",
+            mime="text/csv",
+        )
+
 if __name__ == "__main__":
-    main()  
+    main()
