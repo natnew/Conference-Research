@@ -148,8 +148,8 @@ class ReadingListScraper:
 
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
-    query = f"The following {course} offered in this  {university} available reading list OR course materials OR syllabus from  site:.edu OR site:.ac.uk OR site:.org"
-    results = DDGS().text(query, max_results=5)
+    query = f"The following {course} offered in {university} reading list OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
+    results = DDGS().text(query, max_results=6)
 
     if results:
         reading_list = []
@@ -160,18 +160,18 @@ def get_reading_list(university: str, course: str):
             if content:
                 text = scraper.extract_text(content)
                 reading_list.append((text, url))
-        return reading_list
+        return reading_list, query
     else:
-        return []
+        return [], query
 
 # Function to process text with LLM
-def process_text_with_llm(texts_urls: List[tuple], openai_client: OpenAI) -> List[ReadingListItem]:
+def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: OpenAI) -> List[ReadingListItem]:
     reading_list_items = []
     for text, url in texts_urls:
         response = openai_client.beta.chat.completions.parse(
             model="gpt-4o-mini-2024-07-18",
             messages=[
-                {"role": "system", "content": "You are provided with scraped text and you are a professional lecturer that can use this text to curate detailed reading list items from the provided text. Use the provided URL to populate the link field. Return results as a structured output defined in the response model."},
+                {"role": "system", "content": f"You are provided with scraped text and you are a professional lecturer that can use this text to curate detailed reading list items from the provided text. Use the provided URL to populate the link field. The search query used to retrieve this text is: '{query}'. Return results as a structured output defined in the response model."},
                 {"role": "user", "content": f"Text: {text}\nURL: {url}"}
             ],
             response_format=ReadingListResponse
@@ -183,6 +183,12 @@ def process_text_with_llm(texts_urls: List[tuple], openai_client: OpenAI) -> Lis
 
 def main():
     st.title("Course Reading List")
+
+    # Initialize session state
+    if 'reading_list_items' not in st.session_state:
+        st.session_state.reading_list_items = []
+    if 'query' not in st.session_state:
+        st.session_state.query = ""
 
     # University name Input Text Field
     university = st.text_input(
@@ -199,10 +205,12 @@ def main():
         with st.spinner("Fetching reading list might take while😉..."):
             if university and course:
                 openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
-                texts_urls = get_reading_list(university, course)
+                texts_urls, query = get_reading_list(university, course)
                 if texts_urls:
-                    reading_list_items = process_text_with_llm(texts_urls, openai_client)
+                    reading_list_items = process_text_with_llm(texts_urls, query, openai_client)
                     if reading_list_items:
+                        st.session_state.reading_list_items = reading_list_items
+                        st.session_state.query = query
                         st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
                         st.write("### Reading List with recommended supporting materials")
                         reading_list_df = pd.DataFrame(reading_list_items)
@@ -222,6 +230,20 @@ def main():
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
+    # Display the results if they exist in the session state
+    if st.session_state.reading_list_items:
+        st.info("Information Source: The information is retrieved from DuckDuckGo searches, which includes publicly available resources.")
+        st.write("### Reading List with recommended supporting materials")
+        reading_list_df = pd.DataFrame(st.session_state.reading_list_items)
+        st.dataframe(reading_list_df)
+        # Export the results as a  CSV
+        csv = reading_list_df.to_csv(index=False)
+        st.download_button(
+            label="Export the Reading List as CSV",
+            data=csv,
+            file_name="reading_list.csv",
+            mime="text/csv",
+        )
+
 if __name__ == "__main__":
-    main()
-                    
+    main()  
