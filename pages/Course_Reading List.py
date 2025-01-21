@@ -149,7 +149,7 @@ class ReadingListScraper:
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
     query = f"The following {course} offered in {university} reading list OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
-    results = DDGS().text(query, max_results=3)
+    results = DDGS().text(query, max_results=5)
 
     if results:
         reading_list = []
