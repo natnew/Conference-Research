@@ -89,7 +89,7 @@ class ReadingListItem(BaseModel):
     )
     key_takeaways: Optional[str] = Field(
         None,
-        description="Key insights or takeaways from the resource."
+        description="A brief detailed overview and insights of the  resource."
     )
     resource_type: str = Field(
         ...,
@@ -149,7 +149,7 @@ class ReadingListScraper:
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
     query = f"The following {course} offered in this  {university} available reading list OR course materials OR syllabus from  site:.edu OR site:.ac.uk OR site:.org"
-    results = DDGS().text(query, max_results=10)
+    results = DDGS().text(query, max_results=5)
 
     if results:
         reading_list = []
@@ -196,7 +196,7 @@ def main():
     )
 
     if st.button("Get Reading List"):
-        with st.spinner("Fetching reading list..."):
+        with st.spinner("Fetching reading list might take while😉..."):
             if university and course:
                 openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
                 texts_urls = get_reading_list(university, course)
@@ -207,6 +207,14 @@ def main():
                         st.write("### Reading List with recommended supporting materials")
                         reading_list_df = pd.DataFrame(reading_list_items)
                         st.dataframe(reading_list_df)
+                        # Export the results as a  CSV
+                        csv = reading_list_df.to_csv(index=False)
+                        st.download_button(
+                            label="Export the Reading List as CSV",
+                            data=csv,
+                            file_name="reading_list.csv",
+                            mime="text/csv",
+                        )
                     else:
                         st.warning("No relevant reading list items found.")
                 else:
@@ -216,3 +224,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+                    
