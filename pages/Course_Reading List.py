@@ -71,27 +71,10 @@ class ReadingListItem(BaseModel):
         None,
         description="The year of publication or release of the resource."
     )
-    link: Optional[str] = Field(
-        None,
-        description="A URL link to access the resource, if available."
-    )
     description: Optional[str] = Field(
         None,
         description="A brief description or summary of the resource."
     )
-    citation: Optional[str] = Field(
-        None,
-        description="A formatted citation for the resource."
-    )
-    doi: Optional[str] = Field(
-        None,
-        description="The Digital Object Identifier (DOI) for the resource, if applicable."
-    )
-    resource_type: str = Field(
-        ...,
-        description="The type of resource (e.g., 'Book', 'Article', 'Lecture Notes')."
-    )
-
 class ReadingListResponse(BaseModel):
     reading_list: List[ReadingListItem]
 
@@ -144,7 +127,7 @@ class ReadingListScraper:
 
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
-    query = f"The following {course} offered in {university} reading list available for the university OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
+    query = f"The following {course} offered in {university}  reading list  of books available for the university course offered OR site:.edu OR site:.ac.uk OR site:.org"
     results = DDGS().text(query, max_results=5)
 
     if results:
@@ -176,7 +159,19 @@ def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: Op
         reading_list_data_parsed = json.loads(reading_list_data)
         reading_list_items.extend(reading_list_data_parsed.get("reading_list", []))
     return reading_list_items
-
+# Function to get fallback reading list
+def get_fallback_reading_list(course: str, openai_client: OpenAI) -> List[ReadingListItem]:
+    response = openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini-2024-07-18",
+        messages=[
+            {"role": "system", "content": f"Generate a recommended reading list for the course '{course}'. Include details such as title, author, edition, publisher, and year. Return results as a structured output defined in the response model."},
+            {"role": "user", "content": f"Course: {course}"}
+        ],
+        response_format=ReadingListResponse
+    )
+    reading_list_data = response.choices[0].message.content
+    reading_list_data_parsed = json.loads(reading_list_data)
+    return reading_list_data_parsed.get("reading_list", [])
 def main():
     st.title("Course Reading List")
 
@@ -220,6 +215,16 @@ def main():
                         st.warning("No relevant reading list items found.")
                 else:
                     st.warning("No results found. Please try a different query.")
+                    # Fallback mechanism
+                    fallback_reading_list = get_fallback_reading_list(course, openai_client)
+                    if fallback_reading_list:
+                        st.session_state.reading_list_items = fallback_reading_list
+                        st.session_state.query = query
+                        st.session_state.show_info = True
+                        st.session_state.show_header = True
+                        reading_list_df = pd.DataFrame(fallback_reading_list)
+                        st.session_state.reading_list_df = reading_list_df
+                        st.info("Fallback Reading List: Since no specific reading list was found, here is a recommended reading list for the course.")
             else:
                 st.warning("Please provide both the University Name and Course Name.")
 
