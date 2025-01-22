@@ -153,7 +153,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is not  explicitly mentioned  just leave it as an empty string '' or None."},
+            {"role": "system", "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is  not explicitly mentioned in the text reply with a default value 'not available at the moment'."},
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
         ],
         response_format=CourseDetailResponse
