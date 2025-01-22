@@ -74,7 +74,7 @@ class CourseDetail(BaseModel):
     )
     module_leader_name: str = Field(
         ...,
-        description="The name of the module leader explicitly mentioned in the text. If not available, respond with 'not available at the moment'."
+        description="The name of the module leader explicitly mentioned in the text with the title ‘Director of…..’ or ‘Senior Lecturer’ or ‘Associate Professor’ or ‘Professor’. If not available, respond with 'not available at the moment'."
     )
     module_leader_email: Optional[str] = Field(
         ...,
