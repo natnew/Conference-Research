@@ -207,7 +207,7 @@ def main():
     )
 
     if st.button("Get Reading List"):
-        with st.spinner("Fetching reading list might take while😉..."):
+        with st.spinner("Fetching reading list..."):
             if university and course:
                 openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
                 texts_urls, query = get_reading_list(university, course)
