@@ -194,9 +194,9 @@ def main():
     # Extract Courses Button
     if st.button("Extract Courses"):
         if url:
-            st.write("Retrieving course catalogue...")
+            st.spinner("Retrieving course catalogue...")
             scraper = CourseScraper()
-            content = scraper.scrape_page(url, wait_time)
+            content = scraper.scrape_page(url)
 
             if content:
                 st.session_state.raw_text = scraper.extract_text(content)
@@ -217,12 +217,12 @@ def main():
 
     if st.button("Find Similar Courses"):
         if manual_description:
-            st.write("Retrieving course catalogue...")
+            st.spinner("Retrieving course catalogue...")
             search_query = f" a similar detailed course catalogue for {manual_description}"
             url = search_duckduckgo(search_query)
             if url:
                 scraper = CourseScraper()
-                content = scraper.scrape_page(url, wait_time)
+                content = scraper.scrape_page(url)
 
                 if content:
                     st.session_state.raw_text = scraper.extract_text(content)
@@ -247,7 +247,7 @@ def main():
 
         # View Course Details Button
         if selected_course_name and st.button("View Course Details"):
-            st.write("Loading course details...")
+            st.spinner("Loading course details...")
             st.session_state.selected_course_details = extract_course_details(
                 selected_course_name,
                 st.session_state.raw_text,
