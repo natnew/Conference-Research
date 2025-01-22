@@ -87,10 +87,6 @@ class ReadingListItem(BaseModel):
         None,
         description="The Digital Object Identifier (DOI) for the resource, if applicable."
     )
-    key_takeaways: Optional[str] = Field(
-        None,
-        description="A brief detailed overview and insights of the  resource."
-    )
     resource_type: str = Field(
         ...,
         description="The type of resource (e.g., 'Book', 'Article', 'Lecture Notes')."
@@ -148,7 +144,7 @@ class ReadingListScraper:
 
 # Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
-    query = f"The following {course} offered in {university} reading list OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
+    query = f"The following {course} offered in {university} reading list available for the university OR course materials OR syllabus site:.edu OR site:.ac.uk OR site:.org"
     results = DDGS().text(query, max_results=5)
 
     if results:
@@ -207,7 +203,7 @@ def main():
     )
 
     if st.button("Get Reading List"):
-        with st.spinner("Fetching reading list..."):
+        with st.spinner("Retrieving the reading list; this might take some time...."):
             if university and course:
                 openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
                 texts_urls, query = get_reading_list(university, course)
