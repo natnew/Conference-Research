@@ -194,16 +194,16 @@ def main():
     # Extract Courses Button
     if st.button("Extract Courses"):
         if url:
-            st.spinner("Retrieving course catalogue...")
-            scraper = CourseScraper()
-            content = scraper.scrape_page(url)
+            with st.spinner("Retrieving course catalogue..."):
+                scraper = CourseScraper()
+                content = scraper.scrape_page(url)
 
-            if content:
-                st.session_state.raw_text = scraper.extract_text(content)
-                st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-            else:
-                st.error("Failed to scrape the page.")
+                if content:
+                    st.session_state.raw_text = scraper.extract_text(content)
+                    st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                    st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                else:
+                    st.error("Failed to scrape the page.")
         else:
             st.warning("Please provide a URL.")
 
@@ -217,21 +217,21 @@ def main():
 
     if st.button("Find Similar Courses"):
         if manual_description:
-            st.spinner("Retrieving course catalogue...")
-            search_query = f" a similar detailed course catalogue for {manual_description}"
-            url = search_duckduckgo(search_query)
-            if url:
-                scraper = CourseScraper()
-                content = scraper.scrape_page(url)
+            with st.spinner("Retrieving course catalogue..."):
+                search_query = f" a similar detailed course catalogue for {manual_description}"
+                url = search_duckduckgo(search_query)
+                if url:
+                    scraper = CourseScraper()
+                    content = scraper.scrape_page(url)
 
-                if content:
-                    st.session_state.raw_text = scraper.extract_text(content)
-                    st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                    st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                    if content:
+                        st.session_state.raw_text = scraper.extract_text(content)
+                        st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                        st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                    else:
+                        st.error("Failed to scrape the page.")
                 else:
-                    st.error("Failed to scrape the page.")
-            else:
-                st.warning("No relevant URL found.")
+                    st.warning("No relevant URL found.")
         else:
             st.warning("Please provide a course description.")
 
@@ -247,12 +247,12 @@ def main():
 
         # View Course Details Button
         if selected_course_name and st.button("View Course Details"):
-            st.spinner("Loading course details...")
-            st.session_state.selected_course_details = extract_course_details(
-                selected_course_name,
-                st.session_state.raw_text,
-                openai_client
-            )
+            with st.spinner("Loading course details..."):
+                st.session_state.selected_course_details = extract_course_details(
+                    selected_course_name,
+                    st.session_state.raw_text,
+                    openai_client
+                )
 
         # Display course details if available
         if st.session_state.selected_course_details:
