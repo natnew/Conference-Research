@@ -23,7 +23,7 @@ from duckduckgo_search import DDGS
 
 
 # Sidebar content
-st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
+st.sidebar.title("Testing")
 st.sidebar.write("""
 A comprehensive tool designed to extract and summarize
 course details from educational websites. It enables efficient retrieval of structured
