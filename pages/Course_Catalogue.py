@@ -117,7 +117,7 @@ class CourseScraper:
             except:
                 pass
 
-    def scrape_page(self, url: str, wait_time: int = 5) -> str:
+    def scrape_page(self, url: str, wait_time: int = 7) -> str:
         try:
             self.driver.get(url)
             time.sleep(wait_time)
@@ -191,15 +191,10 @@ def main():
         placeholder="Enter the URL of the course catalogue (e.g., https://example.com/courses)",
         help="Provide the link to the webpage containing the course catalogue."
     )
-    wait_time = st.slider(
-        "Page Load Wait Time (seconds)",
-        min_value=1, max_value=15, value=5,
-        help="Set the wait time to allow the page to fully load before scraping."
-    )
-
     # Extract Courses Button
     if st.button("Extract Courses"):
         if url:
+            st.write("Retrieving course catalogue...")
             scraper = CourseScraper()
             content = scraper.scrape_page(url, wait_time)
 
@@ -222,6 +217,7 @@ def main():
 
     if st.button("Find Similar Courses"):
         if manual_description:
+            st.write("Retrieving course catalogue...")
             search_query = f" a similar detailed course catalogue for {manual_description}"
             url = search_duckduckgo(search_query)
             if url:
@@ -251,6 +247,7 @@ def main():
 
         # View Course Details Button
         if selected_course_name and st.button("View Course Details"):
+            st.write("Loading course details...")
             st.session_state.selected_course_details = extract_course_details(
                 selected_course_name,
                 st.session_state.raw_text,
