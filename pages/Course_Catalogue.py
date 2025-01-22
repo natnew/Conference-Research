@@ -60,22 +60,26 @@ class CoursePreview(BaseModel):
     course_name: str
 
 class CourseDetail(BaseModel):
-    course_name: str
-    course_overview: str
-    course_details: str
+    course_name: str = Field(
+        ...,
+        description="The name of the course as provided in the  text."
+    )
+    course_overview: str = Field(
+        ...,
+        description="A brief overview or summary of the course content."
+    )
+    course_details: str = Field(
+        ...,
+        description="Detailed information about the course, including structure and content."
+    )
     module_leader_name: str = Field(
         ...,
-        description="the name of the leaders of the module explicitly mentioned in the text."
+        description="The name of the module leader explicitly mentioned in the text. If not available, respond with 'not available at the moment'."
     )
     module_leader_email: Optional[str] = Field(
         ...,
-        description="the email of the module leaders."
+        description="The email of the module leader explicitly mentioned in the text. If not available, respond with 'not available at the moment'."
     )
-    reading_list: List[str] = Field(
-        ...,
-        description=" a list of recommended or required books, articles, or other resources for the course."
-    )
-
 class CourseCatalogueResponse(BaseModel):
     courses: List[CoursePreview]
 
