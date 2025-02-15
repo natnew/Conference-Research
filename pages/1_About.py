@@ -40,7 +40,7 @@ st.info(
 **Design and Development:** Natasha Newbold  
 
 Thank you to all contributors for your valuable input!""",
-    icon="ℹ️ "
+    icon="ℹ️"
 )
 
 ### Background & Motivation
