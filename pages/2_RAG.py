@@ -3,7 +3,12 @@ from openai import OpenAI
 import pandas as pd
 import os
 import tiktoken
-import PyPDF2  # <-- for PDF processing
+import PyPDF2
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import FAISS
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import RetrievalQA
 
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
@@ -24,14 +29,10 @@ with st.sidebar.expander("Capabilities", expanded=False):
 
 with st.sidebar:
     st.markdown("# About This Tool")
-    st.markdown(
-       "We use multi-agent systems and other AI technologies to power this app."
-    )
-    st.markdown(
-       "This tool is a work in progress."
-    )
+    st.markdown("We use multi-agent systems and other AI technologies to power this app.")
+    st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
-   
+
 st.title("💬 RAG - Lead Generation")
 st.markdown("Search and Filter Conference Participants: Retrieve Relevant Information Based on University Affiliation and Year, Including Research and Teaching Areas. :balloon:")
 
@@ -91,7 +92,7 @@ if uploaded_file:
         article = None
 
     if article:
-        # Estimate tokens
+        # Estimate tokens of the full article plus the question
         total_tokens = estimate_tokens(article) + estimate_tokens(question)
         st.markdown(f"**Estimated Token Count:** {total_tokens}")
 
@@ -99,41 +100,49 @@ if uploaded_file:
         if total_tokens > 9000:  # threshold for GPT-4 context limit
             st.warning(
                 "The input size is too large and may exceed token limits. "
-                "Consider reducing the file size or summarising the content."
+                "The text will be chunked for retrieval."
             )
-
-        if question and total_tokens <= 9000:
-            st.success("Input is within acceptable token limits. Ready to process!")
+        else:
+            st.success("Input is within acceptable token limits.")
 
 ########
 
-# Process the uploaded file and question
-if uploaded_file and question and not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.")
-
+# Process the uploaded file and question with LangChain-style chunking and retrieval
 if uploaded_file and question and openai_api_key and article:
     try:
-        # Prepare the prompt for OpenAI API
-        prompt = f"Here's an article:\n\n{article}\n\nQuestion: {question}\nAnswer:"
-        
-        # Set OpenAI API key
-        os.environ['OPENAI_API_KEY'] = openai_api_key
-        client = OpenAI(api_key=openai_api_key)
+        # Step 1: Chunk the article text into manageable pieces
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        chunks = text_splitter.split_text(article)
+        st.write(f"Text has been split into {len(chunks)} chunks.")
 
-        # Call OpenAI API to get the response
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=100,
-            temperature=0,
+        # Step 2: Create embeddings and build a FAISS vector store
+        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+        vectorstore = FAISS.from_texts(chunks, embeddings)
+        st.info("Embeddings created and vector store built.")
+
+        # Step 3: Set up the retrieval chain using GPT-4 as the language model
+        chat_llm = ChatOpenAI(model_name="gpt-4", openai_api_key=openai_api_key)
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=chat_llm,
+            chain_type="stuff",
+            retriever=retriever,
+            return_source_documents=True,
         )
 
-        # Display the response
-        st.write("### Answer")
-        st.write(response.choices[0].message.content.strip())
+        # Step 4: Process the question using the retrieval chain
+        with st.spinner("Querying the document..."):
+            result = qa_chain({"query": question})
 
+        # Step 5: Display the answer and source documents
+        st.write("### Answer")
+        st.write(result["result"])
+        st.write("---")
+        st.write("### Source Documents (Extracts)")
+        for i, doc in enumerate(result["source_documents"]):
+            st.write(f"**Document {i+1}:**")
+            st.write(doc.page_content[:500] + "...")
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+        st.error(f"An error occurred during processing: {e}")
+elif uploaded_file and question and not openai_api_key:
+    st.info("Please add your OpenAI API key to continue.")
