@@ -11,7 +11,8 @@ st.set_page_config(
 
 # --- HEADER SECTION ---
 st.title("Deep Research")
-st.markdown("#### Your AI-powered research assistant for comprehensive, cited reports.")
+
+
 
 # --- SIDEBAR ---
 with st.sidebar:
