@@ -59,7 +59,7 @@ def extract_text_from_pdf(pdf_path):
     pages_to_process = [0, 1, 2]
     extracted_texts = []
 
-    for page in range(pages_to_process):
+    for page in pages_to_process:
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
