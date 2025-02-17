@@ -7,6 +7,7 @@ from typing import List, Optional
 from openai import OpenAI
 import fitz  # PyMuPDF
 import pymupdf4llm
+import json
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
