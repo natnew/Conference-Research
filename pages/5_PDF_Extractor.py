@@ -46,21 +46,13 @@ class ExtractedInfo(BaseModel):
 class ExtractionResponse(BaseModel):
     extracted_info: List[ExtractedInfo]
 
-# Function to clean and normalize text
-def clean_text(text):
-    text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces/newlines with single space
-    text = re.sub(r'(\w)-\s+(\w)', r'\1\2', text)  # Fix hyphenated words split across lines
-    text = text.replace('  ', ' ')  # Extra clean-up for double spaces
-    return text
-
 # Function to extract text from PDF using pymupdf4llm
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
-    pages_to_process = [0, 1, 2]
     extracted_texts = []
 
-    for page in pages_to_process:
+    for page in range(total_pages):
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
@@ -101,8 +93,7 @@ if uploaded_file is not None:
 
             all_extracted_data = []
             for text in extracted_texts:
-                cleaned_text = clean_text(text)
-                extracted_data = extract_info_with_llm(cleaned_text, openai_client)
+                extracted_data = extract_info_with_llm(text, openai_client)
                 all_extracted_data.extend(extracted_data)
 
             # Convert to DataFrame and remove duplicates
