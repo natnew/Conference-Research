@@ -1,36 +1,49 @@
 import streamlit as st
 import pandas as pd
-from PyPDF2 import PdfReader
 import re
 from io import BytesIO
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from openai import OpenAI
+import fitz  # PyMuPDF
+import pymupdf4llm
 
+# Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
-A self-service app that automates the generation of biographical content 
-and assists in lead generation. Designed to support academic and professional 
-activities, it offers interconnected modules that streamline research tasks, 
+A self-service app that automates the generation of biographical content
+and assists in lead generation. Designed to support academic and professional
+activities, it offers interconnected modules that streamline research tasks,
 whether for conferences, campus visits, or other events.
 """)
 
 # Sidebar Info Box as Dropdown
 with st.sidebar.expander("Capabilities", expanded=False):
     st.write("""
-    This app leverages cutting-edge technologies to automate and enhance research 
-    workflows. It combines generative AI, voice-to-action capabilities, 
-    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
+    This app leverages cutting-edge technologies to automate and enhance research
+    workflows. It combines generative AI, voice-to-action capabilities,
+    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced
     methodologies to deliver efficient and accurate results.
-
     """)
 
 with st.sidebar:
     st.markdown("# About This Tool")
     st.markdown(
-       "Extract names, universities, and other relevant details from uploaded PDFs. Use this tool to analyze documents quickly and efficiently."
-            )
+        "Extract names, universities, and other relevant details from uploaded PDFs. Use this tool to analyze documents quickly and efficiently."
+    )
     st.markdown(
-       "This tool is a work in progress. "
-            )
+        "This tool is a work in progress."
+    )
     openai_api_key = st.secrets["openai_api_key"]
+
+# Pydantic model for LLM response
+class ExtractedInfo(BaseModel):
+    name: str = Field(..., description="The name of the individual.")
+    university: str = Field(..., description="The name of the university.")
+    location: Optional[str] = Field(None, description="The location of the university.")
+
+class ExtractionResponse(BaseModel):
+    extracted_info: List[ExtractedInfo]
 
 # Function to clean and normalize text
 def clean_text(text):
@@ -39,15 +52,36 @@ def clean_text(text):
     text = text.replace('  ', ' ')  # Extra clean-up for double spaces
     return text
 
-# Function to extract names and universities from text
-def extract_names_and_universities(text):
-    name_univ_pattern = r"([A-Z][a-z]+ [A-Z][a-z]+)\s+\(([^\)]+University[^\)]*)\)"  # Match names and universities
-    matches = re.findall(name_univ_pattern, text)
-    return pd.DataFrame(matches, columns=["Name", "University"]) if matches else pd.DataFrame(columns=["Name", "University"])
+# Function to extract text from PDF using pymupdf4llm
+def extract_text_from_pdf(pdf_path):
+    pdf_document = fitz.open(pdf_path)
+    total_pages = pdf_document.page_count
+    extracted_texts = []
+
+    for page in range(total_pages):
+        md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
+        extracted_texts.append(md_text)
+
+    pdf_document.close()
+    return extracted_texts
+
+# Function to extract information using LLM
+def extract_info_with_llm(text, openai_client):
+    response = openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini-2024-07-18",
+        messages=[
+            {"role": "system", "content": "Extract names, universities, and locations from the provided text."},
+            {"role": "user", "content": text}
+        ],
+        response_format=ExtractionResponse
+    )
+    extracted_data = response.choices[0].message.content
+    extracted_data_parsed = json.loads(extracted_data)
+    return extracted_data_parsed.get("extracted_info", [])
 
 # Streamlit App UI
-st.title("PDF Extractor - Names and Universities")
-st.write("Upload a PDF file, extract and clean its text, and find names and universities. :balloon:")
+st.title("PDF Extractor - Names, Universities, and Locations")
+st.write("Upload a PDF file, extract and clean its text, and find names, universities, and locations. :balloon:")
 
 # Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
@@ -56,26 +90,26 @@ if uploaded_file is not None:
     with st.spinner("Processing the PDF..."):
         try:
             # Extract text from PDF
-            reader = PdfReader(uploaded_file)
-            raw_text = ""
-            for page in reader.pages:
-                raw_text += page.extract_text()
+            pdf_bytes = uploaded_file.getvalue()
+            with open("temp.pdf", "wb") as temp_pdf:
+                temp_pdf.write(pdf_bytes)
 
-            # Show raw extracted text for debugging
-            st.write("### Raw Extracted Text")
-            st.text_area("Raw Text", raw_text, height=300)
+            extracted_texts = extract_text_from_pdf("temp.pdf")
+            openai_client = OpenAI(api_key=openai_api_key)
 
-            # Clean and normalize the text
-            cleaned_text = clean_text(raw_text)
-            st.write("### Cleaned Text")
-            st.text_area("Cleaned Text", cleaned_text, height=300)
+            all_extracted_data = []
+            for text in extracted_texts:
+                cleaned_text = clean_text(text)
+                extracted_data = extract_info_with_llm(cleaned_text, openai_client)
+                all_extracted_data.extend(extracted_data)
 
-            # Extract names and universities
-            df = extract_names_and_universities(cleaned_text)
+            # Convert to DataFrame and remove duplicates
+            df = pd.DataFrame(all_extracted_data)
+            df.drop_duplicates(inplace=True)
 
             if not df.empty:
                 st.success("Extraction completed!")
-                st.write("### Extracted Names and Universities")
+                st.write("### Extracted Names, Universities, and Locations")
                 st.dataframe(df)
 
                 # Download as Excel
@@ -89,6 +123,7 @@ if uploaded_file is not None:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 )
             else:
-                st.warning("No names or universities were found in the cleaned text.")
+                st.warning("No relevant information was found in the cleaned text.")
         except Exception as e:
             st.error(f"An error occurred: {e}")
+
