@@ -72,7 +72,7 @@ def extract_info_with_llm(text, openai_client):
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract names, universities, and locations from the provided text."},
+            {"role": "system", "content": "Extract names, universities, and locations from the provided text if their is no location infer it from your general knowledge of where the university is located."},
             {"role": "user", "content": text}
         ],
         response_format=ExtractionResponse
