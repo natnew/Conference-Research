@@ -8,6 +8,7 @@ from openai import OpenAI
 import fitz  # PyMuPDF
 import pymupdf4llm
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -92,9 +93,13 @@ if uploaded_file is not None:
             openai_client = OpenAI(api_key=openai_api_key)
 
             all_extracted_data = []
-            for text in extracted_texts:
-                extracted_data = extract_info_with_llm(text, openai_client)
-                all_extracted_data.extend(extracted_data)
+
+            # Use ThreadPoolExecutor for parallel processing
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = [executor.submit(extract_info_with_llm, text, openai_client) for text in extracted_texts]
+                for future in futures:
+                    extracted_data = future.result()
+                    all_extracted_data.extend(extracted_data)
 
             # Convert to DataFrame and remove duplicates
             df = pd.DataFrame(all_extracted_data)
