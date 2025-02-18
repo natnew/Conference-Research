@@ -42,7 +42,7 @@ with st.sidebar:
 class ExtractedInfo(BaseModel):
     name: str = Field(..., description="The name of the individual.")
     university: str = Field(..., description="The name of the university.")
-    location: Optional[str] = Field(None, description="The location of the university.")
+    location: Optional[str] = Field(None, description="The country location of the university.")
 
 class ExtractionResponse(BaseModel):
     extracted_info: List[ExtractedInfo]
@@ -65,7 +65,7 @@ def extract_info_with_llm(text, openai_client):
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract names, universities, and locations from the provided text if their is no location infer it from your general knowledge of where the university is located."},
+            {"role": "system", "content": "Extract names, universities, and locations from the provided text if their is no location infer it from your general knowledge of where the university is located but just provide the country name of the location don't include the city."},
             {"role": "user", "content": text}
         ],
         response_format=ExtractionResponse
