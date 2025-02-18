@@ -46,7 +46,7 @@ def generate_bio_with_chatgpt(full_name, university):
     prompt = (
         f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
         "Include their research interests, teaching interests, any paper titles they may have published, "
-        "and contact information such as email."
+        "and contact information such as email, even if the name sounds fictional just be creative and write something about the person, DON'T leave it blank or not filled."
     )
     try:
         # Initialize the OpenAI client
@@ -147,8 +147,8 @@ if uploaded_file:
                 university = row['University']
 
                 # Generate bio using ChatGPT
-                # bio_content = search_internet_with_chatgpt(full_name, university)
-                bio_content = fallback_generate_bio_with_ddgs(full_name, university)
+                bio_content = search_internet_with_chatgpt(full_name, university)
+                # bio_content = fallback_generate_bio_with_ddgs(full_name, university)
                 data.at[index, 'Bio'] = bio_content  # Update the bio column
 
                 # Extract email from the bio content (if applicable)
