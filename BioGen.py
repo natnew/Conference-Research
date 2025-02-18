@@ -39,41 +39,6 @@ with st.sidebar:
     openai_api_key = st.secrets["openai_api_key"]
 
 # Updated Bio Generation Function
-# def generate_bio_with_chatgpt(full_name, university):
-#     """
-#     Generate a bio using OpenAI's ChatGPT API.
-#     """
-#     prompt = (
-#         f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
-#         "Include their research interests, teaching interests, any paper titles they may have published, "
-#         "and contact information such as email, even if the name sounds fictional to you."
-#     )
-#     try:
-#         # Initialize the OpenAI client
-#         client = OpenAI(api_key=st.secrets["openai_api_key"])
-
-#         # Initialize session state for messages if not already done
-#         if "messages" not in st.session_state:
-#             st.session_state.messages = []
-
-#         # Add the user prompt to session state
-#         st.session_state.messages.append({"role": "user", "content": prompt})
-#         st.chat_message("user").write(prompt)
-
-#         # Generate response
-#         response = client.chat.completions.create(
-#             model="gpt-3.5-turbo", messages=st.session_state.messages
-#         )
-#         msg = response.choices[0].message.content
-
-#         # Add the assistant's response to session state
-#         st.session_state.messages.append({"role": "assistant", "content": msg})
-#         st.chat_message("assistant").write(msg)
-
-#         return msg
-#     except Exception as e:
-#         st.error(f"Error generating bio with ChatGPT: {e}")
-#         return None
 def generate_bio_with_chatgpt(full_name, university):
     """
     Generate a bio using OpenAI's ChatGPT API.
