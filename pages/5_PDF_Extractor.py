@@ -79,10 +79,6 @@ def extract_info_with_llm(text, openai_client):
 st.title("PDF Extractor - Names, Universities, and Locations")
 st.write("Upload a PDF file, extract and clean its text, and find names, universities, and locations. :balloon:")
 
-# Initialize session state
-if 'df' not in st.session_state:
-    st.session_state.df = pd.DataFrame()
-
 # Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
@@ -121,25 +117,30 @@ if uploaded_file is not None:
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
-# Filtering by location
-st.write("### Filter by Location")
-available_locations = st.session_state.df['location'].dropna().unique()
-selected_locations = st.multiselect("Select locations to filter", available_locations)
+# Check if DataFrame exists in session state
+if 'df' in st.session_state and not st.session_state.df.empty:
+    # Filtering by location
+    st.write("### Filter by Location")
+    available_locations = st.session_state.df['location'].dropna().unique()
+    selected_locations = st.multiselect("Select locations to filter", available_locations)
 
-if selected_locations:
-    filtered_df = st.session_state.df[st.session_state.df['location'].isin(selected_locations)]
-    st.write("### Filtered DataFrame")
-    st.dataframe(filtered_df)
+    if selected_locations:
+        filtered_df = st.session_state.df[st.session_state.df['location'].isin(selected_locations)]
+        st.write("### Filtered DataFrame")
+        st.dataframe(filtered_df)
 
-    # Download as Excel
-    output = BytesIO()
-    filtered_df.to_excel(output, index=False, engine='openpyxl')
-    output.seek(0)
-    st.download_button(
-        label="Download Filtered Data as Excel",
-        data=output,
-        file_name="filtered_data.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+        # Download as Excel
+        output = BytesIO()
+        filtered_df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+        st.download_button(
+            label="Download Filtered Data as Excel",
+            data=output,
+            file_name="filtered_data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    else:
+        st.warning("Please select at least one location to filter the data.")
 else:
-    st.warning("Please select at least one location to filter the data.")
+    st.warning("Please upload a PDF to extract data.")
+
