@@ -143,11 +143,22 @@ if 'df' in st.session_state and not st.session_state.df.empty:
         st.download_button(
             label="Download Filtered Data as Excel",
             data=output,
-            file_name="filtered_data.xlsx",
+            file_name="filtered_names_and_university_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     else:
         st.warning("Please select at least one location to filter the data.")
+
+    # Download original DataFrame as Excel
+    original_output = BytesIO()
+    st.session_state.df.to_excel(original_output, index=False, engine='openpyxl')
+    original_output.seek(0)
+    st.download_button(
+        label="Download Original Data as Excel",
+        data=original_output,
+        file_name="original_names_and_university_data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 else:
     st.warning("Please upload a PDF to extract data.")
 
