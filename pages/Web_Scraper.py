@@ -15,11 +15,9 @@ import time
 import re
 import json
 from typing import Dict, List, Optional
-from pydantic import BaseModel,Field
-from typing import List, Optional, Dict
+from pydantic import BaseModel, Field
 from openai import OpenAI
-
-
+from io import BytesIO
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -38,7 +36,7 @@ with st.sidebar.expander("Capabilities", expanded=False):
     - Dynamic content loading support
     - Smart name and affiliation detection
     - Customizable wait times and thresholds
-    - Export results to CSV format
+    - Export results to Excel format
     """)
 
 with st.sidebar:
@@ -73,8 +71,10 @@ def get_chrome_driver():
 class AcademicInfo(BaseModel):
     name: str
     affiliation: str
+    location: Optional[str] = Field(None, description="The location of the academic's affiliation.")
+
 class ParticipantList(BaseModel):
-    participant_details: Optional[List[AcademicInfo]] = Field(description="List of names and their affiliations.")
+    participant_details: Optional[List[AcademicInfo]] = Field(description="List of names, affiliations, and locations.")
 
 class GenericConferenceScraper:
     """Generic scraper for conference websites with configurable patterns"""
@@ -196,7 +196,7 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract the names and affiliations from the following text. Return the results as a JSON array of objects with 'name' and 'affiliation' keys."},
+            {"role": "system", "content": "Extract the names, affiliations, and locations from the following text and for location if not present and based on the affiliations you can infer it from your general knowledge. Return the results as a JSON array of objects with 'name', 'affiliation', and 'location' keys."},
             {"role": "user", "content": text}
         ],
         response_format=ParticipantList
@@ -213,10 +213,10 @@ def main():
            placeholder="e.g., https://example.com"
         )
     wait_time = st.slider(
-        "Page Load Wait Time (seconds)", 
-        min_value=1, 
-        max_value=15, 
-        value=5, 
+        "Page Load Wait Time (seconds)",
+        min_value=1,
+        max_value=15,
+        value=5,
         help="Adjust this slider to control how long the scraper waits for a webpage to load. If the website is slow or has complex dynamic content, increase this time to ensure all information is captured. A longer wait time helps with websites that load content gradually or have multiple loading stages."
     )
 
@@ -246,17 +246,20 @@ def main():
                         academics_dict = json.loads(academics)
                         academics_list = academics_dict.get("participant_details", [])
                         df = pd.DataFrame(academics_list)
-                        
+
                         st.subheader("Results")
                         st.dataframe(df)
 
-                        csv = df.to_csv(index=False).encode('utf-8')
+                        # Save as Excel
+                        output = BytesIO()
+                        df.to_excel(output, index=False, engine='openpyxl')
+                        output.seek(0)
                         st.download_button(
-                            "Download Results as CSV",
-                            csv,
-                            "conference_academics.csv",
-                            "text/csv",
-                            key='download-csv'
+                            "Download Results as Excel",
+                            output,
+                            "conference_academics.xlsx",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key='download-excel'
                         )
                     else:
                         st.warning("No academic information found. Try adjusting the wait time.")
@@ -270,5 +273,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
