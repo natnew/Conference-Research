@@ -85,7 +85,7 @@ def fallback_generate_bio_with_ddgs(full_name, university):
         "and contact information such as email. In your response just provide the bio text response don't begin with `Below is a sample professional bio`"
     )
     try:
-        results = DDGS().chat(prompt, model='o3-mini')
+        results = DDGS().chat(prompt, model='gpt-4o-mini',timeout: int = 100)
         return results
     except Exception as e:
         st.error(f"Error generating bio with DuckDuckGo: {e}")
