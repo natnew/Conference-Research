@@ -4,7 +4,7 @@ from duckduckgo_search import DDGS
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from typing import List, TypedDict, Literal, Annotated
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,Optional
 import os
 import operator
 
