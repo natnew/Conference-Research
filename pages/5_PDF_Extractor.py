@@ -51,7 +51,7 @@ class ExtractionResponse(BaseModel):
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
-    pages_to_process = [0, 1, 2,3,4,5]
+    pages_to_process = [0, 1, 2, 3, 4, 5]
     extracted_texts = []
 
     for page in pages_to_process:
@@ -78,6 +78,10 @@ def extract_info_with_llm(text, openai_client):
 # Streamlit App UI
 st.title("PDF Extractor - Names, Universities, and Locations")
 st.write("Upload a PDF file, extract and clean its text, and find names, universities, and locations. :balloon:")
+
+# Initialize session state
+if 'df' not in st.session_state:
+    st.session_state.df = pd.DataFrame()
 
 # Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
@@ -106,34 +110,33 @@ if uploaded_file is not None:
             df = pd.DataFrame(all_extracted_data)
             df.drop_duplicates(inplace=True)
 
+            # Store DataFrame in session state
+            st.session_state.df = df
+
             if not df.empty:
                 st.success("Extraction completed!")
                 st.write("### Extracted Names, Universities, and Locations")
                 st.dataframe(df)
 
-                # Filtering by location
-                st.write("### Filter by Location")
-                available_locations = df['location'].dropna().unique()
-                selected_locations = st.multiselect("Select locations to filter", available_locations)
+# Filtering by location
+st.write("### Filter by Location")
+available_locations = st.session_state.df['location'].dropna().unique()
+selected_locations = st.multiselect("Select locations to filter", available_locations)
 
-                if selected_locations:
-                    filtered_df = df[df['location'].isin(selected_locations)]
-                    st.write("### Filtered DataFrame")
-                    st.dataframe(filtered_df)
+if selected_locations:
+    filtered_df = st.session_state.df[st.session_state.df['location'].isin(selected_locations)]
+    st.write("### Filtered DataFrame")
+    st.dataframe(filtered_df)
 
-                    # Download as Excel
-                    output = BytesIO()
-                    filtered_df.to_excel(output, index=False, engine='openpyxl')
-                    output.seek(0)
-                    st.download_button(
-                        label="Download Filtered Data as Excel",
-                        data=output,
-                        file_name="filtered_data.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    )
-                else:
-                    st.warning("Please select at least one location to filter the data.")
-            else:
-                st.warning("No relevant information was found in the cleaned text.")
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+    # Download as Excel
+    output = BytesIO()
+    filtered_df.to_excel(output, index=False, engine='openpyxl')
+    output.seek(0)
+    st.download_button(
+        label="Download Filtered Data as Excel",
+        data=output,
+        file_name="filtered_data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+else:
+    st.warning("Please select at least one location to filter the data.")
