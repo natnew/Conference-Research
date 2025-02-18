@@ -158,7 +158,5 @@ if 'df' in st.session_state and not st.session_state.df.empty:
         file_name="original_names_and_university_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-else:
-    st.warning("Please upload a PDF to extract data.")
 
 
