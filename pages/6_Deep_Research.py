@@ -27,13 +27,8 @@ DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down
    - Aim for 1 structural element (either a list of table) that distills the main body sections
    - Provide a concise summary of the report"""
 
-class SearchAPI:
-    PERPLEXITY = "perplexity"
-    TAVILY = "tavily"
-
 class PlannerProvider:
     OPENAI = "openai"
-    GROQ = "groq"
 
 class Configuration:
     """The configurable fields for the chatbot."""
@@ -43,7 +38,6 @@ class Configuration:
     planner_provider: PlannerProvider = PlannerProvider.OPENAI  # Defaults to OpenAI as provider
     planner_model: str = "o3-mini"  # Defaults to OpenAI o3-mini as planner model
     writer_model: str = "o3-mini"  # Defaults to Anthropic as provider
-    search_api: SearchAPI = SearchAPI.TAVILY  # Default to TAVILY
 
     @classmethod
     def from_runnable_config(cls, config: Optional[RunnableConfig] = None) -> "Configuration":
@@ -377,7 +371,7 @@ whether for conferences, campus visits, or other events.
     # Select between OpenAI or Perplexity
     engine_choice = st.selectbox(
         "Select Research Engine",
-        options=["OpenAI", "Perplexity"]
+        options=["OpenAI"]
     )
 
     # Advanced settings (adjust or remove if not required)
@@ -424,8 +418,7 @@ if start_button:
             max_search_depth=2,
             planner_provider=Configuration.PlannerProvider.OPENAI,
             planner_model="o3-mini",
-            writer_model="o3-mini",
-            search_api="duckduckgo"
+            writer_model="o3-mini"
         )
 
         # Initialize the state
