@@ -82,7 +82,7 @@ def fallback_generate_bio_with_ddgs(full_name, university):
     prompt = (
         f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
         "Include their research interests, teaching interests, any paper titles they may have published, "
-        "and contact information such as email."
+        "and contact information such as email. In your response just provide the bio text response don't begin with `Below is a sample professional bio`"
     )
     try:
         results = DDGS().chat(prompt, model='o3-mini')
