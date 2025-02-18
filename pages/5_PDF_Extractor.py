@@ -51,9 +51,10 @@ class ExtractionResponse(BaseModel):
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
+    pages_to_process = [0, 1, 2]
     extracted_texts = []
 
-    for page in range(total_pages):
+    for page in pages_to_process:
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
@@ -81,6 +82,11 @@ st.write("Upload a PDF file, extract and clean its text, and find names, univers
 # Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
+# Country filter input
+st.sidebar.header("Filter by Country")
+country_input = st.sidebar.text_input("Enter countries (comma-separated)", "Sweden, Denmark, Finland, UK, Ireland, Belgium")
+selected_countries = [country.strip() for country in country_input.split(",")]
+
 if uploaded_file is not None:
     with st.spinner("Processing the PDF..."):
         try:
@@ -104,6 +110,10 @@ if uploaded_file is not None:
             # Convert to DataFrame and remove duplicates
             df = pd.DataFrame(all_extracted_data)
             df.drop_duplicates(inplace=True)
+
+            # Filter by selected countries
+            if selected_countries:
+                df = df[df['location'].isin(selected_countries)]
 
             if not df.empty:
                 st.success("Extraction completed!")
