@@ -118,6 +118,9 @@ if uploaded_file is not None:
                 st.write("### Extracted Names, Universities, and Locations")
                 st.dataframe(df)
 
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+
 # Filtering by location
 st.write("### Filter by Location")
 available_locations = st.session_state.df['location'].dropna().unique()
