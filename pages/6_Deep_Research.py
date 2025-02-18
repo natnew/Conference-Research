@@ -3,7 +3,7 @@ import time
 from duckduckgo_search import DDGS
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
-from typing import List, TypedDict, Literal, Annotated,Optional
+from typing import List, TypedDict, Literal, Annotated, Optional
 from pydantic import BaseModel, Field
 import os
 import operator
@@ -309,14 +309,10 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source, inclu
     Limits the raw_content to approximately max_tokens_per_source.
 
     Args:
-        search_responses: List of search response dicts, each containing:
-            - query: str
-            - results: List of dicts with fields:
-                - title: str
-                - url: str
-                - content: str
-                - score: float
-                - raw_content: str|None
+        search_response: List of search response dicts, each containing:
+            - title: str
+            - href: str
+            - body: str
         max_tokens_per_source: int
         include_raw_content: bool
 
@@ -324,27 +320,22 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source, inclu
         str: Formatted string with deduplicated sources
     """
     # Collect all results
-    sources_list = []
-    for response in search_response:
-        sources_list.extend(response['results'])
+    sources_list = search_response
 
     # Deduplicate by URL
-    unique_sources = {source['url']: source for source in sources_list}
+    unique_sources = {source['href']: source for source in sources_list}
 
     # Format output
     formatted_text = "Sources:\n\n"
     for i, source in enumerate(unique_sources.values(), 1):
         formatted_text += f"Source {source['title']}:\n===\n"
-        formatted_text += f"URL: {source['url']}\n===\n"
-        formatted_text += f"Most relevant content from source: {source['content']}\n===\n"
+        formatted_text += f"URL: {source['href']}\n===\n"
+        formatted_text += f"Most relevant content from source: {source['body']}\n===\n"
         if include_raw_content:
             # Using rough estimate of 4 characters per token
             char_limit = max_tokens_per_source * 4
             # Handle None raw_content
-            raw_content = source.get('raw_content', '')
-            if raw_content is None:
-                raw_content = ''
-                print(f"Warning: No raw_content found for source {source['url']}")
+            raw_content = source.get('body', '')
             if len(raw_content) > char_limit:
                 raw_content = raw_content[:char_limit] + "... [truncated]"
             formatted_text += f"Full source content limited to {max_tokens_per_source} tokens: {raw_content}\n\n"
@@ -484,3 +475,4 @@ if start_button:
         """
 
         report_placeholder.markdown(final_report, unsafe_allow_html=True)
+
