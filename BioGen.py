@@ -5,28 +5,27 @@ import re
 from openai import OpenAI  
 #from con_research.src.modules.scrapping_module import ContentScraper
 #from con_research.src.modules.search_module import SerperDevTool
-  
-
+from duckduckgo_search import DDGS  
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
-A self-service app that automates the generation of biographical content 
-and assists in lead generation. Designed to support academic and professional 
-activities, it offers interconnected modules that streamline research tasks, 
+A self-service app that automates the generation of biographical content
+and assists in lead generation. Designed to support academic and professional
+activities, it offers interconnected modules that streamline research tasks,
 whether for conferences, campus visits, or other events.
 """)
 
 st.sidebar.write(
-       "Built by [Natasha Newbold](https://www.linkedin.com/in/natasha-newbold/) "
-            )
+    "Built by [Natasha Newbold](https://www.linkedin.com/in/natasha-newbold/) "
+)
 
 # Sidebar Info Box as Dropdown
 with st.sidebar.expander("Capabilities", expanded=False):
     st.write("""
-    This app leverages cutting-edge technologies to automate and enhance research 
-    workflows. It combines generative AI, voice-to-action capabilities, 
-    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced 
+    This app leverages cutting-edge technologies to automate and enhance research
+    workflows. It combines generative AI, voice-to-action capabilities,
+    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced
     methodologies to deliver efficient and accurate results.
     """)
 
@@ -38,7 +37,6 @@ with st.sidebar:
     )
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
-
 
 # Updated Bio Generation Function
 def generate_bio_with_chatgpt(full_name, university):
@@ -74,7 +72,24 @@ def generate_bio_with_chatgpt(full_name, university):
 
         return msg
     except Exception as e:
-        return f"Error generating bio: {e}"
+        st.error(f"Error generating bio with ChatGPT: {e}")
+        return None
+
+def fallback_generate_bio_with_ddgs(full_name, university):
+    """
+    Fallback mechanism to generate a bio using DuckDuckGo search.
+    """
+    prompt = (
+        f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
+        "Include their research interests, teaching interests, any paper titles they may have published, "
+        "and contact information such as email."
+    )
+    try:
+        results = DDGS().chat(prompt, model='o3-mini')
+        return results
+    except Exception as e:
+        st.error(f"Error generating bio with DuckDuckGo: {e}")
+        return None
 
 # Updated Internet Search Function
 def search_internet_with_chatgpt(full_name, university):
@@ -83,6 +98,9 @@ def search_internet_with_chatgpt(full_name, university):
     """
     # Combine internet scraping (if needed) with ChatGPT bio generation
     bio_content = generate_bio_with_chatgpt(full_name, university)
+    if not bio_content:
+        st.warning("Falling back to DuckDuckGo search for bio generation.")
+        bio_content = fallback_generate_bio_with_ddgs(full_name, university)
     return bio_content
 
 # App Title
