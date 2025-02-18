@@ -196,7 +196,7 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract the names, affiliations, and locations from the following text and for location if not present and based on the affiliations you can infer it from your general knowledge. Return the results as a JSON array of objects with 'name', 'affiliation', and 'location' keys."},
+            {"role": "system", "content": "Extract the names, affiliations, and locations from the following text and for location if not present and based on the affiliations you can infer it from your general knowledge and just provide the country name in the location and DON'T include the city name. Return the results as a JSON array of objects with 'name', 'affiliation', and 'location' keys."},
             {"role": "user", "content": text}
         ],
         response_format=ParticipantList
