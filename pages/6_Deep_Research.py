@@ -8,6 +8,10 @@ from pydantic import BaseModel, Field
 import os
 import operator
 
+# Set the OpenAI API key
+openai_api_key = st.secrets["openai_api_key"]
+os.environ["OPENAI_API_KEY"] = openai_api_key
+
 # --- CONFIGURATION ---
 DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down the user-provided topic:
 
