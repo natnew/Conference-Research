@@ -147,7 +147,8 @@ if uploaded_file:
                 university = row['University']
 
                 # Generate bio using ChatGPT
-                bio_content = search_internet_with_chatgpt(full_name, university)
+                # bio_content = search_internet_with_chatgpt(full_name, university)
+                bio_content = fallback_generate_bio_with_ddgs(full_name, university)
                 data.at[index, 'Bio'] = bio_content  # Update the bio column
 
                 # Extract email from the bio content (if applicable)
