@@ -51,9 +51,10 @@ class ExtractionResponse(BaseModel):
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
+    pages_to_process = [0, 1, 2,3,4,5]
     extracted_texts = []
 
-    for page in range(total_pages):
+    for page in pages_to_process:
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
@@ -110,16 +111,28 @@ if uploaded_file is not None:
                 st.write("### Extracted Names, Universities, and Locations")
                 st.dataframe(df)
 
-                # Download as Excel
-                output = BytesIO()
-                df.to_excel(output, index=False, engine='openpyxl')
-                output.seek(0)
-                st.download_button(
-                    label="Download Extracted Data as Excel",
-                    data=output,
-                    file_name="extracted_data.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
+                # Filtering by location
+                st.write("### Filter by Location")
+                available_locations = df['location'].dropna().unique()
+                selected_locations = st.multiselect("Select locations to filter", available_locations)
+
+                if selected_locations:
+                    filtered_df = df[df['location'].isin(selected_locations)]
+                    st.write("### Filtered DataFrame")
+                    st.dataframe(filtered_df)
+
+                    # Download as Excel
+                    output = BytesIO()
+                    filtered_df.to_excel(output, index=False, engine='openpyxl')
+                    output.seek(0)
+                    st.download_button(
+                        label="Download Filtered Data as Excel",
+                        data=output,
+                        file_name="filtered_data.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                else:
+                    st.warning("Please select at least one location to filter the data.")
             else:
                 st.warning("No relevant information was found in the cleaned text.")
         except Exception as e:
