@@ -51,9 +51,10 @@ class ExtractionResponse(BaseModel):
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
+    pages_to_process = [0, 1, 2,3,4,5,6,7,8,9,10]
     extracted_texts = []
 
-    for page in range(total_pages):
+    for page in pages_to_process:
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
