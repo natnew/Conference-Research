@@ -79,10 +79,16 @@ def extract_info_with_llm(text, openai_client):
 st.title("PDF Extractor - Names, Universities, and Locations")
 st.write("Upload a PDF file, extract and clean its text, and find names, universities, and locations. :balloon:")
 
+# Initialize session state
+if 'df' not in st.session_state:
+    st.session_state.df = pd.DataFrame()
+if 'extraction_done' not in st.session_state:
+    st.session_state.extraction_done = False
+
 # Upload PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
-if uploaded_file is not None:
+if uploaded_file is not None and not st.session_state.extraction_done:
     with st.spinner("Processing the PDF..."):
         try:
             # Extract text from PDF
@@ -108,6 +114,7 @@ if uploaded_file is not None:
 
             # Store DataFrame in session state
             st.session_state.df = df
+            st.session_state.extraction_done = True
 
             if not df.empty:
                 st.success("Extraction completed!")
@@ -143,4 +150,5 @@ if 'df' in st.session_state and not st.session_state.df.empty:
         st.warning("Please select at least one location to filter the data.")
 else:
     st.warning("Please upload a PDF to extract data.")
+
 
