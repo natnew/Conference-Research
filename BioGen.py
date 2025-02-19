@@ -114,24 +114,14 @@ def generate_bio_with_chatgpt(full_name,university,truncated_text):
         # Initialize the OpenAI client
         client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-        # Initialize session state for messages if not already done
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        # Add the user prompt to session state
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
         # Generate response
         response = client.beta.chat.completions.parse(
             model="gpt-4o-mini-2024-07-18",
             messages=st.session_state.messages
         )
-        msg = response.choices[0].message.content
+        results = response.choices[0].message.content
 
-        # Add the assistant's response to session state
-        st.session_state.messages.append({"role": "assistant", "content": msg})
-
-        return msg
+        return results
     except Exception as e:
         st.error(f"Error generating bio with ChatGPT: {e}")
         return None
@@ -188,7 +178,7 @@ if uploaded_file:
                 enriched_text = generate_enriched_text(full_name, university)
 
                 # Truncate enriched text to fit within token limit
-                max_tokens = 60000  # Adjust this value based on your model's token limit
+                max_tokens = 100000  # Adjust this value based on your model's token limit
                 truncated_text = truncate_text(enriched_text, max_tokens)
 
                 # Generate bio using ChatGPT
