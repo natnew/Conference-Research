@@ -80,7 +80,7 @@ def generate_enriched_text(full_name, university):
         body_text = result['body']
         scraped_text = scrape_text_from_url(url)
         if scraped_text is not None:
-            combined_text = f"{body_text} {scraped_text}"
+            combined_text = f"{body_text}"
             enriched_text += clean_text(combined_text) + " "
         else:
             enriched_text += clean_text(body_text) + " "
