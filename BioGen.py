@@ -39,27 +39,76 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
+# Function to scrape text from a URL
+def scrape_text_from_url(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check if the request was successful
+        response.encoding = 'utf-8'  # Specify the encoding
+        try:
+            soup = BeautifulSoup(response.content, 'html.parser')  # You can also try 'lxml' or 'html5lib'
+            # Extract text from paragraphs and other relevant tags
+            paragraphs = soup.find_all(['p', 'li', 'span', 'div'])
+            text = ' '.join([para.get_text() for para in paragraphs])
+        except Exception as e:
+            print(f"Error parsing {url} with BeautifulSoup: {e}")
+            text = response.text  # Fall back to raw text content
+        return text
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return None
+
+# Function to clean and organize text
+def clean_text(text):
+    # Remove excessive whitespace and newlines
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+# Function to truncate text to fit within token limit
+def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
+    encoding = tiktoken.get_encoding(encoding_name)
+    tokens = encoding.encode(text)
+    truncated_tokens = tokens[:max_tokens]
+    truncated_text = encoding.decode(truncated_tokens)
+    return truncated_text
+
 # Function to generate enriched text using DDGS
 def generate_enriched_text(full_name, university):
     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
-    results = DDGS().text(query, max_results=1)
+    results = DDGS().text(query, max_results=3)
 
     enriched_text = ""
     for result in results:
+        url = result['href']
         body_text = result['body']
-        enriched_text += body_text
+        scraped_text = scrape_text_from_url(url)
+        if scraped_text is not None:
+            combined_text = f"{body_text} {scraped_text}"
+            enriched_text += clean_text(combined_text) + " "
+        else:
+            enriched_text += clean_text(body_text) + " "
 
     # Format the enriched text into a block of text
     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
     return enriched_text
 
-
 # Function to generate bio using ChatGPT
-def generate_bio_with_chatgpt(full_name,university,enriched_text):
+def generate_bio_with_chatgpt(full_name,university,truncated_text):
     prompt = (
-        f"Generate a professional bio for {full_name}, who is affiliated with {university} based on the following additionalinformation:{enriched_text}.to infer from. "
-        "Include their research interests, teaching interests, any paper titles they may have published, "
-        "and contact information such as email."
+        f"Create a professional biographical profile for {full_name}, who is affiliated with {university}, based on the following information: {truncated_text}\n\n"
+        "Important guidelines:\n"
+        "1. Do NOT assume any titles (like Dr. or Professor) unless explicitly mentioned in the provided information\n"
+        "2. Only include factual information that is directly supported by the provided text\n"
+        "3. Format the bio in the following structure:\n"
+           "- Full name and current position (exactly as provided)\n"
+           "- Institutional affiliations\n"
+           "- Email address (if available)\n"
+           "- Research focus and interests\n"
+           "- Teaching activities (if any)\n"
+           "- Notable publications or projects (only if specifically mentioned)\n"
+        "4. If certain information is not available in the provided text, omit that section rather than making assumptions\n"
+        "5. Keep the tone professional but factual, avoiding speculative or honorary language"
+    
     )
     try:
         # Initialize the OpenAI client
@@ -138,8 +187,12 @@ if uploaded_file:
                 # Generate enriched text using DDGS
                 enriched_text = generate_enriched_text(full_name, university)
 
+                # Truncate enriched text to fit within token limit
+                max_tokens = 60000  # Adjust this value based on your model's token limit
+                truncated_text = truncate_text(enriched_text, max_tokens)
+
                 # Generate bio using ChatGPT
-                bio_content = generate_bio_with_chatgpt(full_name,university,enriched_text)
+                bio_content = generate_bio_with_chatgpt(full_name,university,truncated_text)
                 if bio_content:
                     data.at[index, 'Bio'] = bio_content  # Update the bio column
 
@@ -163,4 +216,3 @@ if uploaded_file:
         st.info("Use the Chunk Index to process the next set of rows.")
     else:
         st.error(f"Uploaded file must contain the following columns: {required_columns}")
-
