@@ -8,7 +8,6 @@ from duckduckgo_search import DDGS
 import requests
 from bs4 import BeautifulSoup
 import tiktoken
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -95,7 +94,7 @@ def generate_enriched_text(full_name, university):
     return enriched_text
 
 # Function to generate bio using ChatGPT
-def generate_bio_with_chatgpt(full_name, university, truncated_text):
+def generate_bio_with_chatgpt(full_name,university,truncated_text):
     prompt = (
         f"Create a professional biographical profile for {full_name}, who is affiliated with {university}, based on the following information: {truncated_text}\n\n"
         "Important guidelines:\n"
@@ -110,6 +109,7 @@ def generate_bio_with_chatgpt(full_name, university, truncated_text):
            "- Notable publications or projects (only if specifically mentioned)\n"
         "4. If certain information is not available in the provided text, omit that section rather than making assumptions\n"
         "5. Keep the tone professional but factual, avoiding speculative or honorary language"
+    
     )
     try:
         # Initialize the OpenAI client
@@ -131,26 +131,6 @@ def generate_bio_with_chatgpt(full_name, university, truncated_text):
 def extract_email(bio_content):
     email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
     return email_match.group() if email_match else "Email not found"
-
-# Function to process a single row
-def process_row(index, row):
-    full_name = row['Name']
-    university = row['University']
-
-    # Generate enriched text using DDGS
-    enriched_text = generate_enriched_text(full_name, university)
-
-    # Truncate enriched text to fit within token limit
-    max_tokens = 100000  # Adjust this value based on your model's token limit
-    truncated_text = truncate_text(enriched_text, max_tokens)
-
-    # Generate bio using ChatGPT
-    bio_content = generate_bio_with_chatgpt(full_name, university, truncated_text)
-    if bio_content:
-        # Extract email from the bio content
-        email_address = extract_email(bio_content)
-        return index, bio_content, email_address
-    return index, None, None
 
 # App Title
 st.title("BioGen - Automated Bio Generator")
@@ -190,14 +170,26 @@ if uploaded_file:
         st.write(chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
-            # Process rows in parallel
-            with ThreadPoolExecutor() as executor:
-                futures = [executor.submit(process_row, index, row) for index, row in chunk_data.iterrows()]
-                for future in as_completed(futures):
-                    index, bio_content, email_address = future.result()
-                    if bio_content:
-                        data.at[index, 'Bio'] = bio_content  # Update the bio column
-                        data.at[index, 'Email'] = email_address
+            # Iterate through each row in the chunk
+            for index, row in chunk_data.iterrows():
+                full_name = row['Name']
+                university = row['University']
+
+                # Generate enriched text using DDGS
+                enriched_text = generate_enriched_text(full_name, university)
+
+                # Truncate enriched text to fit within token limit
+                max_tokens = 100000  # Adjust this value based on your model's token limit
+                truncated_text = truncate_text(enriched_text, max_tokens)
+
+                # Generate bio using ChatGPT
+                bio_content = generate_bio_with_chatgpt(full_name,university,truncated_text)
+                if bio_content:
+                    data.at[index, 'Bio'] = bio_content  # Update the bio column
+
+                    # Extract email from the bio content
+                    email_address = extract_email(bio_content)
+                    data.at[index, 'Email'] = email_address
 
             # Display Updated Chunk
             updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
@@ -209,7 +201,7 @@ if uploaded_file:
             updated_chunk.to_excel(output, index=False, engine='openpyxl')
             output.seek(0)
             st.download_button(
-                label="Download Current Chunk as CSV",
+                label="Download Current Chunk as an Excel Sheet",
                 data=output,
                 file_name=f"chunk_{chunk_index}_bios.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
