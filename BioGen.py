@@ -117,7 +117,7 @@ def generate_bio_with_chatgpt(full_name,university,truncated_text):
         # Generate response
         response = client.beta.chat.completions.parse(
             model="gpt-4o-mini-2024-07-18",
-            messages=st.session_state.messages
+            messages=[{"role": "user", "content": prompt}]
         )
         results = response.choices[0].message.content
 
