@@ -6,6 +6,7 @@ from openai import OpenAI
 from duckduckgo_search import DDGS
 import requests
 from bs4 import BeautifulSoup
+import tiktoken
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -64,9 +65,11 @@ def clean_text(text):
     return text.strip()
 
 # Function to truncate text to fit within token limit
-def truncate_text(text, max_tokens):
-    words = text.split()
-    truncated_text = ' '.join(words[:max_tokens])
+def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
+    encoding = tiktoken.get_encoding(encoding_name)
+    tokens = encoding.encode(text)
+    truncated_tokens = tokens[:max_tokens]
+    truncated_text = encoding.decode(truncated_tokens)
     return truncated_text
 
 # Function to generate enriched text using DDGS
@@ -80,7 +83,7 @@ def generate_enriched_text(full_name, university):
         body_text = result['body']
         scraped_text = scrape_text_from_url(url)
         if scraped_text is not None:
-            combined_text = f"{body_text}"
+            combined_text = f"{body_text} {scraped_text}"
             enriched_text += clean_text(combined_text) + " "
         else:
             enriched_text += clean_text(body_text) + " "
@@ -202,4 +205,5 @@ if uploaded_file:
         st.info("Use the Chunk Index to process the next set of rows.")
     else:
         st.error(f"Uploaded file must contain the following columns: {required_columns}")
+
 
