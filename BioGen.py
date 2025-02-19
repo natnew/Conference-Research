@@ -47,7 +47,7 @@ def generate_enriched_text(full_name, university):
     enriched_text = ""
     for result in results:
         body_text = result['body']
-        enriched_text += clean_text(body_text) + " "
+        enriched_text += body_text
 
     # Format the enriched text into a block of text
     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
