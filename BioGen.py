@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import openai
 import re
-from openai import OpenAI  
-#from con_research.src.modules.scrapping_module import ContentScraper
-#from con_research.src.modules.search_module import SerperDevTool
-from duckduckgo_search import DDGS  
+from openai import OpenAI
+from duckduckgo_search import DDGS
+import requests
+from bs4 import BeautifulSoup
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -38,15 +38,57 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
-# Updated Bio Generation Function
-def generate_bio_with_chatgpt(full_name, university):
-    """
-    Generate a bio using OpenAI's ChatGPT API.
-    """
+# Function to scrape text from a URL
+def scrape_text_from_url(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check if the request was successful
+        response.encoding = 'utf-8'  # Specify the encoding
+        try:
+            soup = BeautifulSoup(response.content, 'html.parser')  # You can also try 'lxml' or 'html5lib'
+            # Extract text from paragraphs and other relevant tags
+            paragraphs = soup.find_all(['p', 'li', 'span', 'div'])
+            text = ' '.join([para.get_text() for para in paragraphs])
+        except Exception as e:
+            print(f"Error parsing {url} with BeautifulSoup: {e}")
+            text = response.text  # Fall back to raw text content
+        return text
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return None
+
+# Function to clean and organize text
+def clean_text(text):
+    # Remove excessive whitespace and newlines
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+# Function to generate enriched text using DDGS
+def generate_enriched_text(full_name, university):
+    query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
+    results = DDGS().text(query, max_results=3)
+
+    enriched_text = ""
+    for result in results:
+        url = result['href']
+        body_text = result['body']
+        scraped_text = scrape_text_from_url(url)
+        if scraped_text is not None:
+            combined_text = f"{body_text} {scraped_text}"
+            enriched_text += clean_text(combined_text) + " "
+        else:
+            enriched_text += clean_text(body_text) + " "
+
+    # Format the enriched text into a block of text
+    enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
+    return enriched_text
+
+# Function to generate bio using ChatGPT
+def generate_bio_with_chatgpt(enriched_text):
     prompt = (
-        f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
+        f"Generate a professional bio based on the following information: {enriched_text}. "
         "Include their research interests, teaching interests, any paper titles they may have published, "
-        "and contact information such as email, even if the name sounds fictional to you."
+        "and contact information such as email."
     )
     try:
         # Initialize the OpenAI client
@@ -76,33 +118,10 @@ def generate_bio_with_chatgpt(full_name, university):
         st.error(f"Error generating bio with ChatGPT: {e}")
         return None
 
-def fallback_generate_bio_with_ddgs(full_name, university):
-    """
-    Fallback mechanism to generate a bio using DuckDuckGo search.
-    """
-    prompt = (
-        f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
-        "Include their research interests, teaching interests, any paper titles they may have published, "
-        "and contact information such as email. In your response just provide the bio text response don't begin with `Below is a sample professional bio`"
-    )
-    try:
-        results = DDGS().chat(prompt, model='gpt-4o-mini',timeout= 100)
-        return results
-    except Exception as e:
-        st.error(f"Error generating bio with DuckDuckGo: {e}")
-        return None
-
-# Updated Internet Search Function
-def search_internet_with_chatgpt(full_name, university):
-    """
-    Use ChatGPT to generate a bio if scraping or search results are unavailable.
-    """
-    # Combine internet scraping (if needed) with ChatGPT bio generation
-    bio_content = generate_bio_with_chatgpt(full_name, university)
-    if not bio_content:
-        st.warning("Falling back to DuckDuckGo search for bio generation.")
-        bio_content = fallback_generate_bio_with_ddgs(full_name, university)
-    return bio_content
+# Function to extract email from bio content
+def extract_email(bio_content):
+    email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
+    return email_match.group() if email_match else "Email not found"
 
 # App Title
 st.title("BioGen - Automated Bio Generator")
@@ -147,18 +166,17 @@ if uploaded_file:
                 full_name = row['Name']
                 university = row['University']
 
+                # Generate enriched text using DDGS
+                enriched_text = generate_enriched_text(full_name, university)
+
                 # Generate bio using ChatGPT
-                bio_content = search_internet_with_chatgpt(full_name, university)
-                # bio_content = fallback_generate_bio_with_ddgs(full_name, university)
-                data.at[index, 'Bio'] = bio_content  # Update the bio column
+                bio_content = generate_bio_with_chatgpt(enriched_text)
+                if bio_content:
+                    data.at[index, 'Bio'] = bio_content  # Update the bio column
 
-                # Extract email from the bio content (if applicable)
-                email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
-                email_address = email_match.group() if email_match else "Email not found"
-
-                # Update the DataFrame
-                data.at[index, 'Bio'] = bio_content
-                data.at[index, 'Email'] = email_address
+                    # Extract email from the bio content
+                    email_address = extract_email(bio_content)
+                    data.at[index, 'Email'] = email_address
 
             # Display Updated Chunk
             updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
