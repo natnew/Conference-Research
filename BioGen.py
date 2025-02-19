@@ -206,4 +206,3 @@ if uploaded_file:
     else:
         st.error(f"Uploaded file must contain the following columns: {required_columns}")
 
-
