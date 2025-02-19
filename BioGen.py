@@ -75,7 +75,7 @@ def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
 # Function to generate enriched text using DDGS
 def generate_enriched_text(full_name, university):
     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
-    results = DDGS().text(query, max_results=3)
+    results = DDGS().text(query, max_results=1)
 
     enriched_text = ""
     for result in results:
@@ -177,7 +177,7 @@ if uploaded_file:
                 enriched_text = generate_enriched_text(full_name, university)
 
                 # Truncate enriched text to fit within token limit
-                max_tokens = 150000  # Adjust this value based on your model's token limit
+                max_tokens = 50000  # Adjust this value based on your model's token limit
                 truncated_text = truncate_text(enriched_text, max_tokens)
 
                 # Generate bio using ChatGPT
