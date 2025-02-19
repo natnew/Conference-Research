@@ -136,7 +136,7 @@ if uploaded_file:
                 university = row['University']
 
                 # Generate enriched text using DDGS
-                enriched_text = generate_enriched_text(full_name, university
+                enriched_text = generate_enriched_text(full_name, university)
 
                 # Generate bio using ChatGPT
                 bio_content = generate_bio_with_chatgpt(enriched_text)
