@@ -55,9 +55,9 @@ def generate_enriched_text(full_name, university):
 
 
 # Function to generate bio using ChatGPT
-def generate_bio_with_chatgpt(enriched_text):
+def generate_bio_with_chatgpt(full_name,university,enriched_text):
     prompt = (
-        f"Generate a professional bio based on the following information: {enriched_text}. "
+        f"Generate a professional bio for {full_name}, who is affiliated with {university} based on the following additionalinformation:{enriched_text}.to infer from. "
         "Include their research interests, teaching interests, any paper titles they may have published, "
         "and contact information such as email."
     )
@@ -139,7 +139,7 @@ if uploaded_file:
                 enriched_text = generate_enriched_text(full_name, university)
 
                 # Generate bio using ChatGPT
-                bio_content = generate_bio_with_chatgpt(enriched_text)
+                bio_content = generate_bio_with_chatgpt(full_name,university,enriched_text)
                 if bio_content:
                     data.at[index, 'Bio'] = bio_content  # Update the bio column
 
