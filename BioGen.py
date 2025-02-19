@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import openai
 import re
+from io import BytesIO
 from openai import OpenAI
 from duckduckgo_search import DDGS
 import requests
