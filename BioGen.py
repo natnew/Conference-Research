@@ -63,10 +63,16 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
+# Function to truncate text to fit within token limit
+def truncate_text(text, max_tokens):
+    words = text.split()
+    truncated_text = ' '.join(words[:max_tokens])
+    return truncated_text
+
 # Function to generate enriched text using DDGS
 def generate_enriched_text(full_name, university):
     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
-    results = DDGS().text(query, max_results=1)
+    results = DDGS().text(query, max_results=3)
 
     enriched_text = ""
     for result in results:
@@ -100,7 +106,6 @@ def generate_bio_with_chatgpt(enriched_text):
 
         # Add the user prompt to session state
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user").write(prompt)
 
         # Generate response
         response = client.beta.chat.completions.parse(
@@ -111,7 +116,6 @@ def generate_bio_with_chatgpt(enriched_text):
 
         # Add the assistant's response to session state
         st.session_state.messages.append({"role": "assistant", "content": msg})
-        st.chat_message("assistant").write(msg)
 
         return msg
     except Exception as e:
@@ -169,8 +173,12 @@ if uploaded_file:
                 # Generate enriched text using DDGS
                 enriched_text = generate_enriched_text(full_name, university)
 
+                # Truncate enriched text to fit within token limit
+                max_tokens = 150000  # Adjust this value based on your model's token limit
+                truncated_text = truncate_text(enriched_text, max_tokens)
+
                 # Generate bio using ChatGPT
-                bio_content = generate_bio_with_chatgpt(enriched_text)
+                bio_content = generate_bio_with_chatgpt(truncated_text)
                 if bio_content:
                     data.at[index, 'Bio'] = bio_content  # Update the bio column
 
@@ -194,3 +202,4 @@ if uploaded_file:
         st.info("Use the Chunk Index to process the next set of rows.")
     else:
         st.error(f"Uploaded file must contain the following columns: {required_columns}")
+
