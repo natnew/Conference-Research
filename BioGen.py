@@ -66,7 +66,7 @@ def clean_text(text):
 # Function to generate enriched text using DDGS
 def generate_enriched_text(full_name, university):
     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
-    results = DDGS().text(query, max_results=2)
+    results = DDGS().text(query, max_results=1)
 
     enriched_text = ""
     for result in results:
