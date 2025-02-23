@@ -417,8 +417,8 @@ if start_button:
             number_of_queries=2,
             max_search_depth=2,
             planner_provider=PlannerProvider.OPENAI,
-            planner_model="o3-mini",
-            writer_model="o3-mini"
+            planner_model="gpt-4o",
+            writer_model="gpt-4o-mini"
         )
 
         # Initialize the state
