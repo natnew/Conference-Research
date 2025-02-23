@@ -47,8 +47,9 @@ class Feedback(BaseModel):
 class ReportStateInput(TypedDict):
     topic: str  # Report topic
 
-class ReportStateOutput(TypedDict):
-    final_report: str  # Final report
+class ReportStateOutput(BaseModel):
+    final_report: str = Field(description="Final report content")
+    sources: List[str] = Field(description="List of sources used in the report")
 
 class ReportState(TypedDict):
     topic: str  # Report topic
@@ -421,7 +422,7 @@ class ReportGenerator:
 
         # Compile the final report
         all_sections = "\n\n".join([s.content for s in report_plan.sections])
-        final_report = f"""
+        final_report_content = f"""
         {introduction}
 
         {all_sections}
@@ -436,8 +437,10 @@ class ReportGenerator:
                 sources_section = section.content[sources_start:].strip()
                 self.sources.update(sources_section.split("\n"))
 
-        sources_section = "\n".join(sorted(self.sources))
-        final_report += f"\n\n### Sources\n{sources_section}"
+        sources_list = list(sorted(self.sources))
+
+        # Create the final report output
+        final_report_output = ReportStateOutput(final_report=final_report_content, sources=sources_list)
 
         # Clear the progress placeholder
         progress_placeholder.empty()
@@ -445,7 +448,7 @@ class ReportGenerator:
         # Display "Research complete!" message
         st.success("Research complete!")
 
-        return {"final_report": final_report}
+        return final_report_output
 
 # --------------------------------------------------------------
 # Step 4: Define the tool for web search
@@ -546,6 +549,14 @@ if start_button:
             result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
 
             # Output the final report
-            final_report = result["final_report"]
-            report_placeholder.markdown(final_report, unsafe_allow_html=True)
+            final_report_content = result.final_report
+            sources_list = result.sources
+
+            # Display the final report content
+            report_placeholder.markdown(final_report_content, unsafe_allow_html=True)
+
+            # Display the sources
+            report_placeholder.markdown("### Sources")
+            for source in sources_list:
+                report_placeholder.markdown(f"- {source}")
 
