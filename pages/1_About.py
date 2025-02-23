@@ -69,7 +69,18 @@
 # ''')
 import streamlit as st
 import base64
+from PIL import Image
 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: lightblue;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # Function to encode the image to base64
 def get_base64_encoded_image(image_path):
     with open(image_path, "rb") as image_file:
@@ -85,6 +96,8 @@ st.set_page_config(
 
 # Add a background image from local file path
 background_image_path = "images/background.jpg"
+image = Image.open('background_image_path')
+st.image(image, use_column_width=True)
 background_image_base64 = get_base64_encoded_image(background_image_path)
 
 st.markdown(
