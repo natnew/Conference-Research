@@ -381,29 +381,30 @@ class ReportGenerator:
 
     def generate_report(self, topic: str, report_organization: str, context: str, feedback: str) -> ReportStateOutput:
         """Generate the full report."""
-        st.info(f"Starting report generation for: {topic}")
+        progress_placeholder = st.empty()
+        progress_placeholder.info(f"Starting report generation for: {topic}")
 
         # Generate search queries
         search_queries = self.generate_search_queries(topic, report_organization, number_of_queries=2)
-        st.info(f"Generated search queries: {search_queries}")
+        progress_placeholder.info(f"Generated search queries: {search_queries}")
 
         # Generate report plan
         report_plan = self.generate_report_plan(topic, report_organization, context, feedback)
-        st.info(f"Generated report plan with {len(report_plan.sections)} sections")
+        progress_placeholder.info(f"Generated report plan with {len(report_plan.sections)} sections")
 
         # Write each section
         for section in report_plan.sections:
-            st.info(f"Writing section: {section.name}")
+            progress_placeholder.info(f"Writing section: {section.name}")
             section_content = self.write_section(section.name, section.description, context, section.content)
             section.content = section_content
             self.sections_content[section.name] = section
 
         # Evaluate and refine sections
         for section in report_plan.sections:
-            st.info(f"Evaluating section: {section.name}")
+            progress_placeholder.info(f"Evaluating section: {section.name}")
             evaluation = self.evaluate_section(section.name, section.content)
             if evaluation.grade == "fail":
-                st.info(f"Section {section.name} failed evaluation. Generating follow-up queries.")
+                progress_placeholder.info(f"Section {section.name} failed evaluation. Generating follow-up queries.")
                 follow_up_queries = evaluation.follow_up_queries
                 # Perform follow-up searches and refine the section
                 for query in follow_up_queries:
@@ -426,6 +427,23 @@ class ReportGenerator:
 
         {conclusion}
         """
+
+        # Consolidate sources
+        sources = []
+        for section in report_plan.sections:
+            if "### Sources" in section.content:
+                sources_start = section.content.index("### Sources") + len("### Sources")
+                sources_section = section.content[sources_start:].strip()
+                sources.extend(sources_section.split("\n"))
+
+        sources_section = "\n".join(sources)
+        final_report += f"\n\n### Sources\n{sources_section}"
+
+        # Clear the progress placeholder
+        progress_placeholder.empty()
+
+        # Display "Research complete!" message
+        st.success("Research complete!")
 
         return {"final_report": final_report}
 
@@ -510,7 +528,6 @@ uploaded_files = st.file_uploader("Upload supporting documents (optional)", type
 
 start_button = st.button("Start Research")
 
-progress_placeholder = st.empty()
 report_placeholder = st.empty()
 
 if start_button:
@@ -527,12 +544,6 @@ if start_button:
 
             # Generate the report
             result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
-
-            # Clear the logging messages
-            progress_placeholder.empty()
-
-            # Display "Research complete!" message
-            progress_placeholder.success("Research complete!")
 
             # Output the final report
             final_report = result["final_report"]
