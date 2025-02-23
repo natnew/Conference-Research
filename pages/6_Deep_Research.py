@@ -67,6 +67,10 @@ class SectionState(TypedDict):
 
 class SectionOutputState(TypedDict):
     completed_sections: List[Section]  # Final key we duplicate in outer state for Send() API
+    
+class SectionContent(BaseModel):
+    content: str = Field(description="Written content for the section")
+    key_points: List[str] = Field(description="Main points covered")
 
 # --------------------------------------------------------------
 # Step 2: Define prompts
