@@ -36,8 +36,8 @@ class Configuration(BaseModel):
     number_of_queries: int = 2  # Number of search queries to generate per iteration
     max_search_depth: int = 2  # Maximum number of reflection + search iterations
     planner_provider: Literal["openai"] = "openai" # Defaults to OpenAI as provider
-    planner_model: str = "o3-mini"  # Defaults to OpenAI o3-mini as planner model
-    writer_model: str = "o3-mini"  # Defaults to Anthropic as provider
+    planner_model: str = "gpt-4o"  # Defaults to OpenAI o3-mini as planner model
+    writer_model: str = "gpt-4o-mini"  # Defaults to Anthropic as provider
 
     @classmethod
     def from_runnable_config(cls, config: Optional[RunnableConfig] = None) -> "Configuration":
