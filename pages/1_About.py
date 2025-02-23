@@ -75,7 +75,7 @@ st.markdown(
     """
     <style>
     .stApp {
-        background-color: lightblue;
+        background-color: darkblue;
     }
     </style>
     """,
@@ -96,8 +96,6 @@ st.set_page_config(
 
 # Add a background image from local file path
 background_image_path = "images/background.jpg"
-image = Image.open('background_image_path')
-st.image(image, use_column_width=True)
 background_image_base64 = get_base64_encoded_image(background_image_path)
 
 st.markdown(
