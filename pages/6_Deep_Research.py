@@ -293,7 +293,7 @@ For Conclusion/Summary:
 - For conclusion: 100-150 word limit, ## for section title, only ONE structural element at most, no sources section
 - Markdown format
 - Do not include word count or any preamble in your response
-</Quality Checks>"""
+</Quality checks>"""
 
 # --------------------------------------------------------------
 # Step 3: Implement the report generator
@@ -527,6 +527,9 @@ if start_button:
 
             # Generate the report
             result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
+
+            # Clear the logging messages
+            progress_placeholder.empty()
 
             # Display "Research complete!" message
             progress_placeholder.success("Research complete!")
