@@ -47,6 +47,9 @@ class ExtractedInfo(BaseModel):
 class ExtractionResponse(BaseModel):
     extracted_info: List[ExtractedInfo]
 
+class CorrectionResponse(BaseModel):
+    corrected_info: List[ExtractedInfo]
+
 # Function to extract text from PDF using pymupdf4llm
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
@@ -73,6 +76,21 @@ def extract_info_with_llm(text, openai_client):
     extracted_data = response.choices[0].message.content
     extracted_data_parsed = json.loads(extracted_data)
     return extracted_data_parsed.get("extracted_info", [])
+
+# Function to correct extracted information using LLM
+def correct_info_with_llm(extracted_data, text, openai_client):
+    correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct, and verifiable."
+    response = openai_client.beta.chat.completions.parse(
+        model="gpt-4o-2024-08-06",
+        messages=[
+            {"role": "system", "content": "You are a corrector. Correct and clean the extracted information based on the original text."},
+            {"role": "user", "content": correction_prompt}
+        ],
+        response_format=CorrectionResponse
+    )
+    corrected_data = response.choices[0].message.content
+    corrected_data_parsed = json.loads(corrected_data)
+    return corrected_data_parsed.get("corrected_info", [])
 
 # Streamlit App UI
 st.title("PDF Extractor - Names, Universities, and Locations")
@@ -107,8 +125,14 @@ if uploaded_file is not None and not st.session_state.extraction_done:
                     extracted_data = future.result()
                     all_extracted_data.extend(extracted_data)
 
+            # Correct extracted data
+            corrected_data = []
+            for data in all_extracted_data:
+                corrected_info = correct_info_with_llm(data, extracted_texts[0], openai_client)
+                corrected_data.extend(corrected_info)
+
             # Convert to DataFrame and remove duplicates
-            df = pd.DataFrame(all_extracted_data)
+            df = pd.DataFrame(corrected_data)
             df.drop_duplicates(inplace=True)
 
             # Store DataFrame in session state
@@ -158,5 +182,3 @@ if 'df' in st.session_state and not st.session_state.df.empty:
         file_name="original_names_and_university_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
-
