@@ -2,7 +2,7 @@ import streamlit as st
 import time
 import os
 import logging
-from typing import List, Dict, TypedDict, Literal, Annotated
+from typing import List, Dict, TypedDict, Literal, Annotated, Union
 from pydantic import BaseModel, Field
 from openai import OpenAI
 from duckduckgo_search import DDGS
@@ -88,7 +88,7 @@ DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down
    - Provide real-world examples or case studies where applicable
 
 3. Conclusion
-   - Aim for 1 structural element (either a list of table) that distills the main body sections
+   - Aim for 1 structural element (either a list or table) that distills the main body sections
    - Provide a concise summary of the report"""
 
 report_planner_query_writer_instructions = """You are an expert technical writer, helping to plan a report.
@@ -392,17 +392,20 @@ class ReportGenerator:
             all_search_results.extend(search_results)
 
         # Deduplicate and format sources
-        sources_list = deduplicate_and_format_sources(all_search_results, max_tokens_per_source=1000, include_raw_content=False)
-        self.sources.update(sources_list.split("\n"))
+        sources_list = deduplicate_and_format_sources(all_search_results, return_type="list")
+        self.sources.update(sources_list)
+
+        # Format sources for context
+        source_str = deduplicate_and_format_sources(all_search_results, return_type="string")
 
         # Generate report plan
-        report_plan = self.generate_report_plan(topic, report_organization, context, feedback)
+        report_plan = self.generate_report_plan(topic, report_organization, source_str, feedback)
         progress_placeholder.info(f"Generated report plan with {len(report_plan.sections)} sections")
 
         # Write each section
         for section in report_plan.sections:
             progress_placeholder.info(f"Writing section: {section.name}")
-            section_content = self.write_section(section.name, section.description, context, section.content)
+            section_content = self.write_section(section.name, section.description, source_str, section.content)
             section.content = section_content
             self.sections_content[section.name] = section
 
@@ -417,7 +420,7 @@ class ReportGenerator:
                 for query in follow_up_queries:
                     search_results = web_search(query.search_query)
                     all_search_results.extend(search_results)
-                section_content = self.write_section(section.name, section.description, context, section.content)
+                section_content = self.write_section(section.name, section.description, source_str, section.content)
                 section.content = section_content
                 self.sections_content[section.name] = section
 
@@ -456,21 +459,19 @@ def web_search(query: str) -> List[Dict]:
     search_results = DDGS().text(query, max_results=5)
     return search_results
 
-def deduplicate_and_format_sources(search_response, max_tokens_per_source, include_raw_content=True):
+def deduplicate_and_format_sources(search_response, return_type: str = "list") -> Union[str, List[str]]:
     """
-    Takes a list of search responses and formats them into a readable string.
-    Limits the raw_content to approximately max_tokens_per_source.
+    Takes a list of search responses and formats them into a readable string or list of sources.
 
     Args:
         search_response: List of search response dicts, each containing:
             - title: str
             - href: str
             - body: str
-        max_tokens_per_source: int
-        include_raw_content: bool
+        return_type: str, either "list" or "string"
 
     Returns:
-        str: Formatted string with deduplicated sources
+        Union[str, List[str]]: Formatted string with deduplicated sources or list of sources with title and URL
     """
     # Collect all results
     sources_list = search_response
@@ -478,22 +479,20 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source, inclu
     # Deduplicate by URL
     unique_sources = {source['href']: source for source in sources_list}
 
-    # Format output
-    formatted_text = ""
-    for i, source in enumerate(unique_sources.values(), 1):
-        formatted_text += f"Source {source['title']}:\n===\n"
-        formatted_text += f"URL: {source['href']}\n===\n"
-        formatted_text += f"Most relevant content from source: {source['body']}\n===\n"
-        if include_raw_content:
-            # Using rough estimate of 4 characters per token
-            char_limit = max_tokens_per_source * 4
-            # Handle None raw_content
-            raw_content = source.get('body', '')
-            if len(raw_content) > char_limit:
-                raw_content = raw_content[:char_limit] + "... [truncated]"
-            formatted_text += f"Full source content limited to {max_tokens_per_source} tokens: {raw_content}\n\n"
-
-    return formatted_text.strip()
+    if return_type == "list":
+        # Format output as a list of sources
+        formatted_sources = []
+        for source in unique_sources.values():
+            formatted_sources.append(f"[{source['title']}]({source['href']})")
+        return formatted_sources
+    else:
+        # Format output as a string with context
+        formatted_text = ""
+        for i, source in enumerate(unique_sources.values(), 1):
+            formatted_text += f"Source {source['title']}:\n===\n"
+            formatted_text += f"URL: {source['href']}\n===\n"
+            formatted_text += f"Most relevant content from source: {source['body']}\n===\n"
+        return formatted_text.strip()
 
 # --------------------------------------------------------------
 # Step 5: Streamlit app
@@ -544,4 +543,5 @@ if start_button:
             # Output the final report
             final_report = result["final_report"]
             report_placeholder.markdown(final_report, unsafe_allow_html=True)
+
 
