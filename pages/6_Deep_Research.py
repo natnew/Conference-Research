@@ -68,7 +68,7 @@ class SectionState(TypedDict):
 
 class SectionOutputState(TypedDict):
     completed_sections: List[Section]  # Final key we duplicate in outer state for Send() API
-    
+
 class SectionContent(BaseModel):
     content: str = Field(description="Written content for the section")
     key_points: List[str] = Field(description="Main points covered")
@@ -316,7 +316,7 @@ class ReportGenerator:
             )
             return completion.choices[0].message.parsed.queries
         except LengthFinishReasonError as e:
-            logger.error("Search query generation exceeded token limit. Returning truncated response.")
+            st.error("Search query generation exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed.queries  # Return the truncated queries
 
     def generate_report_plan(self, topic: str, report_organization: str, context: str, feedback: str) -> Sections:
@@ -332,7 +332,7 @@ class ReportGenerator:
             )
             return completion.choices[0].message.parsed
         except LengthFinishReasonError as e:
-            logger.error("Report plan generation exceeded token limit. Returning truncated response.")
+            st.error("Report plan generation exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed  # Return the truncated report plan
 
     def write_section(self, section_topic: str, section_description: str, context: str, section_content: str) -> str:
@@ -348,7 +348,7 @@ class ReportGenerator:
             )
             return completion.choices[0].message.parsed.content
         except LengthFinishReasonError as e:
-            logger.error("Section writing exceeded token limit. Returning truncated response.")
+            st.error("Section writing exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed.content  # Return the truncated section content
 
     def evaluate_section(self, section_topic: str, section_content: str) -> Feedback:
@@ -362,7 +362,7 @@ class ReportGenerator:
             )
             return completion.choices[0].message.parsed
         except LengthFinishReasonError as e:
-            logger.error("Section evaluation exceeded token limit. Returning truncated response.")
+            st.error("Section evaluation exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed  # Return the truncated feedback
 
     def write_final_sections(self, section_topic: str, context: str) -> str:
@@ -376,34 +376,34 @@ class ReportGenerator:
             )
             return completion.choices[0].message.parsed.content
         except LengthFinishReasonError as e:
-            logger.error("Final section writing exceeded token limit. Returning truncated response.")
+            st.error("Final section writing exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed.content  # Return the truncated final section content
 
     def generate_report(self, topic: str, report_organization: str, context: str, feedback: str) -> ReportStateOutput:
         """Generate the full report."""
-        logger.info(f"Starting report generation for: {topic}")
+        st.info(f"Starting report generation for: {topic}")
 
         # Generate search queries
         search_queries = self.generate_search_queries(topic, report_organization, number_of_queries=2)
-        logger.info(f"Generated search queries: {search_queries}")
+        st.info(f"Generated search queries: {search_queries}")
 
         # Generate report plan
         report_plan = self.generate_report_plan(topic, report_organization, context, feedback)
-        logger.info(f"Generated report plan with {len(report_plan.sections)} sections")
+        st.info(f"Generated report plan with {len(report_plan.sections)} sections")
 
         # Write each section
         for section in report_plan.sections:
-            logger.info(f"Writing section: {section.name}")
+            st.info(f"Writing section: {section.name}")
             section_content = self.write_section(section.name, section.description, context, section.content)
             section.content = section_content
             self.sections_content[section.name] = section
 
         # Evaluate and refine sections
         for section in report_plan.sections:
-            logger.info(f"Evaluating section: {section.name}")
+            st.info(f"Evaluating section: {section.name}")
             evaluation = self.evaluate_section(section.name, section.content)
             if evaluation.grade == "fail":
-                logger.info(f"Section {section.name} failed evaluation. Generating follow-up queries.")
+                st.info(f"Section {section.name} failed evaluation. Generating follow-up queries.")
                 follow_up_queries = evaluation.follow_up_queries
                 # Perform follow-up searches and refine the section
                 for query in follow_up_queries:
@@ -420,24 +420,14 @@ class ReportGenerator:
         # Compile the final report
         all_sections = "\n\n".join([s.content for s in report_plan.sections])
         final_report = f"""
-        ## Research Report: *{topic}*
+        {introduction}
 
-        **Research Depth:**
-
-        **Summary:**
-        This report synthesizes information from multiple sources, providing insights
-        into the subject matter with citations for further review.
-
-        **Key Findings:**
         {all_sections}
 
-        **Conclusion:**
-        The research confirms that rapid AI-driven insights can bolster deep
-        investigations, though expert validation remains vital.
+        {conclusion}
         """
 
         return {"final_report": final_report}
-
 
 # --------------------------------------------------------------
 # Step 4: Define the tool for web search
@@ -528,25 +518,21 @@ if start_button:
         st.warning("Please provide a query before starting the research.")
     else:
         with st.spinner("Deep Research in progress... This may take 5–30 minutes."):
-            for i in range(1, 11):
-                progress_value = i * 10
-                progress_placeholder.info(f"Processing with {engine_choice}... {progress_value}% complete")
-                time.sleep(0.5)
+            # Perform web search
+            search_results = web_search(query)
+            source_str = deduplicate_and_format_sources(search_results, max_tokens_per_source=1000, include_raw_content=False)
 
-            progress_placeholder.success("Research complete!")
+            # Initialize the report generator
+            report_generator = ReportGenerator()
 
-        # Perform web search
-        search_results = web_search(query)
-        source_str = deduplicate_and_format_sources(search_results, max_tokens_per_source=1000, include_raw_content=False)
+            # Generate the report
+            result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
 
-        # Initialize the report generator
-        report_generator = ReportGenerator()
+            final_report = result["final_report"]
 
-        # Generate the report
-        result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
+            report_placeholder.markdown(final_report, unsafe_allow_html=True)
 
-        final_report = result["final_report"]
+        progress_placeholder.success("Research complete!")
 
-        report_placeholder.markdown(final_report, unsafe_allow_html=True)
 
 
