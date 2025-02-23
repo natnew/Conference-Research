@@ -439,8 +439,12 @@ class ReportGenerator:
         """
 
         # Append sources to the final report
-        sources_section = "\n".join(sorted(self.sources))
+        # sources_section = "\n".join(sorted(self.sources))
+        # final_report += f"\n\n### Sources\n{sources_section}"
+        # Append sources to the final report
+        sources_section = deduplicate_and_format_sources(all_search_results, return_type="string")
         final_report += f"\n\n### Sources\n{sources_section}"
+
 
         # Clear the progress placeholder
         progress_placeholder.empty()
@@ -489,10 +493,11 @@ def deduplicate_and_format_sources(search_response, return_type: str = "list") -
         # Format output as a string with context
         formatted_text = ""
         for i, source in enumerate(unique_sources.values(), 1):
-            formatted_text += f"Source {source['title']}:\n===\n"
-            formatted_text += f"URL: {source['href']}\n===\n"
-            formatted_text += f"Most relevant content from source: {source['body']}\n===\n"
+            formatted_text += f"- {source['title']}\n"
+            formatted_text += f"  URL: {source['href']}\n"
+            formatted_text += f"  Most relevant content from source: {source['body']}\n"
         return formatted_text.strip()
+
 
 # --------------------------------------------------------------
 # Step 5: Streamlit app
