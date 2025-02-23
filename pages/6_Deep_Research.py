@@ -4,7 +4,7 @@ from duckduckgo_search import DDGS
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from typing import List, TypedDict, Literal, Annotated, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, fields
 import os
 import operator
 
@@ -468,4 +468,3 @@ if start_button:
         """
 
         report_placeholder.markdown(final_report, unsafe_allow_html=True)
-
