@@ -125,11 +125,13 @@ if uploaded_file is not None and not st.session_state.extraction_done:
                     extracted_data = future.result()
                     all_extracted_data.extend(extracted_data)
 
-            # Correct extracted data
+            # Use ThreadPoolExecutor for parallel processing of correction
             corrected_data = []
-            for data in all_extracted_data:
-                corrected_info = correct_info_with_llm(data, extracted_texts[0], openai_client)
-                corrected_data.extend(corrected_info)
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = [executor.submit(correct_info_with_llm, data, extracted_texts[0], openai_client) for data in all_extracted_data]
+                for future in futures:
+                    corrected_info = future.result()
+                    corrected_data.extend(corrected_info)
 
             # Convert to DataFrame and remove duplicates
             df = pd.DataFrame(corrected_data)
