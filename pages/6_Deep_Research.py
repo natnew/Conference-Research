@@ -68,50 +68,40 @@ The queries should:
 Make the queries specific enough to find high-quality, relevant sources while covering the breadth needed for the report structure.
 </Task>"""
 
-# report_planner_instructions = """I want a plan for a report.
+report_planner_instructions = """I want a plan for a report.
 
-# <Task>
-# Generate a list of sections for the report.
+<Task>
+Generate a list of sections for the report.
 
-# Each section should have the fields:
+Each section should have the fields:
 
-# - Name - Name for this section of the report.
-# - Description - Brief overview of the main topics covered in this section.
-# - Research - Whether to perform web research for this section of the report.
-# - Content - The content of the section, which you will leave blank for now.
+- Name - Name for this section of the report.
+- Description - Brief overview of the main topics covered in this section.
+- Research - Whether to perform web research for this section of the report.
+- Content - The content of the section, which you will leave blank for now.
 
-# For example, introduction and conclusion will not require research because they will distill information from other parts of the report.
-# </Task>
+For example, introduction and conclusion will not require research because they will distill information from other parts of the report.
+</Task>
 
-# <Topic>
-# The topic of the report is:
-# {topic}
-# </Topic>
+<Topic>
+The topic of the report is:
+{topic}
+</Topic>
 
-# <Report organization>
-# The report should follow this organization:
-# {report_organization}
-# </Report organization>
+<Report organization>
+The report should follow this organization:
+{report_organization}
+</Report organization>
 
-# <Context>
-# Here is context to use to plan the sections of the report:
-# {context}
-# </Context>
+<Context>
+Here is context to use to plan the sections of the report:
+{context}
+</Context>
 
-# <Feedback>
-# Here is feedback on the report structure from review (if any):
-# {feedback}
-# </Feedback>
-# """
-# Simplified report planner query writer instructions
-report_planner_query_writer_instructions = """Generate {number_of_queries} search queries for researching this topic:
-
-Topic: {topic}
-
-Requirements:
-1. Queries should be specific and technical
-2. Focus on recent information where relevant
-3. Target authoritative sources
+<Feedback>
+Here is feedback on the report structure from review (if any):
+{feedback}
+</Feedback>
 """
 query_writer_instructions = """You are an expert technical writer crafting targeted web search queries that will gather comprehensive information for writing a technical report section.
 
@@ -134,67 +124,54 @@ Your queries should be:
 - Focused on authoritative sources (documentation, technical blogs, academic papers)
 </Task>"""
 
-# section_writer_instructions = """You are an expert technical writer crafting one section of a technical report.
+section_writer_instructions = """You are an expert technical writer crafting one section of a technical report.
 
-# <Section topic>
-# {section_topic}
-# </Section topic>
+<Section topic>
+{section_topic}
+</Section topic>
 
-# <Existing section content (if populated)>
-# {section_content}
-# </Existing section content>
+<Existing section content (if populated)>
+{section_content}
+</Existing section content>
 
-# <Source material>
-# {context}
-# </Source material>
+<Source material>
+{context}
+</Source material>
 
-# <Guidelines for writing>
-# 1. If the existing section content is not populated, write a new section from scratch.
-# 2. If the existing section content is populated, write a new section that synthesizes the existing section content with the new information.
-# </Guidelines for writing>
+<Guidelines for writing>
+1. If the existing section content is not populated, write a new section from scratch.
+2. If the existing section content is populated, write a new section that synthesizes the existing section content with the new information.
+</Guidelines for writing>
 
-# <Length and style>
-# - Strict 150-200 word limit
-# - No marketing language
-# - Technical focus
-# - Write in simple, clear language
-# - Start with your most important insight in **bold**
-# - Use short paragraphs (2-3 sentences max)
-# - Use ## for section title (Markdown format)
-# - Only use ONE structural element IF it helps clarify your point:
-#   * Either a focused table comparing 2-3 key items (using Markdown table syntax)
-#   * Or a short list (3-5 items) using proper Markdown list syntax:
-#     - Use `*` or `-` for unordered lists
-#     - Use `1.` for ordered lists
-#     - Ensure proper indentation and spacing
-# - End with ### Sources that references the below source material formatted as:
-#   * List each source with title, date, and URL
-#   * Format: `- Title : URL`
-# </Length and style>
-
-# <Quality checks>
-# - Exactly 150-200 words (excluding title and sources)
-# - Careful use of only ONE structural element (table or list) and only if it helps clarify your point
-# - One specific example / case study
-# - Starts with bold insight
-# - No preamble prior to creating the section content
-# - Sources cited at end
-# </Quality checks>
-# """
-# Simplified section writer instructions
-section_writer_instructions = """Write a technical report section.
-
-Topic: {section_topic}
-Content: {section_content}
-Sources: {context}
-
-Guidelines:
-- 150-200 words
+<Length and style>
+- Strict 150-200 word limit
+- No marketing language
 - Technical focus
-- Start with key insight in bold
-- Use markdown formatting
-- Cite sources at end
+- Write in simple, clear language
+- Start with your most important insight in **bold**
+- Use short paragraphs (2-3 sentences max)
+- Use ## for section title (Markdown format)
+- Only use ONE structural element IF it helps clarify your point:
+  * Either a focused table comparing 2-3 key items (using Markdown table syntax)
+  * Or a short list (3-5 items) using proper Markdown list syntax:
+    - Use `*` or `-` for unordered lists
+    - Use `1.` for ordered lists
+    - Ensure proper indentation and spacing
+- End with ### Sources that references the below source material formatted as:
+  * List each source with title, date, and URL
+  * Format: `- Title : URL`
+</Length and style>
+
+<Quality checks>
+- Exactly 150-200 words (excluding title and sources)
+- Careful use of only ONE structural element (table or list) and only if it helps clarify your point
+- One specific example / case study
+- Starts with bold insight
+- No preamble prior to creating the section content
+- Sources cited at end
+</Quality checks>
 """
+
 section_grader_instructions = """Review a report section relative to the specified topic:
 
 <section topic>
