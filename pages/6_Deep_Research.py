@@ -385,6 +385,16 @@ class ReportGenerator:
         search_queries = self.generate_search_queries(topic, report_organization, number_of_queries=2)
         progress_placeholder.info(f"Generated search queries: {search_queries}")
 
+        # Perform web searches and collect sources
+        all_search_results = []
+        for query in search_queries:
+            search_results = web_search(query.search_query)
+            all_search_results.extend(search_results)
+
+        # Deduplicate and format sources
+        sources_list = deduplicate_and_format_sources(all_search_results, max_tokens_per_source=1000, include_raw_content=False)
+        self.sources.update(sources_list.split("\n"))
+
         # Generate report plan
         report_plan = self.generate_report_plan(topic, report_organization, context, feedback)
         progress_placeholder.info(f"Generated report plan with {len(report_plan.sections)} sections")
@@ -406,7 +416,7 @@ class ReportGenerator:
                 # Perform follow-up searches and refine the section
                 for query in follow_up_queries:
                     search_results = web_search(query.search_query)
-                    context += deduplicate_and_format_sources(search_results, max_tokens_per_source=1000, include_raw_content=False)
+                    all_search_results.extend(search_results)
                 section_content = self.write_section(section.name, section.description, context, section.content)
                 section.content = section_content
                 self.sections_content[section.name] = section
@@ -425,13 +435,7 @@ class ReportGenerator:
         {conclusion}
         """
 
-        # Consolidate sources
-        for section in report_plan.sections:
-            if "### Sources" in section.content:
-                sources_start = section.content.index("### Sources") + len("### Sources")
-                sources_section = section.content[sources_start:].strip()
-                self.sources.update(sources_section.split("\n"))
-
+        # Append sources to the final report
         sources_section = "\n".join(sorted(self.sources))
         final_report += f"\n\n### Sources\n{sources_section}"
 
@@ -531,16 +535,13 @@ if start_button:
         st.warning("Please provide a query before starting the research.")
     else:
         with st.spinner("Deep Research in progress... This may take 5–30 minutes."):
-            # Perform web search
-            search_results = web_search(query)
-            source_str = deduplicate_and_format_sources(search_results, max_tokens_per_source=1000, include_raw_content=False)
-
             # Initialize the report generator
             report_generator = ReportGenerator()
 
             # Generate the report
-            result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
+            result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context="", feedback=None)
 
             # Output the final report
             final_report = result["final_report"]
             report_placeholder.markdown(final_report, unsafe_allow_html=True)
+
