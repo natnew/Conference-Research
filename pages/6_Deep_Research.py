@@ -442,8 +442,9 @@ class ReportGenerator:
         # sources_section = "\n".join(sorted(self.sources))
         # final_report += f"\n\n### Sources\n{sources_section}"
         # Append sources to the final report
-        sources_section = deduplicate_and_format_sources(all_search_results, return_type="string")
-        final_report += f"\n\n### Sources\n{sources_section}"
+        sources_section = deduplicate_and_format_sources(all_search_results, return_type="list")
+        sources_section_str = "\n".join(sources_section)
+        final_report += f"\n\n### Sources\n{sources_section_str}"
 
 
         # Clear the progress placeholder
@@ -487,7 +488,7 @@ def deduplicate_and_format_sources(search_response, return_type: str = "list") -
         # Format output as a list of sources
         formatted_sources = []
         for source in unique_sources.values():
-            formatted_sources.append(f"[{source['title']}]({source['href']})")
+            formatted_sources.append(f"- [{source['title']}]({source['href']})")
         return formatted_sources
     else:
         # Format output as a string with context
