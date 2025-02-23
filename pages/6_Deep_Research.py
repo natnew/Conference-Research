@@ -413,10 +413,10 @@ if start_button:
 
         # Set up the configuration
         config = Configuration(
-            report_structure=Configuration.DEFAULT_REPORT_STRUCTURE,
+            report_structure=DEFAULT_REPORT_STRUCTURE,
             number_of_queries=2,
             max_search_depth=2,
-            planner_provider=Configuration.PlannerProvider.OPENAI,
+            planner_provider=PlannerProvider.OPENAI,
             planner_model="o3-mini",
             writer_model="o3-mini"
         )
