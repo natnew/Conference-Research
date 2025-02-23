@@ -83,16 +83,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: darkgreen;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 # Add a background image from local file path
 background_image_path = "images/background.jpg"
 background_image_base64 = get_base64_encoded_image(background_image_path)
@@ -173,10 +163,6 @@ with st.expander("Background"):
     *This application is continuously evolving. If you have feedback, feature requests, or encounter any issues, please contact the development team.*
     ''')
 
-# Add some interactive elements
-st.markdown("### Interactive Demo")
-if st.button("Show Demo"):
-    st.write("Here you can add a demo video or interactive widgets to showcase your app's capabilities.")
 
 # Contact form
 st.markdown("### Contact Us")
