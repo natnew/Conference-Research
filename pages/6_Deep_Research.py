@@ -461,7 +461,7 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source, inclu
     unique_sources = {source['href']: source for source in sources_list}
 
     # Format output
-    formatted_text = "Sources:\n\n"
+    formatted_text = ""
     for i, source in enumerate(unique_sources.values(), 1):
         formatted_text += f"Source {source['title']}:\n===\n"
         formatted_text += f"URL: {source['href']}\n===\n"
@@ -537,3 +537,4 @@ if start_button:
             # Output the final report
             final_report = result["final_report"]
             report_placeholder.markdown(final_report, unsafe_allow_html=True)
+
