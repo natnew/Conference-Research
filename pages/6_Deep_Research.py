@@ -30,7 +30,7 @@ DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down
 class PlannerProvider:
     OPENAI = "openai"
 
-class Configuration:
+class Configuration(BaseModel):
     """The configurable fields for the chatbot."""
     report_structure: str = DEFAULT_REPORT_STRUCTURE  # Defaults to the default report structure
     number_of_queries: int = 2  # Number of search queries to generate per iteration
@@ -468,3 +468,4 @@ if start_button:
         """
 
         report_placeholder.markdown(final_report, unsafe_allow_html=True)
+
