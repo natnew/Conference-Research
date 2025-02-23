@@ -302,6 +302,7 @@ For Conclusion/Summary:
 class ReportGenerator:
     def __init__(self):
         self.sections_content = {}
+        self.sources = set()
 
     def generate_search_queries(self, topic: str, report_organization: str, number_of_queries: int) -> List[SearchQuery]:
         """Generate search queries for the report."""
@@ -429,14 +430,13 @@ class ReportGenerator:
         """
 
         # Consolidate sources
-        sources = []
         for section in report_plan.sections:
             if "### Sources" in section.content:
                 sources_start = section.content.index("### Sources") + len("### Sources")
                 sources_section = section.content[sources_start:].strip()
-                sources.extend(sources_section.split("\n"))
+                self.sources.update(sources_section.split("\n"))
 
-        sources_section = "\n".join(sources)
+        sources_section = "\n".join(sorted(self.sources))
         final_report += f"\n\n### Sources\n{sources_section}"
 
         # Clear the progress placeholder
