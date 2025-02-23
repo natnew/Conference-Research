@@ -528,11 +528,9 @@ if start_button:
             # Generate the report
             result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
 
+            # Display "Research complete!" message
+            progress_placeholder.success("Research complete!")
+
+            # Output the final report
             final_report = result["final_report"]
-
             report_placeholder.markdown(final_report, unsafe_allow_html=True)
-
-        progress_placeholder.success("Research complete!")
-
-
-
