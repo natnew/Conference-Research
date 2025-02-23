@@ -6,6 +6,7 @@ from typing import List, Dict, TypedDict, Literal, Annotated
 from pydantic import BaseModel, Field
 from openai import OpenAI
 from duckduckgo_search import DDGS
+from openai import LengthFinishReasonError
 import operator
 
 # Set up logging configuration
@@ -307,56 +308,76 @@ class ReportGenerator:
         system_instructions_query = report_planner_query_writer_instructions.format(
             topic=topic, report_organization=report_organization, number_of_queries=number_of_queries
         )
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=[{"role": "system", "content": system_instructions_query}],
-            response_format=Queries,
-        )
-        return completion.choices[0].message.parsed.queries
+        try:
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=[{"role": "system", "content": system_instructions_query}],
+                response_format=Queries,
+            )
+            return completion.choices[0].message.parsed.queries
+        except LengthFinishReasonError as e:
+            logger.error("Search query generation exceeded token limit. Returning truncated response.")
+            return e.completion.choices[0].message.parsed.queries  # Return the truncated queries
 
     def generate_report_plan(self, topic: str, report_organization: str, context: str, feedback: str) -> Sections:
         """Generate the report plan with sections."""
         system_instructions_sections = report_planner_instructions.format(
             topic=topic, report_organization=report_organization, context=context, feedback=feedback
         )
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=[{"role": "system", "content": system_instructions_sections}],
-            response_format=Sections,
-        )
-        return completion.choices[0].message.parsed
+        try:
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=[{"role": "system", "content": system_instructions_sections}],
+                response_format=Sections,
+            )
+            return completion.choices[0].message.parsed
+        except LengthFinishReasonError as e:
+            logger.error("Report plan generation exceeded token limit. Returning truncated response.")
+            return e.completion.choices[0].message.parsed  # Return the truncated report plan
 
     def write_section(self, section_topic: str, section_description: str, context: str, section_content: str) -> str:
         """Write a section of the report."""
         system_instructions = section_writer_instructions.format(
             section_topic=section_topic, section_content=section_content, context=context
         )
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=[{"role": "system", "content": system_instructions}],
-            response_format=SectionContent,
-        )
-        return completion.choices[0].message.parsed.content
+        try:
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=[{"role": "system", "content": system_instructions}],
+                response_format=SectionContent,
+            )
+            return completion.choices[0].message.parsed.content
+        except LengthFinishReasonError as e:
+            logger.error("Section writing exceeded token limit. Returning truncated response.")
+            return e.completion.choices[0].message.parsed.content  # Return the truncated section content
 
     def evaluate_section(self, section_topic: str, section_content: str) -> Feedback:
         """Evaluate a section of the report."""
         system_instructions = section_grader_instructions.format(section_topic=section_topic, section=section_content)
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=[{"role": "system", "content": system_instructions}],
-            response_format=Feedback,
-        )
-        return completion.choices[0].message.parsed
+        try:
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=[{"role": "system", "content": system_instructions}],
+                response_format=Feedback,
+            )
+            return completion.choices[0].message.parsed
+        except LengthFinishReasonError as e:
+            logger.error("Section evaluation exceeded token limit. Returning truncated response.")
+            return e.completion.choices[0].message.parsed  # Return the truncated feedback
 
     def write_final_sections(self, section_topic: str, context: str) -> str:
         """Write the final sections of the report."""
         system_instructions = final_section_writer_instructions.format(section_topic=section_topic, context=context)
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=[{"role": "system", "content": system_instructions}],
-            response_format=SectionContent,
-        )
-        return completion.choices[0].message.parsed.content
+        try:
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=[{"role": "system", "content": system_instructions}],
+                response_format=SectionContent,
+            )
+            return completion.choices[0].message.parsed.content
+        except LengthFinishReasonError as e:
+            logger.error("Final section writing exceeded token limit. Returning truncated response.")
+            return e.completion.choices[0].message.parsed.content  # Return the truncated final section content
 
     def generate_report(self, topic: str, report_organization: str, context: str, feedback: str) -> ReportStateOutput:
         """Generate the full report."""
@@ -416,6 +437,7 @@ class ReportGenerator:
         """
 
         return {"final_report": final_report}
+
 
 # --------------------------------------------------------------
 # Step 4: Define the tool for web search
