@@ -68,7 +68,7 @@ def extract_info_with_llm(text, openai_client):
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract names, universities, and locations from the provided text if their is no location infer it from your general knowledge of where the university is located but just provide the country name of the location don't include the city."},
+            {"role": "system", "content": "Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just provide the country name of the location don't include the city. Ensure the data you provide is accurate, clean, and verifiable."},
             {"role": "user", "content": text}
         ],
         response_format=ExtractionResponse
@@ -134,7 +134,7 @@ if uploaded_file is not None and not st.session_state.extraction_done:
                     corrected_data.extend(corrected_info)
 
             # Convert to DataFrame and remove duplicates
-            df = pd.DataFrame(corrected_data)
+            df = pd.DataFrame(all_extracted_data)
             df.drop_duplicates(inplace=True)
 
             # Store DataFrame in session state
