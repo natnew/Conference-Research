@@ -1,18 +1,77 @@
 import streamlit as st
 import time
-from duckduckgo_search import DDGS
-from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
-from typing import List, TypedDict, Literal, Annotated, Optional
-from pydantic import BaseModel, Field, fields
 import os
+import logging
+from typing import List, Dict, TypedDict, Literal, Annotated
+from pydantic import BaseModel, Field
+from openai import OpenAI
+from duckduckgo_search import DDGS
 import operator
 
-# Set the OpenAI API key
+# Set up logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 openai_api_key = st.secrets["openai_api_key"]
-os.environ["OPENAI_API_KEY"] = openai_api_key
+# Initialize OpenAI client
+client = OpenAI(api_key=openai_api_key)
+model = "gpt-4o-mini"
 
-# --- CONFIGURATION ---
+# --------------------------------------------------------------
+# Step 1: Define the data models
+# --------------------------------------------------------------
+
+class Section(BaseModel):
+    name: str = Field(description="Section name")
+    description: str = Field(description="Overview of section topics")
+    research: bool = Field(description="Research required flag")
+    content: str = Field(description="Section content")
+
+class Sections(BaseModel):
+    sections: List[Section] = Field(description="Sections of the report.")
+
+class SearchQuery(BaseModel):
+    search_query: str = Field(None, description="Query for web search.")
+
+class Queries(BaseModel):
+    queries: List[SearchQuery] = Field(description="List of search queries.")
+
+class Feedback(BaseModel):
+    grade: Literal["pass", "fail"] = Field(description="Evaluation result indicating whether the response meets requirements ('pass') or needs revision ('fail').")
+    follow_up_queries: List[SearchQuery] = Field(description="List of follow-up search queries.")
+
+class ReportStateInput(TypedDict):
+    topic: str  # Report topic
+
+class ReportStateOutput(TypedDict):
+    final_report: str  # Final report
+
+class ReportState(TypedDict):
+    topic: str  # Report topic
+    sections: List[Section]  # List of report sections
+    completed_sections: Annotated[List[Section], operator.add]  # Send() API key
+    report_sections_from_research: str  # String of any completed sections from research to write final sections
+    final_report: str  # Final report
+
+class SectionState(TypedDict):
+    section: Section  # Report section
+    search_iterations: int  # Number of search iterations done
+    search_queries: List[SearchQuery]  # List of search queries
+    source_str: str  # String of formatted source content from web search
+    feedback_on_report_plan: str  # Feedback on the report plan
+    report_sections_from_research: str  # String of any completed sections from research to write final sections
+    completed_sections: List[Section]  # Final key we duplicate in outer state for Send() API
+
+class SectionOutputState(TypedDict):
+    completed_sections: List[Section]  # Final key we duplicate in outer state for Send() API
+
+# --------------------------------------------------------------
+# Step 2: Define prompts
+# --------------------------------------------------------------
+
 DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down the user-provided topic:
 
 1. Introduction (no research needed)
@@ -27,26 +86,6 @@ DEFAULT_REPORT_STRUCTURE = """The report structure should focus on breaking-down
    - Aim for 1 structural element (either a list of table) that distills the main body sections
    - Provide a concise summary of the report"""
 
-class PlannerProvider:
-    OPENAI = "openai"
-
-class Configuration(BaseModel):
-    """The configurable fields for the chatbot."""
-    report_structure: str = DEFAULT_REPORT_STRUCTURE  # Defaults to the default report structure
-    number_of_queries: int = 2  # Number of search queries to generate per iteration
-    max_search_depth: int = 2  # Maximum number of reflection + search iterations
-    planner_provider: Literal["openai"] = "openai" # Defaults to OpenAI as provider
-    planner_model: str = "gpt-4o"  # Defaults to OpenAI o3-mini as planner model
-    writer_model: str = "gpt-4o-mini"  # Defaults to Anthropic as provider
-
-    @classmethod
-    def from_runnable_config(cls, config: Optional[RunnableConfig] = None) -> "Configuration":
-        """Create a Configuration instance from a RunnableConfig."""
-        configurable = config["configurable"] if config and "configurable" in config else {}
-        values = {f.name: os.environ.get(f.name.upper(), configurable.get(f.name)) for f in fields(cls) if f.init}
-        return cls(**{k: v for k, v in values.items() if v})
-
-# --- PROMPTS ---
 report_planner_query_writer_instructions = """You are an expert technical writer, helping to plan a report.
 
 <Report topic>
@@ -103,6 +142,7 @@ Here is feedback on the report structure from review (if any):
 {feedback}
 </Feedback>
 """
+
 query_writer_instructions = """You are an expert technical writer crafting targeted web search queries that will gather comprehensive information for writing a technical report section.
 
 <Section topic>
@@ -250,52 +290,138 @@ For Conclusion/Summary:
 - Do not include word count or any preamble in your response
 </Quality Checks>"""
 
-# --- STATE ---
-class Section(BaseModel):
-    name: str = Field(description="Section name")
-    description: str = Field(description="Overview of section topics")
-    research: bool = Field(description="Research required flag")
-    content: str = Field(description="Section content")
+# --------------------------------------------------------------
+# Step 3: Implement the report generator
+# --------------------------------------------------------------
 
-class Sections(BaseModel):
-    sections: List[Section] = Field(description="Sections of the report.")
+class ReportGenerator:
+    def __init__(self):
+        self.sections_content = {}
 
-class SearchQuery(BaseModel):
-    search_query: str = Field(None, description="Query for web search.")
+    def generate_search_queries(self, topic: str, report_organization: str, number_of_queries: int) -> List[SearchQuery]:
+        """Generate search queries for the report."""
+        system_instructions_query = report_planner_query_writer_instructions.format(
+            topic=topic, report_organization=report_organization, number_of_queries=number_of_queries
+        )
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=[{"role": "system", "content": system_instructions_query}],
+            response_format=Queries,
+        )
+        return completion.choices[0].message.parsed.queries
 
-class Queries(BaseModel):
-    queries: List[SearchQuery] = Field(description="List of search queries.")
+    def generate_report_plan(self, topic: str, report_organization: str, context: str, feedback: str) -> Sections:
+        """Generate the report plan with sections."""
+        system_instructions_sections = report_planner_instructions.format(
+            topic=topic, report_organization=report_organization, context=context, feedback=feedback
+        )
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=[{"role": "system", "content": system_instructions_sections}],
+            response_format=Sections,
+        )
+        return completion.choices[0].message.parsed
 
-class Feedback(BaseModel):
-    grade: Literal["pass", "fail"] = Field(description="Evaluation result indicating whether the response meets requirements ('pass') or needs revision ('fail').")
-    follow_up_queries: List[SearchQuery] = Field(description="List of follow-up search queries.")
+    def write_section(self, section_topic: str, section_description: str, context: str, section_content: str) -> str:
+        """Write a section of the report."""
+        system_instructions = section_writer_instructions.format(
+            section_topic=section_topic, section_content=section_content, context=context
+        )
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=[{"role": "system", "content": system_instructions}],
+            response_format=SectionContent,
+        )
+        return completion.choices[0].message.parsed.content
 
-class ReportStateInput(TypedDict):
-    topic: str  # Report topic
+    def evaluate_section(self, section_topic: str, section_content: str) -> Feedback:
+        """Evaluate a section of the report."""
+        system_instructions = section_grader_instructions.format(section_topic=section_topic, section=section_content)
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=[{"role": "system", "content": system_instructions}],
+            response_format=Feedback,
+        )
+        return completion.choices[0].message.parsed
 
-class ReportStateOutput(TypedDict):
-    final_report: str  # Final report
+    def write_final_sections(self, section_topic: str, context: str) -> str:
+        """Write the final sections of the report."""
+        system_instructions = final_section_writer_instructions.format(section_topic=section_topic, context=context)
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=[{"role": "system", "content": system_instructions}],
+            response_format=SectionContent,
+        )
+        return completion.choices[0].message.parsed.content
 
-class ReportState(TypedDict):
-    topic: str  # Report topic
-    sections: list[Section]  # List of report sections
-    completed_sections: Annotated[list, operator.add]  # Send() API key
-    report_sections_from_research: str  # String of any completed sections from research to write final sections
-    final_report: str  # Final report
+    def generate_report(self, topic: str, report_organization: str, context: str, feedback: str) -> ReportStateOutput:
+        """Generate the full report."""
+        logger.info(f"Starting report generation for: {topic}")
 
-class SectionState(TypedDict):
-    section: Section  # Report section
-    search_iterations: int  # Number of search iterations done
-    search_queries: list[SearchQuery]  # List of search queries
-    source_str: str  # String of formatted source content from web search
-    feedback_on_report_plan: str  # Feedback on the report plan
-    report_sections_from_research: str  # String of any completed sections from research to write final sections
-    completed_sections: list[Section]  # Final key we duplicate in outer state for Send() API
+        # Generate search queries
+        search_queries = self.generate_search_queries(topic, report_organization, number_of_queries=2)
+        logger.info(f"Generated search queries: {search_queries}")
 
-class SectionOutputState(TypedDict):
-    completed_sections: list[Section]  # Final key we duplicate in outer state for Send() API
+        # Generate report plan
+        report_plan = self.generate_report_plan(topic, report_organization, context, feedback)
+        logger.info(f"Generated report plan with {len(report_plan.sections)} sections")
 
-# --- UTILS ---
+        # Write each section
+        for section in report_plan.sections:
+            logger.info(f"Writing section: {section.name}")
+            section_content = self.write_section(section.name, section.description, context, section.content)
+            section.content = section_content
+            self.sections_content[section.name] = section
+
+        # Evaluate and refine sections
+        for section in report_plan.sections:
+            logger.info(f"Evaluating section: {section.name}")
+            evaluation = self.evaluate_section(section.name, section.content)
+            if evaluation.grade == "fail":
+                logger.info(f"Section {section.name} failed evaluation. Generating follow-up queries.")
+                follow_up_queries = evaluation.follow_up_queries
+                # Perform follow-up searches and refine the section
+                for query in follow_up_queries:
+                    search_results = web_search(query.search_query)
+                    context += deduplicate_and_format_sources(search_results, max_tokens_per_source=1000, include_raw_content=False)
+                section_content = self.write_section(section.name, section.description, context, section.content)
+                section.content = section_content
+                self.sections_content[section.name] = section
+
+        # Write final sections
+        introduction = self.write_final_sections("Introduction", "\n\n".join([s.content for s in report_plan.sections]))
+        conclusion = self.write_final_sections("Conclusion", "\n\n".join([s.content for s in report_plan.sections]))
+
+        # Compile the final report
+        all_sections = "\n\n".join([s.content for s in report_plan.sections])
+        final_report = f"""
+        ## Research Report: *{topic}*
+
+        **Research Depth:**
+
+        **Summary:**
+        This report synthesizes information from multiple sources, providing insights
+        into the subject matter with citations for further review.
+
+        **Key Findings:**
+        {all_sections}
+
+        **Conclusion:**
+        The research confirms that rapid AI-driven insights can bolster deep
+        investigations, though expert validation remains vital.
+        """
+
+        return {"final_report": final_report}
+
+# --------------------------------------------------------------
+# Step 4: Define the tool for web search
+# --------------------------------------------------------------
+
+def web_search(query: str) -> List[Dict]:
+    """Perform a web search using DuckDuckGo."""
+    search_results = DDGS().text(query, max_results=5)
+    return search_results
+
 def deduplicate_and_format_sources(search_response, max_tokens_per_source, include_raw_content=True):
     """
     Takes a list of search responses and formats them into a readable string.
@@ -335,26 +461,17 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source, inclu
 
     return formatted_text.strip()
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="Deep Research",
-    page_icon="🔍",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# --------------------------------------------------------------
+# Step 5: Streamlit app
+# --------------------------------------------------------------
 
-# --- HEADER SECTION ---
+st.set_page_config(page_title="Deep Research", page_icon="🔍", layout="wide", initial_sidebar_state="expanded")
+
 st.title("Deep Research")
 
-# --- SIDEBAR ---
 with st.sidebar:
-    st.title(":streamlit: Conference & Campus Research Assistant")
-    st.write("""
-A self-service app that automates the generation of biographical content
-and assists in lead generation. Designed to support academic and professional
-activities, it offers interconnected modules that streamline research tasks,
-whether for conferences, campus visits, or other events.
-    """)
+    st.title(":streamlit: Research Assistant")
+    st.write("A self-service app that automates the generation of reports and assists in research tasks.")
 
     st.header("How It Works")
     st.markdown(
@@ -367,104 +484,43 @@ whether for conferences, campus visits, or other events.
         """
     )
 
-    # Select between OpenAI or Perplexity
-    engine_choice = st.selectbox(
-        "Select Research Engine",
-        options=["OpenAI"]
-    )
-
-    # Advanced settings (adjust or remove if not required)
+    engine_choice = st.selectbox("Select Research Engine", options=["OpenAI"])
     research_depth = st.selectbox("Select Research Depth", ["Basic", "In-depth", "Advanced"])
 
-# --- MAIN INPUT AREA ---
 st.markdown("### Enter Your Research Query")
 query = st.text_area("Type your query here...", height=150)
 
-uploaded_files = st.file_uploader(
-    "Upload supporting documents (optional)",
-    type=["pdf", "png", "jpg"],
-    accept_multiple_files=True
-)
+uploaded_files = st.file_uploader("Upload supporting documents (optional)", type=["pdf", "png", "jpg"], accept_multiple_files=True)
 
 start_button = st.button("Start Research")
 
-# --- PLACEHOLDERS FOR FEEDBACK ---
 progress_placeholder = st.empty()
 report_placeholder = st.empty()
 
-# --- RESEARCH LOGIC ---
 if start_button:
     if query.strip() == "":
         st.warning("Please provide a query before starting the research.")
     else:
         with st.spinner("Deep Research in progress... This may take 5–30 minutes."):
-            # Show progress updates (replace or integrate with your own engine’s progress feed)
             for i in range(1, 11):
                 progress_value = i * 10
                 progress_placeholder.info(f"Processing with {engine_choice}... {progress_value}% complete")
-                time.sleep(0.5)  # Simulated delay
+                time.sleep(0.5)
 
             progress_placeholder.success("Research complete!")
 
-        # Perform web search using DuckDuckGo
-        search_results = DDGS().text(query, max_results=5)
+        # Perform web search
+        search_results = web_search(query)
         source_str = deduplicate_and_format_sources(search_results, max_tokens_per_source=1000, include_raw_content=False)
 
-        # Set up the configuration
-        config = Configuration(
-            report_structure=DEFAULT_REPORT_STRUCTURE,
-            number_of_queries=2,
-            max_search_depth=2,
-            planner_provider=PlannerProvider.OPENAI,
-            planner_model="gpt-4o",
-            writer_model="gpt-4o-mini"
-        )
+        # Initialize the report generator
+        report_generator = ReportGenerator()
 
-        # Initialize the state
-        state = ReportState(
-            topic=query,
-            sections=[],
-            completed_sections=[],
-            report_sections_from_research="",
-            final_report=""
-        )
+        # Generate the report
+        result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context=source_str, feedback=None)
 
-        # Generate the report plan
-        structured_llm = ChatOpenAI(model=config.planner_model, temperature=0).with_structured_output(Queries)
-        system_instructions_query = report_planner_query_writer_instructions.format(topic=query, report_organization=config.report_structure, number_of_queries=config.number_of_queries)
-        results = structured_llm.invoke([{"role": "system", "content": system_instructions_query}])
-        query_list = [query.search_query for query in results.queries]
-
-        # Generate sections
-        system_instructions_sections = report_planner_instructions.format(topic=query, report_organization=config.report_structure, context=source_str, feedback=None)
-        structured_llm = ChatOpenAI(model=config.planner_model, temperature=0).with_structured_output(Sections)
-        report_sections = structured_llm.invoke([{"role": "system", "content": system_instructions_sections}])
-        sections = report_sections.sections
-
-        # Write sections
-        for section in sections:
-            system_instructions = section_writer_instructions.format(section_title=section.name, section_topic=section.description, context=source_str, section_content=section.content)
-            section_content = ChatOpenAI(model=config.writer_model, temperature=0).invoke([{"role": "system", "content": system_instructions}])
-            section.content = section_content.content
-
-        # Compile the final report
-        all_sections = "\n\n".join([s.content for s in sections])
-        final_report = f"""
-        ## Research Report: *{query}* (via {engine_choice})
-
-        **Research Depth:** {research_depth}
-
-        **Summary:**
-        This report synthesises information from multiple sources, providing insights
-        into the subject matter with citations for further review.
-
-        **Key Findings:**
-        {all_sections}
-
-        **Conclusion:**
-        The research confirms that rapid AI-driven insights can bolster deep
-        investigations, though expert validation remains vital.
-        """
+        final_report = result["final_report"]
 
         report_placeholder.markdown(final_report, unsafe_allow_html=True)
+
 
