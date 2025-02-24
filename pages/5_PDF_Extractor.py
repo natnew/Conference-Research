@@ -69,7 +69,7 @@ def extract_info_with_llm(text, openai_client):
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just provide the country name of the location don't include the city. Ensure the data you provide is accurate, clean, and verifiable."},
+            {"role": "system", "content": "Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just provide the country name of the location don't include the city. Ensure the data you provide is accurate, clean of any weird character in the names try to reconstruct them to the best of your capabilities, and verifiable with the source provided."},
             {"role": "user", "content": text}
         ],
         response_format=ExtractionResponse
@@ -80,7 +80,7 @@ def extract_info_with_llm(text, openai_client):
 
 # Function to correct extracted information using LLM
 def correct_info_with_llm(extracted_data, text, openai_client):
-    correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct, and verifiable."
+    correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct and gotten rid of weird characters, and verifiable with the source."
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-2024-08-06",
         messages=[
