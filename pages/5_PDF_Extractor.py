@@ -54,10 +54,9 @@ class CorrectionResponse(BaseModel):
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
-    pages = [1,2,3,4]
     extracted_texts = []
 
-    for page in pages:
+    for page in range(total_pages):
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
