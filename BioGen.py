@@ -8,6 +8,7 @@ from duckduckgo_search import DDGS
 import requests
 from bs4 import BeautifulSoup
 import tiktoken
+import http.client
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
