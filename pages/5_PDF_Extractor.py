@@ -49,14 +49,15 @@ class ExtractionResponse(BaseModel):
 
 class CorrectionResponse(BaseModel):
     corrected_info: List[ExtractedInfo]
-
+# for page in range(total_pages)
 # Function to extract text from PDF using pymupdf4llm
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
+    pages = [1,2,3,4]
     extracted_texts = []
 
-    for page in range(total_pages):
+    for page in pages:
         md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
         extracted_texts.append(md_text)
 
@@ -134,7 +135,7 @@ if uploaded_file is not None and not st.session_state.extraction_done:
                     corrected_data.extend(corrected_info)
 
             # Convert to DataFrame and remove duplicates
-            df = pd.DataFrame(all_extracted_data)
+            df = pd.DataFrame(corrected_data)
             df.drop_duplicates(inplace=True)
 
             # Store DataFrame in session state
