@@ -102,14 +102,20 @@ def correct_info_with_llm(extracted_data, text, openai_client):
                             6. Ensure all text values are Excel-safe (no illegal worksheet characters)
                             
                             VALIDATION RULES:
-                            - Only include information explicitly stated in the source text
-                            - Do not add "not mentioned","{" or similar placeholder text
-                            - Preserve existing location values without verification
-                            - Clean any non-standard characters while maintaining name accuracy
-                            - Remove ALL special characters that could cause Excel errors
-                            - Use only plain text characters in names and universities
-                            - Ensure all output strings are safe for Excel worksheet cells
-                            - Use standardized university names only when matching the text
+                            1. Field Emptiness:
+                               - Replace any "N/A", "null", "none", "unknown", "-" with empty string ("")
+                               - Remove any entries where name is empty but other fields have values
+                               - If name is not in text, remove the entire entry
+                            
+                            2. Location Handling:
+                               - If location contains placeholder values (N/A, null, none, unknown, etc.), replace with empty string
+                               - Keep only valid location values that were previously inferred
+                            
+                            3. Logical Consistency:
+                               - Each entry MUST have a name to be valid
+                               - Entries without names should be removed entirely
+                               - University can be empty if not mentioned
+                               - Location can be empty if not previously inferred
                             """
     #correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct and gotten rid of weird characters, and verifiable with the source. Note that the locations provided are inferred from general knowledge so no need to verify that, only focus on the name and the university while some names have been constructed because they might have had weird characters.In your output when verifying if something is not mentioned in the text just leave it empty don't fill it with not mentioned in the text."
     response = openai_client.beta.chat.completions.parse(
