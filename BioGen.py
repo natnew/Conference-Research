@@ -74,14 +74,44 @@ def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
     return truncated_text
 
 # Function to generate enriched text using DDGS
+# def generate_enriched_text(full_name, university):
+#     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
+#     results = DDGS().text(query, max_results=3)
+
+#     enriched_text = ""
+#     for result in results:
+#         url = result['href']
+#         body_text = result['body']
+#         scraped_text = scrape_text_from_url(url)
+#         if scraped_text is not None:
+#             combined_text = f"{body_text} {scraped_text}"
+#             enriched_text += clean_text(combined_text) + " "
+#         else:
+#             enriched_text += clean_text(body_text) + " "
+
+#     # Format the enriched text into a block of text
+#     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
+#     return enriched_text
+# Function to generate enriched text using Google Search API
 def generate_enriched_text(full_name, university):
     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
-    results = DDGS().text(query, max_results=3)
+    conn = http.client.HTTPSConnection("google.serper.dev")
+    payload = json.dumps({
+        "q": query
+    })
+    headers = {
+        'X-API-KEY': st.secrets["serper_api_key"],
+        'Content-Type': 'application/json'
+    }
+    conn.request("POST", "/search", payload, headers)
+    res = conn.getresponse()
+    data = res.read()
+    response_data = json.loads(data.decode("utf-8"))
 
     enriched_text = ""
-    for result in results:
-        url = result['href']
-        body_text = result['body']
+    for result in response_data.get('organic', []):
+        url = result['link']
+        body_text = result['snippet']
         scraped_text = scrape_text_from_url(url)
         if scraped_text is not None:
             combined_text = f"{body_text} {scraped_text}"
