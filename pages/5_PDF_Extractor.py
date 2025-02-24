@@ -92,16 +92,23 @@ def correct_info_with_llm(extracted_data, text, openai_client):
                             
                             INSTRUCTIONS:
                             1. Verify names and universities against the source text only
-                            2. Clean any irregular characters from names
+                            2. Clean ALL special characters and symbols from names:
+                               - Remove or replace characters: [], {}, /, \, ?, *, ', :, =, +, -, ~, !, @, #, $, %, ^, &, (, )
+                               - Keep only alphanumeric characters, spaces, and standard punctuation (., ,)
+                               - Example: "John D. Smith" is valid, "John (D.) Smith!" is not
                             3. Use official university names when identifiable
-                            4. If the information is not present in the source text use the default value "not available"
+                            4. If the information is not present in the source text leave the field  empty
                             5. Do not modify or verify inferred locations
+                            6. Ensure all text values are Excel-safe (no illegal worksheet characters)
                             
                             VALIDATION RULES:
                             - Only include information explicitly stated in the source text
                             - Do not add "not mentioned","{" or similar placeholder text
                             - Preserve existing location values without verification
                             - Clean any non-standard characters while maintaining name accuracy
+                            - Remove ALL special characters that could cause Excel errors
+                            - Use only plain text characters in names and universities
+                            - Ensure all output strings are safe for Excel worksheet cells
                             - Use standardized university names only when matching the text
                             """
     #correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct and gotten rid of weird characters, and verifiable with the source. Note that the locations provided are inferred from general knowledge so no need to verify that, only focus on the name and the university while some names have been constructed because they might have had weird characters.In your output when verifying if something is not mentioned in the text just leave it empty don't fill it with not mentioned in the text."
