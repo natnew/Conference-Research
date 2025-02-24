@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 import tiktoken
 import http.client
+import json
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
