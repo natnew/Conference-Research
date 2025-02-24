@@ -94,12 +94,12 @@ def correct_info_with_llm(extracted_data, text, openai_client):
                             1. Verify names and universities against the source text only
                             2. Clean any irregular characters from names
                             3. Use official university names when identifiable
-                            4. Leave fields empty ("") if the information is not present in the source text
+                            4. If the information is not present in the source text use the default value "not available"
                             5. Do not modify or verify inferred locations
                             
                             VALIDATION RULES:
                             - Only include information explicitly stated in the source text
-                            - Do not add "not mentioned" or similar placeholder text
+                            - Do not add "not mentioned","{" or similar placeholder text
                             - Preserve existing location values without verification
                             - Clean any non-standard characters while maintaining name accuracy
                             - Use standardized university names only when matching the text
