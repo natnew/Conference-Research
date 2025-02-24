@@ -82,7 +82,29 @@ def extract_info_with_llm(text, openai_client):
 
 # Function to correct extracted information using LLM
 def correct_info_with_llm(extracted_data, text, openai_client):
-    correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct and gotten rid of weird characters, and verifiable with the source. Note that the locations provided are inferred from general knowledge so no need to verify that,only focus on the name and the university while some names have been constructed because they might have had weird characters."
+    correction_prompt = """ Review and clean the extracted information below against the source text.
+
+                            EXTRACTED DATA:
+                            {extracted_data}
+                            
+                            SOURCE TEXT:
+                            {text}
+                            
+                            INSTRUCTIONS:
+                            1. Verify names and universities against the source text only
+                            2. Clean any irregular characters from names
+                            3. Use official university names when identifiable
+                            4. Leave fields empty ("") if the information is not present in the source text
+                            5. Do not modify or verify inferred locations
+                            
+                            VALIDATION RULES:
+                            - Only include information explicitly stated in the source text
+                            - Do not add "not mentioned" or similar placeholder text
+                            - Preserve existing location values without verification
+                            - Clean any non-standard characters while maintaining name accuracy
+                            - Use standardized university names only when matching the text
+                            """
+    #correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct and gotten rid of weird characters, and verifiable with the source. Note that the locations provided are inferred from general knowledge so no need to verify that, only focus on the name and the university while some names have been constructed because they might have had weird characters.In your output when verifying if something is not mentioned in the text just leave it empty don't fill it with not mentioned in the text."
     response = openai_client.beta.chat.completions.parse(
         model="gpt-4o-2024-08-06",
         messages=[
