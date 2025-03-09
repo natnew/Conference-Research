@@ -458,18 +458,7 @@ class ReportGenerator:
 # --------------------------------------------------------------
 # Step 4: Define the tool for web search
 # --------------------------------------------------------------
-# def web_search(query: str) -> List[Dict]:
-#     """Perform a web search using Brave."""
-#     try:
-#         logger.info(f"Performing web search with query: {query}")
-#         search_results = brave.search(q=query, count=5)
-#         if search_results is None:
-#             raise ValueError("Search results are None")
-#         logger.info(f"Search results: {search_results}")
-#         return search_results.web_results
-#     except Exception as e:
-#         logger.error(f"Web search failed: {e}")
-#         return []
+
 def web_search(query: str) -> List[Dict]:
     """Perform a web search using Brave."""
     try:
