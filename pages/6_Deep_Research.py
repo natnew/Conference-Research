@@ -22,7 +22,7 @@ client = OpenAI(api_key=openai_api_key)
 model = "gpt-4o-mini"
 
 # Initialize Brave client
-os.environ['BRAVE_API_KEY'] = st.secrets["openai_api_key"]
+os.environ['BRAVE_API_KEY'] = st.secrets["BRAVE_API_KE"]
 brave = Brave()
 
 # --------------------------------------------------------------
