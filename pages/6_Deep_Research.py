@@ -22,8 +22,12 @@ client = OpenAI(api_key=openai_api_key)
 model = "gpt-4o-mini"
 
 # Initialize Brave client
-os.environ['BRAVE_API_KEY'] = st.secrets["BRAVE_API_KEY"]
-brave = Brave()
+brave_api_key = st.secrets.get("BRAVE_API_KEY")
+if brave_api_key:
+    os.environ['BRAVE_API_KEY'] = brave_api_key
+    brave = Brave()
+else:
+    st.error("Brave API key is missing. Please set it in the secrets.")
 
 # --------------------------------------------------------------
 # Step 1: Define the data models
