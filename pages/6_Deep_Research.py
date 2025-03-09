@@ -5,7 +5,7 @@ import logging
 from typing import List, Dict, TypedDict, Literal, Annotated, Union
 from pydantic import BaseModel, Field
 from openai import OpenAI
-from duckduckgo_search import DDGS
+from brave import Brave
 from openai import LengthFinishReasonError
 import operator
 
@@ -20,6 +20,10 @@ openai_api_key = st.secrets["openai_api_key"]
 # Initialize OpenAI client
 client = OpenAI(api_key=openai_api_key)
 model = "gpt-4o-mini"
+
+# Initialize Brave client
+os.environ['BRAVE_API_KEY'] = st.secrets["openai_api_key"]
+brave = Brave()
 
 # --------------------------------------------------------------
 # Step 1: Define the data models
@@ -439,13 +443,9 @@ class ReportGenerator:
         """
 
         # Append sources to the final report
-        # sources_section = "\n".join(sorted(self.sources))
-        # final_report += f"\n\n### Sources\n{sources_section}"
-        # Append sources to the final report
         sources_section = deduplicate_and_format_sources(all_search_results, return_type="list")
         sources_section_str = "\n".join(sources_section)
         final_report += f"\n\n### Sources\n{sources_section_str}"
-
 
         # Clear the progress placeholder
         progress_placeholder.empty()
@@ -460,9 +460,9 @@ class ReportGenerator:
 # --------------------------------------------------------------
 
 def web_search(query: str) -> List[Dict]:
-    """Perform a web search using DuckDuckGo."""
-    search_results = DDGS().text(query, max_results=5)
-    return search_results
+    """Perform a web search using Brave."""
+    search_results = brave.search(q=query, count=5)
+    return search_results.web_results
 
 def deduplicate_and_format_sources(search_response, return_type: str = "list") -> Union[str, List[str]]:
     """
@@ -482,23 +482,22 @@ def deduplicate_and_format_sources(search_response, return_type: str = "list") -
     sources_list = search_response
 
     # Deduplicate by URL
-    unique_sources = {source['href']: source for source in sources_list}
+    unique_sources = {source['url']: source for source in sources_list}
 
     if return_type == "list":
         # Format output as a list of sources
         formatted_sources = []
         for source in unique_sources.values():
-            formatted_sources.append(f"- [{source['title']}]({source['href']})")
+            formatted_sources.append(f"- [{source['title']}]({source['url']})")
         return formatted_sources
     else:
         # Format output as a string with context
         formatted_text = ""
         for i, source in enumerate(unique_sources.values(), 1):
             formatted_text += f"- {source['title']}\n"
-            formatted_text += f"  URL: {source['href']}\n"
-            formatted_text += f"  Most relevant content from source: {source['body']}\n"
+            formatted_text += f"  URL: {source['url']}\n"
+            formatted_text += f"  Most relevant content from source: {source['description']}\n"
         return formatted_text.strip()
-
 
 # --------------------------------------------------------------
 # Step 5: Streamlit app
@@ -549,5 +548,3 @@ if start_button:
             # Output the final report
             final_report = result["final_report"]
             report_placeholder.markdown(final_report, unsafe_allow_html=True)
-
-
