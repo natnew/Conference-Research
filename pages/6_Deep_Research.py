@@ -753,7 +753,7 @@ Your queries should be:
 
 <Existing section content (if populated)>
 {section_content}
-</Existing section content (if populated)>
+</Existing section content>
 
 <Source material>
 {context}
@@ -1329,3 +1329,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
