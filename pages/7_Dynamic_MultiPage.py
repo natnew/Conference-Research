@@ -1,163 +1,92 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
 import streamlit as st
-import streamlit as st
-import pandas as pd
-import time
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, NoSuchElementException
+import requests
 from bs4 import BeautifulSoup
+import pandas as pd
+from urllib.parse import urljoin
 from io import BytesIO
 
-def get_chrome_driver():
-    """Initialise the Chrome WebDriver with proper options for Streamlit."""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--enable-javascript')
-    try:
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        return driver
-    except Exception as e:
-        st.error(f"Failed to initialise Chrome driver: {str(e)}")
-        return None
+# --- CONFIGURATION ---
+BASE_URL = "https://coms.events/epsa2025/"
+DAYS = [
+    "data/sessions/en/day_1.html",
+    "data/sessions/en/day_2.html",
+    "data/sessions/en/day_3.html"
+]
 
+def fetch_soup(url):
+    r = requests.get(url)
+    r.raise_for_status()
+    return BeautifulSoup(r.text, "html.parser")
 
-# Assuming you have a get_chrome_driver() function as in your existing codebase
-# from your_existing_module import get_chrome_driver
+def get_session_links(day_url):
+    soup = fetch_soup(day_url)
+    # Session links are <a href="session_X.html">
+    session_links = set()
+    for a in soup.select('a[href*="session_"]'):
+        href = a.get('href')
+        if href and 'session_' in href:
+            session_links.add(urljoin(day_url, href))
+    return session_links
 
-def dynamic_scrape_epsa2025(start_url, max_depth=3, wait_time=4):
-    """
-    Recursively scrape all names and universities from the EPSA 2025 conference site.
-    """
-    driver = get_chrome_driver()
-    visited = set()
-    data = []
+def extract_presenters_from_session(session_url):
+    soup = fetch_soup(session_url)
+    presenters = []
+    # Each paper row has a <div class="authors">
+    for author_div in soup.find_all("div", class_="authors"):
+        # One or more presenters
+        for span in author_div.find_all("span", class_="presenter"):
+            name = span.get_text(strip=True)
+            # Affiliation is the text **immediately following** the presenter span
+            next_node = span.next_sibling
+            affiliation = ""
+            while next_node:
+                if hasattr(next_node, "text"):
+                    affiliation += next_node.text
+                elif isinstance(next_node, str):
+                    affiliation += next_node
+                next_node = next_node.next_sibling
+            affiliation = affiliation.strip(" ,")
+            presenters.append({
+                "Name": name,
+                "Affiliation": affiliation,
+                "Session Page": session_url
+            })
+    return presenters
 
-    def extract_people_from_html(html):
-        soup = BeautifulSoup(html, 'html.parser')
-        rows = []
-        # The relevant participant data is often in tables or lists
-        # Try to find all speaker/participant/author names and affiliations
-        # Adjust these selectors as necessary for different conference layouts
+def scrape_all_presenters():
+    all_presenters = []
+    for day_path in DAYS:
+        day_url = urljoin(BASE_URL, day_path)
+        session_links = get_session_links(day_url)
+        for session_url in session_links:
+            presenters = extract_presenters_from_session(session_url)
+            all_presenters.extend(presenters)
+    return all_presenters
 
-        # Example: For EPSA 2025 abstracts, names and affiliations are inside <div class="author">
-        for author_block in soup.find_all('div', class_='author'):
-            name = author_block.find('span', class_='authorName')
-            affiliation = author_block.find('span', class_='authorAffiliation')
-            if name:
-                rows.append({
-                    "Name": name.text.strip(),
-                    "Affiliation": (affiliation.text.strip() if affiliation else "")
-                })
-        # Fallback for alternative structures: Find <table> with names and affiliations
-        for tr in soup.find_all('tr'):
-            tds = tr.find_all('td')
-            if len(tds) >= 2:
-                rows.append({
-                    "Name": tds[0].text.strip(),
-                    "Affiliation": tds[1].text.strip()
-                })
-        return rows
-
-    def collect_links(html, base_url):
-        # For EPSA 2025, links to sessions/abstracts are under <a> tags with /epsa2025/ in href
-        soup = BeautifulSoup(html, 'html.parser')
-        links = set()
-        for a in soup.find_all('a', href=True):
-            href = a['href']
-            if ('/epsa2025/' in href or '/abstracts/' in href or '/sessions/' in href) and not href.endswith('index.html'):
-                # Make absolute URL if necessary
-                if href.startswith('http'):
-                    links.add(href)
-                else:
-                    links.add(base_url.rstrip('/') + '/' + href.lstrip('/'))
-        return links
-
-    def scrape_recursive(url, depth):
-        if url in visited or depth > max_depth:
-            return
-        visited.add(url)
-        try:
-            driver.get(url)
-            time.sleep(wait_time)
-            # Accept cookie banner if present
-            try:
-                cookie_btns = [
-                    "//button[contains(text(), 'Accept')]",
-                    "//button[contains(text(), 'accept')]",
-                    "//button[contains(@class, 'accept')]",
-                    "//button[contains(text(), 'Allow')]",
-                    "//button[contains(text(), 'Agree')]",
-                ]
-                for btn in cookie_btns:
-                    try:
-                        WebDriverWait(driver, 3).until(
-                            EC.element_to_be_clickable((By.XPATH, btn))
-                        ).click()
-                        time.sleep(1)
-                        break
-                    except (TimeoutException, ElementClickInterceptedException, NoSuchElementException):
-                        continue
-            except Exception:
-                pass
-
-            html = driver.page_source
-            # Extract participants from this page
-            extracted = extract_people_from_html(html)
-            data.extend(extracted)
-
-            # Find and scrape sub-links recursively
-            new_links = collect_links(html, base_url=start_url)
-            for lnk in new_links:
-                if lnk not in visited:
-                    scrape_recursive(lnk, depth + 1)
-        except Exception as e:
-            st.warning(f"Failed at {url}: {e}")
-
-    # Begin scraping
-    scrape_recursive(start_url, 0)
-    driver.quit()
-    return data
-
+# --- STREAMLIT APP ---
 def main():
-    st.title("Dynamic Multi-Page Conference Scraper")
-    st.write("""
-    This tool scrapes the EPSA 2025 conference site, delving down through all relevant subpages to extract all participant names and university affiliations.
-    """)
-    default_url = "https://coms.events/epsa2025/index.html"
-    url = st.text_input("Enter start URL:", value=default_url)
-    wait_time = st.slider("Wait time for page load (seconds):", 2, 10, 4)
-    max_depth = st.slider("Maximum recursion depth:", 1, 5, 3, help="Set this to limit how deep the scraper explores linked pages.")
+    st.title("EPSA 2025 Full Presenter Scraper (All Sessions, All Days)")
+    st.info("This tool scrapes all session pages from the EPSA 2025 conference (all days), extracting presenter names and their affiliations.")
 
-    if st.button("Scrape Conference Site"):
-        with st.spinner("Scraping in progress. This may take a few minutes..."):
-            all_data = dynamic_scrape_epsa2025(url, max_depth=max_depth, wait_time=wait_time)
-            if all_data:
-                df = pd.DataFrame(all_data)
-                st.success(f"Scraping complete. Extracted {len(df)} entries.")
-                st.dataframe(df)
-                # Download as Excel
-                output = BytesIO()
-                df.to_excel(output, index=False, engine='openpyxl')
-                output.seek(0)
-                st.download_button(
-                    "Download Results as Excel",
-                    output,
-                    "epsa2025_participants.xlsx",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key='download-excel'
-                )
-            else:
-                st.warning("No participant data found. The page structure may have changed, or further selector tuning is needed.")
+    if st.button("Scrape EPSA 2025 Presenters"):
+        with st.spinner("Scraping in progress..."):
+            data = scrape_all_presenters()
+            if not data:
+                st.warning("No presenters found. The site structure may have changed.")
+                return
+            df = pd.DataFrame(data)
+            st.success(f"Scraping complete. {len(df)} presenter records found.")
+            st.dataframe(df)
+            # Download button
+            output = BytesIO()
+            df.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            st.download_button(
+                "Download as Excel",
+                output,
+                "epsa2025_presenters.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 if __name__ == "__main__":
     main()
