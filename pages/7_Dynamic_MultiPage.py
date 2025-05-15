@@ -5,9 +5,6 @@ import pandas as pd
 from urllib.parse import urljoin
 from io import BytesIO
 
-BASE_URL = "https://coms.events/epsa2025/"
-BROWSE_URL = urljoin(BASE_URL, "en/browse.html")
-
 def fetch_soup(url):
     r = requests.get(url)
     r.raise_for_status()
@@ -16,21 +13,22 @@ def fetch_soup(url):
 def get_all_session_links(browse_url):
     soup = fetch_soup(browse_url)
     session_links = set()
-    for a in soup.select('a[href*="data/sessions/en/session_"]'):
-        href = a.get('href')
-        if href:
+    # Collect all links that look like session pages (adjust pattern as needed)
+    for a in soup.find_all("a", href=True):
+        href = a['href']
+        # Generic pattern: adjust 'session_' as required for other sites
+        if "session_" in href and href.endswith('.html'):
             session_links.add(urljoin(browse_url, href))
     return session_links
 
 def extract_presenters_from_session(session_url):
     soup = fetch_soup(session_url)
     presenters = []
-    # Each paper row has a <div class="authors">
+    # Assumes presenters are within <div class="authors">
     for author_div in soup.find_all("div", class_="authors"):
-        # One or more presenters
         for span in author_div.find_all("span", class_="presenter"):
             name = span.get_text(strip=True)
-            # Affiliation is the text **immediately following** the presenter span
+            # Affiliation is the text immediately after the <span class="presenter">
             next_node = span.next_sibling
             affiliation = ""
             while next_node:
@@ -47,26 +45,37 @@ def extract_presenters_from_session(session_url):
             })
     return presenters
 
-def scrape_all_presenters():
+def scrape_all_presenters(browse_url):
     all_presenters = []
-    session_links = get_all_session_links(BROWSE_URL)
+    try:
+        session_links = get_all_session_links(browse_url)
+    except Exception as e:
+        st.error(f"Failed to retrieve session links from the page: {e}")
+        return []
     for i, session_url in enumerate(session_links, 1):
-        presenters = extract_presenters_from_session(session_url)
-        all_presenters.extend(presenters)
-        # Progress display in Streamlit
-        st.info(f"Scraped {i} / {len(session_links)} session pages…")
+        try:
+            presenters = extract_presenters_from_session(session_url)
+            all_presenters.extend(presenters)
+            st.info(f"Scraped {i} / {len(session_links)} session pages…")
+        except Exception as e:
+            st.warning(f"Could not scrape session: {session_url}. Error: {e}")
     return all_presenters
 
-# --- STREAMLIT APP ---
 def main():
-    st.title("EPSA 2025 Presenter Scraper (All Sessions, All Days)")
-    st.info("This tool scrapes all session pages from the EPSA 2025 conference, extracting presenter names and their affiliations.")
+    st.title("Generic Conference Presenter Scraper")
+    st.info(
+        "Enter the URL of a conference 'Browse' or session directory page. "
+        "This tool will find all session pages and extract all presenter names and affiliations. "
+        "It works for conferences structured like EPSA 2025."
+    )
+    example = "https://coms.events/epsa2025/en/browse.html"
+    browse_url = st.text_input("Enter the Browse/Directory URL:", value=example)
 
-    if st.button("Scrape EPSA 2025 Presenters"):
+    if st.button("Scrape Presenters"):
         with st.spinner("Scraping in progress..."):
-            data = scrape_all_presenters()
+            data = scrape_all_presenters(browse_url)
             if not data:
-                st.warning("No presenters found. The site structure may have changed.")
+                st.warning("No presenters found. Either the URL is incorrect, or the page structure is unsupported.")
                 return
             df = pd.DataFrame(data)
             st.success(f"Scraping complete. {len(df)} presenter records found.")
@@ -78,7 +87,7 @@ def main():
             st.download_button(
                 "Download as Excel",
                 output,
-                "epsa2025_presenters.xlsx",
+                "conference_presenters.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
