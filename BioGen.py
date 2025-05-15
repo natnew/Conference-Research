@@ -191,7 +191,9 @@ if uploaded_file:
             data['Email'] = ""
 
         # Specify Chunk Size
-        chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(data), value=10)
+        default_chunk = min(10, len(data))
+        chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(data), value=default_chunk)
+
         total_chunks = (len(data) + chunk_size - 1) // chunk_size
         st.write(f"### Total Chunks: {total_chunks}")
 
