@@ -5,6 +5,15 @@ import pandas as pd
 from urllib.parse import urljoin
 from io import BytesIO
 
+# Sidebar content
+st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
+st.sidebar.write("""
+A specialized web scraping tool designed to extract academic profiles from conference
+websites and institutional pages. Automatically identifies and extracts names,
+affiliations, and other relevant information while handling dynamic content and
+cookie consents.
+""")
+
 def fetch_soup(url):
     r = requests.get(url)
     r.raise_for_status()
@@ -62,7 +71,7 @@ def scrape_all_presenters(browse_url):
     return all_presenters
 
 def main():
-    st.title("Generic Conference Presenter Scraper")
+    st.title("Dynamic MultiPage Scraper")
     st.info(
         "Enter the URL of a conference 'Browse' or session directory page. "
         "This tool will find all session pages and extract all presenter names and affiliations. "
