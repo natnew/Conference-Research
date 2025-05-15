@@ -1,3 +1,9 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
+import streamlit as st
 import streamlit as st
 import pandas as pd
 import time
@@ -7,6 +13,23 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, NoSuchElementException
 from bs4 import BeautifulSoup
 from io import BytesIO
+
+def get_chrome_driver():
+    """Initialise the Chrome WebDriver with proper options for Streamlit."""
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--enable-javascript')
+    try:
+        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+    except Exception as e:
+        st.error(f"Failed to initialise Chrome driver: {str(e)}")
+        return None
+
 
 # Assuming you have a get_chrome_driver() function as in your existing codebase
 # from your_existing_module import get_chrome_driver
