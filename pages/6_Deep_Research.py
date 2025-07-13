@@ -515,8 +515,9 @@ st.set_page_config(page_title="Deep Research", page_icon="🔍", layout="wide", 
 st.title("Deep Research")
 
 with st.sidebar:
-    st.title(":streamlit: Research Assistant")
+    st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
     st.write("A self-service app that automates the generation of reports and assists in research tasks.")
+    st.markdown("# About This Tool")
 
     st.header("How It Works")
     st.markdown(
