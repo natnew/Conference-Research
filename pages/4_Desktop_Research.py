@@ -20,6 +20,7 @@ with st.sidebar:
         "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and AI-generated bios to uncover detailed academic profiles."
     )
     st.markdown("This tool is a work in progress.")
+    st.page_link("pages/1_About.py", label="About", icon="ℹ️")
     openai_api_key = st.secrets["openai_api_key"]
 
 # Bio Generation Function
