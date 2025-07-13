@@ -54,7 +54,6 @@ with st.sidebar:
         "The tool is continually updated to improve its data collection and retrieval accuracy and compatibility "
         "with different website layouts. User feedback is highly valued to ensure robust performance."
     )
-    st.page_link("pages/1_About.py", label="About", icon="ℹ️")
 
 # Pydantic models remain the same
 class CoursePreview(BaseModel):

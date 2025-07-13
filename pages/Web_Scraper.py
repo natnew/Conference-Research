@@ -50,7 +50,6 @@ with st.sidebar:
         "This tool is continuously being improved to better handle various website layouts "
         "and data formats. Your feedback helps us enhance its capabilities."
     )
-    st.page_link("pages/1_About.py", label="About", icon="ℹ️")
 
 def get_chrome_driver():
     """Initialize the Chrome WebDriver with proper options for Streamlit Cloud"""

@@ -518,7 +518,6 @@ with st.sidebar:
     st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
     st.write("A self-service app that automates the generation of reports and assists in research tasks.")
     st.markdown("# About This Tool")
-    st.page_link("pages/1_About.py", label="About", icon="ℹ️")
 
     st.header("How It Works")
     st.markdown(
