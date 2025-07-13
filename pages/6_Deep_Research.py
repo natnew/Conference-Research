@@ -313,9 +313,11 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions_query}],
-                response_format=Queries,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed.queries
+            raw_content = completion.choices[0].message.content
+            parsed = Queries.parse_raw(raw_content)
+            return parsed.queries
         except LengthFinishReasonError as e:
             st.error("Search query generation exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed.queries  # Return the truncated queries
@@ -329,9 +331,11 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions_sections}],
-                response_format=Sections,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed
+            raw_content = completion.choices[0].message.content
+            parsed = Sections.parse_raw(raw_content)
+            return parsed
         except LengthFinishReasonError as e:
             st.error("Report plan generation exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed  # Return the truncated report plan
@@ -345,9 +349,11 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
-                response_format=SectionContent,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed.content
+            raw_content = completion.choices[0].message.content
+            parsed = SectionContent.parse_raw(raw_content)
+            return parsed.content
         except LengthFinishReasonError as e:
             st.error("Section writing exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed.content  # Return the truncated section content
@@ -359,9 +365,11 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
-                response_format=Feedback,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed
+            raw_content = completion.choices[0].message.content
+            parsed = Feedback.parse_raw(raw_content)
+            return parsed
         except LengthFinishReasonError as e:
             st.error("Section evaluation exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed  # Return the truncated feedback
@@ -373,9 +381,11 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
-                response_format=SectionContent,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed.content
+            raw_content = completion.choices[0].message.content
+            parsed = SectionContent.parse_raw(raw_content)
+            return parsed.content
         except LengthFinishReasonError as e:
             st.error("Final section writing exceeded token limit. Returning truncated response.")
             return e.completion.choices[0].message.parsed.content  # Return the truncated final section content
