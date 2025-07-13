@@ -147,7 +147,7 @@ def get_reading_list(university: str, course: str):
 def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: OpenAI) -> List[ReadingListItem]:
     reading_list_items = []
     for text, url in texts_urls:
-        response = openai_client.beta.chat.completions.parse(
+        response = openai_client.chat.completions.create(
             model="gpt-4o-mini-2024-07-18",
             messages=[
                 {"role": "system", "content": f"You are provided with scraped text and you are a professional lecturer that can use this text to curate detailed reading list items from the provided text. Use the provided URL to populate the link field. The search query used to retrieve this text is: '{query}'. Return results as a structured output defined in the response model."},
@@ -161,7 +161,7 @@ def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: Op
     return reading_list_items
 # Function to get fallback reading list
 def get_fallback_reading_list(course: str, openai_client: OpenAI) -> List[ReadingListItem]:
-    response = openai_client.beta.chat.completions.parse(
+    response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {"role": "system", "content": f"Generate a recommended reading list for the course '{course}'. Include details such as title, author, edition, publisher, and year. Return results as a structured output defined in the response model."},

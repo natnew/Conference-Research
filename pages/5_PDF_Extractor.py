@@ -65,7 +65,7 @@ def extract_text_from_pdf(pdf_path):
 
 # Function to extract information using LLM
 def extract_info_with_llm(text, openai_client):
-    response = openai_client.beta.chat.completions.parse(
+    response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {"role": "system", "content": """Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just give the country name of the location don't include the city. 
@@ -117,7 +117,7 @@ def correct_info_with_llm(extracted_data, text, openai_client):
                                - Location can be empty if not previously inferred
                             """
     #correction_prompt = f"Correct and clean the following extracted information:\n{extracted_data}\n\nBased on the original text:\n{text}\n\nEnsure the formatting is accurate and the information is complete, correct and gotten rid of weird characters, and verifiable with the source. Note that the locations provided are inferred from general knowledge so no need to verify that, only focus on the name and the university while some names have been constructed because they might have had weird characters.In your output when verifying if something is not mentioned in the text just leave it empty don't fill it with not mentioned in the text."
-    response = openai_client.beta.chat.completions.parse(
+    response = openai_client.chat.completions.create(
         model="gpt-4o-2024-08-06",
         messages=[
             {"role": "system", "content": "You are a corrector. Correct and clean the extracted information based on the original text."},

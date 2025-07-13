@@ -135,7 +135,7 @@ class CourseScraper:
 
 # Extract courses function remains the same
 def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
-    response = openai_client.beta.chat.completions.parse(
+    response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {"role": "system", "content": "Extract a detailed list, of course, names as described  from the provided text. Return results as a structured output defined in the response mode of the model."},
@@ -150,7 +150,7 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
 
 # Extract course details function remains the same
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
-    response = openai_client.beta.chat.completions.parse(
+    response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {"role": "system", "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is  not explicitly mentioned in the text reply with a default value 'not available at the moment'."},
