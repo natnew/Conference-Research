@@ -72,14 +72,16 @@ def generate_response(original_text, tone, length):
     except Exception as e:
         st.error(f"Error generating response: {e}")
 
+# Template selector
+st.selectbox(
+    'Select a template:',
+    options=list(templates.keys()),
+    key='template_choice',
+    on_change=update_template,
+)
+
 # Form for User Input
 with st.form('email_form'):
-    st.selectbox(
-        'Select a template:',
-        options=list(templates.keys()),
-        key='template_choice',
-        on_change=update_template,
-    )
     email_text = st.text_area(
         'Enter your email draft:',
         key='email_text'
