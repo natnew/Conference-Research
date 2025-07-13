@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from urllib.parse import urljoin
 from io import BytesIO
+import time
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -82,12 +83,14 @@ def main():
 
     if st.button("Scrape Presenters"):
         with st.spinner("Scraping in progress..."):
+            start_time = time.time()
             data = scrape_all_presenters(browse_url)
+            elapsed = time.time() - start_time
             if not data:
                 st.warning("No presenters found. Either the URL is incorrect, or the page structure is unsupported.")
                 return
             df = pd.DataFrame(data)
-            st.success(f"Scraping complete. {len(df)} presenter records found.")
+            st.success(f"Scraping complete in {elapsed:.2f} seconds. {len(df)} presenter records found.")
             st.dataframe(df)
             # Download button
             output = BytesIO()
