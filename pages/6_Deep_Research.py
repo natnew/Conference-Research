@@ -313,12 +313,16 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions_query}],
-                response_format=Queries,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed.queries
+            return Queries.parse_raw(
+                completion.choices[0].message.content
+            ).queries
         except LengthFinishReasonError as e:
             st.error("Search query generation exceeded token limit. Returning truncated response.")
-            return e.completion.choices[0].message.parsed.queries  # Return the truncated queries
+            return Queries.parse_raw(
+                e.completion.choices[0].message.content
+            ).queries  # Return the truncated queries
 
     def generate_report_plan(self, topic: str, report_organization: str, context: str, feedback: str) -> Sections:
         """Generate the report plan with sections."""
@@ -329,12 +333,16 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions_sections}],
-                response_format=Sections,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed
+            return Sections.parse_raw(
+                completion.choices[0].message.content
+            )
         except LengthFinishReasonError as e:
             st.error("Report plan generation exceeded token limit. Returning truncated response.")
-            return e.completion.choices[0].message.parsed  # Return the truncated report plan
+            return Sections.parse_raw(
+                e.completion.choices[0].message.content
+            )  # Return the truncated report plan
 
     def write_section(self, section_topic: str, section_description: str, context: str, section_content: str) -> str:
         """Write a section of the report."""
@@ -345,12 +353,16 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
-                response_format=SectionContent,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed.content
+            return SectionContent.parse_raw(
+                completion.choices[0].message.content
+            ).content
         except LengthFinishReasonError as e:
             st.error("Section writing exceeded token limit. Returning truncated response.")
-            return e.completion.choices[0].message.parsed.content  # Return the truncated section content
+            return SectionContent.parse_raw(
+                e.completion.choices[0].message.content
+            ).content  # Return the truncated section content
 
     def evaluate_section(self, section_topic: str, section_content: str) -> Feedback:
         """Evaluate a section of the report."""
@@ -359,12 +371,16 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
-                response_format=Feedback,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed
+            return Feedback.parse_raw(
+                completion.choices[0].message.content
+            )
         except LengthFinishReasonError as e:
             st.error("Section evaluation exceeded token limit. Returning truncated response.")
-            return e.completion.choices[0].message.parsed  # Return the truncated feedback
+            return Feedback.parse_raw(
+                e.completion.choices[0].message.content
+            )  # Return the truncated feedback
 
     def write_final_sections(self, section_topic: str, context: str) -> str:
         """Write the final sections of the report."""
@@ -373,12 +389,16 @@ class ReportGenerator:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
-                response_format=SectionContent,
+                response_format={"type": "json_object"},
             )
-            return completion.choices[0].message.parsed.content
+            return SectionContent.parse_raw(
+                completion.choices[0].message.content
+            ).content
         except LengthFinishReasonError as e:
             st.error("Final section writing exceeded token limit. Returning truncated response.")
-            return e.completion.choices[0].message.parsed.content  # Return the truncated final section content
+            return SectionContent.parse_raw(
+                e.completion.choices[0].message.content
+            ).content  # Return the truncated final section content
 
     def generate_report(self, topic: str, report_organization: str, context: str, feedback: str) -> ReportStateOutput:
         """Generate the full report."""
