@@ -48,6 +48,7 @@ with st.sidebar:
         "The tool is continuously improved to enhance its search accuracy and relevance. "
         "Your feedback helps us deliver better results."
     )
+    st.page_link("pages/1_About.py", label="About", icon="ℹ️")
 
 # Pydantic models
 class ReadingListItem(BaseModel):
