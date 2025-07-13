@@ -47,10 +47,11 @@ def scrape_professors_by_research_area(professor_names, interest_keywords):
 
     return matching_professors if matching_professors else "No matching profiles found."
 
-# Example usage:
-professor_names = ["John Doe", "Jane Smith", "Emily Johnson"]  # List of professor names to scrape
-interest_keywords = ["child development", "lifespan development", "diversity"]  # Research areas to filter by
+if __name__ == "__main__":
+    # Example usage:
+    professor_names = ["John Doe", "Jane Smith", "Emily Johnson"]  # List of professor names to scrape
+    interest_keywords = ["child development", "lifespan development", "diversity"]  # Research areas to filter by
 
-# Run the scraping and print results
-result = scrape_professors_by_research_area(professor_names, interest_keywords)
-print(result)
+    # Run the scraping and print results
+    result = scrape_professors_by_research_area(professor_names, interest_keywords)
+    print(result)
