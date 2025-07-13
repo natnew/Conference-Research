@@ -30,6 +30,31 @@ with st.sidebar:
 st.title("💬 Outreach - Email Generation")
 st.markdown("Craft emails to participants to reach out and engage with them before the conference. :balloon:")
 
+# -----------------------------------------------
+# Template setup and state management
+# -----------------------------------------------
+templates = {
+    "Custom": "",
+    "Template 1": (
+        "Dear Dr/Professor [NAME],\n"
+        "I hope this message finds you well. I’m writing to ask if we could arrange to meet during the [CONFERENCE NAME] conference in late [DATE]? I’ll be in [CITY] and would love to offer you a coffee or to meet at the Sage stand for a quick discussion about a new textbook idea.\n\n"
+        "I am the [TOPIC] editor here at Sage and would find it invaluable to have an opportunity to discuss your teaching of (and research interests in) [TOPIC]. I appreciate a textbook may (or may not…) be something you have considered working on in the near future, but I’d also love a quick, open and exploratory discussion about texts, your experience using existing books, and an idea I have for a new textbook in a little more detail.\n\n"
+        "I’d be delighted if we could meet at the Sage stand during [CONFERENCE NAME]. Looking at my diary, I could meet any time between [TIME] on [DAY], [MONTH] and [TIME] on [DAY], [MONTH]. I hope we might have chance to meet at the [CONFERENCE NAME], and look forward to hearing from you.\n\n"
+        "With best wishes,\n\n[YOUR NAME]"
+    ),
+}
+
+if "email_text" not in st.session_state:
+    st.session_state.email_text = templates["Template 1"]
+if "template_choice" not in st.session_state:
+    st.session_state.template_choice = "Template 1"
+
+def update_template():
+    template_text = templates.get(st.session_state.template_choice, "")
+    if template_text:
+        st.session_state.email_text = template_text
+
+
 def generate_response(original_text, tone, length):
     prompt = f"""
     Please enhance the following email. 
@@ -49,9 +74,15 @@ def generate_response(original_text, tone, length):
 
 # Form for User Input
 with st.form('email_form'):
+    st.selectbox(
+        'Select a template:',
+        options=list(templates.keys()),
+        key='template_choice',
+        on_change=update_template,
+    )
     email_text = st.text_area(
-        'Enter your email draft:', 
-        'Dear [Name],\n\nI hope this message finds you well. I am reaching out to invite you to our upcoming conference...'
+        'Enter your email draft:',
+        key='email_text'
     )
     tone = st.selectbox(
         'Select the tone of the email:',
