@@ -1,4 +1,5 @@
 from con_research.src.modules.imports import *
+from urllib.parse import urlparse
 
 class ContentScraper:
     @staticmethod
@@ -28,7 +29,10 @@ class ContentScraper:
 
     @staticmethod
     def _extract_text_from_pdf_url(url: str):
-        """Extracts text from a PDF document."""
+        """Extracts text from a PDF document accessible via HTTP(S)."""
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"}:
+            return f"Invalid URL scheme: {parsed.scheme}. Only http and https are supported."
         try:
             user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'
             request = urllib.request.Request(url, headers={'User-Agent': user_agent})
