@@ -31,7 +31,6 @@ with st.sidebar:
     st.markdown("# About This Tool")
     st.markdown("We use multi-agent systems and other AI technologies to power this app.")
     st.markdown("This tool is a work in progress.")
-    st.page_link("pages/1_About.py", label="About", icon="ℹ️")
     openai_api_key = st.secrets["openai_api_key"]
 
 st.title("💬 RAG - Lead Generation")
