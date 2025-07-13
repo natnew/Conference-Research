@@ -310,7 +310,7 @@ class ReportGenerator:
             topic=topic, report_organization=report_organization, number_of_queries=number_of_queries
         )
         try:
-            completion = client.beta.chat.completions.parse(
+            completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions_query}],
                 response_format=Queries,
@@ -326,7 +326,7 @@ class ReportGenerator:
             topic=topic, report_organization=report_organization, context=context, feedback=feedback
         )
         try:
-            completion = client.beta.chat.completions.parse(
+            completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions_sections}],
                 response_format=Sections,
@@ -342,7 +342,7 @@ class ReportGenerator:
             section_topic=section_topic, section_content=section_content, context=context
         )
         try:
-            completion = client.beta.chat.completions.parse(
+            completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
                 response_format=SectionContent,
@@ -356,7 +356,7 @@ class ReportGenerator:
         """Evaluate a section of the report."""
         system_instructions = section_grader_instructions.format(section_topic=section_topic, section=section_content)
         try:
-            completion = client.beta.chat.completions.parse(
+            completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
                 response_format=Feedback,
@@ -370,7 +370,7 @@ class ReportGenerator:
         """Write the final sections of the report."""
         system_instructions = final_section_writer_instructions.format(section_topic=section_topic, context=context)
         try:
-            completion = client.beta.chat.completions.parse(
+            completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
                 response_format=SectionContent,

@@ -147,8 +147,8 @@ def generate_bio_with_chatgpt(full_name,university,truncated_text):
         # Initialize the OpenAI client
         client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-        # Generate response
-        response = client.beta.chat.completions.parse(
+        # Generate response using the official OpenAI method
+        response = client.chat.completions.create(
             model="gpt-4o-mini-2024-07-18",
             messages=[{"role": "user", "content": prompt}]
         )
