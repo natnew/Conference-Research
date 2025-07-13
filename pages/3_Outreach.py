@@ -48,6 +48,8 @@ if "email_text" not in st.session_state:
     st.session_state.email_text = templates["Template 1"]
 if "template_choice" not in st.session_state:
     st.session_state.template_choice = "Template 1"
+if "enhanced_email" not in st.session_state:
+    st.session_state.enhanced_email = ""
 
 def update_template():
     template_text = templates.get(st.session_state.template_choice, "")
@@ -68,7 +70,7 @@ def generate_response(original_text, tone, length):
     try:
         llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
         response = llm(prompt)
-        st.info(response)
+        st.session_state.enhanced_email = response
     except Exception as e:
         st.error(f"Error generating response: {e}")
 
@@ -101,3 +103,12 @@ with st.form('email_form'):
             st.warning('Please enter your OpenAI API key!', icon='⚠')
         else:
             generate_response(email_text, tone, length)
+
+# Display enhanced email for editing and copying
+if st.session_state.enhanced_email:
+    st.markdown("**Enhanced Email:**")
+    st.text_area(
+        label="", key="enhanced_email", height=200
+    )
+    if st.button('Copy Enhanced Email'):
+        st.code(st.session_state.enhanced_email, language=None)

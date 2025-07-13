@@ -28,10 +28,12 @@ The **RAG (Retrieve, Augment, Generate)** tab is used for lead generation and de
 
 ## **Outreach Tab**
 
-The **Outreach** tab is designed to assist with email generation for contacting conference delegates or participants.
+The **Outreach** tab assists with drafting emails to conference delegates.
 
-1. **Enter Text**: Write the text or details you want to include in the email. The system will help generate email drafts to engage with conference attendees.
-2. **Click Submit**: The app will generate an email template for you to review and send.
+1. **Select a Template**: Pick one of the built-in templates. The selected text automatically populates the **Enter your email draft** box for further editing.
+2. **Edit the Draft**: Modify the text, choose a tone and length, then submit.
+3. **Click Enhance**: An improved version of the email appears in a new editable field.
+4. **Copy the Output**: Press **Copy Enhanced Email** to show a block where you can copy the final text.
 
 ---
 
