@@ -86,6 +86,11 @@ def main():
                     st.write("### File Preview:")
                     st.write(df.head())
 
+                    # If 'University' column is missing but 'Affiliation' exists, rename it
+                    if 'University' not in df.columns and 'Affiliation' in df.columns:
+                        df.rename(columns={'Affiliation': 'University'}, inplace=True)
+                        st.info("'Affiliation' column found and renamed to 'University' for processing.")
+
                     # Check required columns
                     if 'Name' in df.columns and 'University' in df.columns:
                         st.success("File contains required columns.")
