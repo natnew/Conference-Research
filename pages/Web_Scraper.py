@@ -220,6 +220,10 @@ def main():
         help="Adjust this slider to control how long the scraper waits for a webpage to load. If the website is slow or has complex dynamic content, increase this time to ensure all information is captured. A longer wait time helps with websites that load content gradually or have multiple loading stages."
     )
 
+    st.caption(
+        "Increase the wait time if the target page loads slowly or relies on dynamic content."
+    )
+
     if st.button("Extract Information"):
         if url:
             try:
