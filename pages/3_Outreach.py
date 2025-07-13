@@ -86,6 +86,7 @@ st.selectbox(
 with st.form('email_form'):
     email_text = st.text_area(
         'Enter your email draft:',
+        value=st.session_state.email_text,
         key='email_text'
     )
     tone = st.selectbox(
