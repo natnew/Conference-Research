@@ -179,6 +179,11 @@ if uploaded_file:
     st.write("### File Preview:")
     st.write(data.head())
 
+    # If 'University' column is missing but 'Affiliation' exists, rename it
+    if 'University' not in data.columns and 'Affiliation' in data.columns:
+        data.rename(columns={'Affiliation': 'University'}, inplace=True)
+        st.info("'Affiliation' column found and renamed to 'University' for processing.")
+
     # Check if required columns are present
     required_columns = ['Name', 'University']
     if all(col in data.columns for col in required_columns):
