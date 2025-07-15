@@ -83,8 +83,31 @@ class ExtractionResponse(BaseModel):
 class CorrectionResponse(BaseModel):
     corrected_info: List[ExtractedInfo]
 # for page in range(total_pages)
-# Function to extract text from PDF using pymupdf4llm
 def extract_text_from_pdf(pdf_path):
+    """
+    Extracts text content from PDF files using PyMuPDF and pymupdf4llm for enhanced markdown conversion.
+    
+    Args:
+        pdf_path (str): Absolute file path to the PDF document to process
+        
+    Returns:
+        List[str]: List of text content for each page, converted to markdown format
+                   for improved structure preservation and LLM processing
+                   
+    Raises:
+        FileNotFoundError: If PDF file does not exist at specified path
+        fitz.FileDataError: If PDF file is corrupted or unreadable
+        MemoryError: If PDF file is too large to process in memory
+        
+    Dependencies:
+        - PyMuPDF (fitz) for PDF document handling
+        - pymupdf4llm for markdown conversion and text extraction
+        
+    Note:
+        Uses pymupdf4llm.to_markdown() for each page to preserve document structure.
+        Better suited for academic documents with complex formatting than basic text extraction.
+        Memory usage scales with PDF size and page count.
+    """
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
     page_texts = []
@@ -96,8 +119,34 @@ def extract_text_from_pdf(pdf_path):
     pdf_document.close()
     return page_texts
 
-# Function to extract information using LLM
 def extract_info_with_llm(document_text, openai_client):
+    """
+    Extracts structured academic information (names, universities, locations) from document text using OpenAI LLM.
+    
+    Args:
+        document_text (str): Raw text content from PDF or document source
+        openai_client (OpenAI): Configured OpenAI client instance with valid API key
+        
+    Returns:
+        List[Dict]: List of dictionaries containing extracted information with keys:
+                   - 'name': Individual's full name
+                   - 'university': Institution name
+                   - 'location': Country location (inferred if not explicit)
+                   
+    Raises:
+        openai.OpenAIError: If API request fails or rate limits are exceeded
+        json.JSONDecodeError: If LLM response cannot be parsed as valid JSON
+        ValidationError: If response doesn't match ExtractionResponse schema
+        
+    Dependencies:
+        - OpenAI GPT-4o-mini-2024-07-18 model
+        - Pydantic ExtractionResponse model for response validation
+        
+    Note:
+        Uses structured output with response_format for consistent JSON responses.
+        Includes location inference based on university knowledge when location not explicit.
+        Designed for academic conference documents and participant lists.
+    """
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
@@ -112,8 +161,36 @@ def extract_info_with_llm(document_text, openai_client):
     parsed_extraction_data = json.loads(api_response_data)
     return parsed_extraction_data.get("extracted_info", [])
 
-# Function to correct extracted information using LLM
 def correct_info_with_llm(raw_extracted_data, source_text, openai_client):
+    """
+    Validates and corrects extracted academic information against source text using OpenAI GPT-4o.
+    
+    Args:
+        raw_extracted_data (List[Dict]): Initial extraction results requiring validation
+        source_text (str): Original document text for cross-reference validation
+        openai_client (OpenAI): Configured OpenAI client instance with valid API key
+        
+    Returns:
+        List[Dict]: Corrected and validated information with cleaned names, verified affiliations,
+                   and standardized formatting suitable for Excel export
+                   
+    Raises:
+        openai.OpenAIError: If API request fails or quota exceeded
+        json.JSONDecodeError: If correction response cannot be parsed
+        ValidationError: If response doesn't match CorrectionResponse schema
+        
+    Dependencies:
+        - OpenAI GPT-4o-2024-08-06 model for advanced reasoning and validation
+        - Pydantic CorrectionResponse model for structured output
+        
+    Note:
+        Performs comprehensive data cleaning including:
+        - Special character removal from names for Excel compatibility
+        - University name standardization and verification
+        - Empty field handling and logical consistency checks
+        - Cross-validation against original source text
+        Higher model (GPT-4o) used for superior accuracy in validation tasks.
+    """
     correction_prompt = """ Review and clean the extracted information below against the source text.
 
                             EXTRACTED DATA:

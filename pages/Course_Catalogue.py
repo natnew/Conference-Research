@@ -121,6 +121,30 @@ class CourseDetailResponse(BaseModel):
 
 # Selenium WebDriver setup remains the same
 def get_chrome_driver():
+    """
+    Initializes Chrome WebDriver with optimized settings for course catalogue web scraping.
+    
+    Returns:
+        webdriver.Chrome: Configured Chrome WebDriver instance with academic site optimizations
+        
+    Raises:
+        WebDriverException: If Chrome installation fails or driver cannot be initialized
+        Exception: If driver installation or configuration fails
+        
+    Configuration:
+        - Headless operation for server deployment
+        - Extended timeouts for slow university websites
+        - JavaScript enabled for dynamic course catalogue systems
+        - Optimized for academic institutional websites
+        
+    Dependencies:
+        - webdriver-manager for automatic Chrome driver management
+        - selenium webdriver for browser automation
+        
+    Note:
+        Specifically tuned for university course catalogue systems which often
+        have slower response times and complex authentication requirements.
+    """
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
@@ -166,8 +190,35 @@ class CourseScraper:
         text = soup.get_text(separator='\n', strip=True)
         return re.sub(r'\n\s*\n', '\n\n', text)
 
-# Extract courses function remains the same
 def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
+    """
+    Extracts course information from university catalogue text using OpenAI LLM with structured output.
+    
+    Args:
+        text (str): Raw text content from university course catalogue pages
+        openai_client (OpenAI): Configured OpenAI client instance for LLM processing
+        
+    Returns:
+        List[CoursePreview]: List of structured course objects containing:
+                           - course_code: Official course identifier (e.g., "CS101")
+                           - course_title: Full course name and description
+                           - credits: Number of academic credits
+                           - prerequisites: Required prior courses or knowledge
+                           
+    Raises:
+        openai.OpenAIError: If API request fails or authentication issues occur
+        ValidationError: If LLM response doesn't match CoursePreview model schema
+        json.JSONDecodeError: If response parsing fails
+        
+    Dependencies:
+        - OpenAI GPT model for intelligent course information extraction
+        - Pydantic CoursePreview model for data validation and structure
+        
+    Note:
+        Optimized for standard university catalogue formats including course codes,
+        titles, credit hours, and prerequisite information. Handles various formatting
+        styles across different institutional systems.
+    """
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
@@ -181,8 +232,38 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     courses_list = courses_parsed.get("courses", [])
     return courses_list
 
-# Extract course details function remains the same
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
+    """
+    Extracts comprehensive detailed information for a specific course using targeted LLM analysis.
+    
+    Args:
+        course_name (str): Specific course name or code to focus extraction on
+        text (str): Full catalogue text containing detailed course information
+        openai_client (OpenAI): Configured OpenAI client for detailed analysis
+        
+    Returns:
+        CourseDetail: Comprehensive course object containing:
+                     - course_code: Official identifier
+                     - full_title: Complete course title
+                     - detailed_description: Full course description and objectives
+                     - credits: Academic credit value
+                     - prerequisites: Required courses and knowledge
+                     - instructor: Faculty member information (if available)
+                     - schedule: Meeting times and format
+                     
+    Raises:
+        openai.OpenAIError: If API request fails or quota exceeded
+        ValidationError: If response doesn't match CourseDetail model requirements
+        
+    Dependencies:
+        - OpenAI GPT model for focused course analysis
+        - Pydantic CourseDetail model for comprehensive data validation
+        
+    Note:
+        Provides more detailed extraction than extract_courses() by focusing on
+        a specific course. Useful for deep-dive analysis of individual courses
+        including syllabi information, learning objectives, and assessment methods.
+    """
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
@@ -196,8 +277,30 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     course_details = course_detail_data_parsed.get("course_detail", [])
     return course_details
 
-# Function to search DuckDuckGo
 def search_duckduckgo(query: str) -> str:
+    """
+    Performs web search using DuckDuckGo API for course catalogue and university information discovery.
+    
+    Args:
+        query (str): Search query combining university name, department, and course information
+        
+    Returns:
+        str: Consolidated search results text containing relevant course catalogue links,
+             descriptions, and university academic information
+             
+    Raises:
+        requests.exceptions.RequestException: If DuckDuckGo API is unreachable
+        Exception: If search request fails or returns invalid response
+        
+    Dependencies:
+        - DuckDuckGo web search API for privacy-focused search results
+        - requests library for HTTP communication
+        
+    Note:
+        Provides privacy-focused alternative to Google Search for academic research.
+        Results may be less comprehensive than Google but avoid tracking and usage limitations.
+        Optimized for finding university course catalogues and academic program information.
+    """
     results = DDGS().text(query, max_results=5)
     if results:
         return results[0]['href']  # Return the first URL found
@@ -205,6 +308,35 @@ def search_duckduckgo(query: str) -> str:
 
 # Updated Streamlit App with state management
 def main():
+    """
+    Main execution function for the Course Catalogue Scraper Streamlit application.
+    
+    Functionality:
+        - Renders Streamlit interface for university and department selection
+        - Manages course catalogue URL discovery and validation
+        - Coordinates web scraping and course information extraction workflow
+        - Handles both direct URL input and search-based catalogue discovery
+        - Provides course filtering, sorting, and detailed analysis capabilities
+        - Manages data export in multiple formats (CSV, Excel, JSON)
+        
+    Side Effects:
+        - Updates Streamlit session state with course data and user preferences
+        - Renders dynamic UI components based on scraping progress and results
+        - Handles file downloads and data persistence operations
+        - Manages WebDriver lifecycle and resource cleanup
+        
+    Features:
+        - University-specific course catalogue discovery
+        - Department-level course filtering and organization
+        - Individual course detail extraction and analysis
+        - Comprehensive error handling for various failure scenarios
+        - Real-time progress indication during scraping operations
+        
+    Note:
+        Entry point for university course catalogue analysis application.
+        Designed to handle diverse university website structures and catalogue formats.
+        Includes fallback mechanisms for sites with anti-scraping measures.
+    """
     st.title("Course Catalogue")
 
     # Initialize session state

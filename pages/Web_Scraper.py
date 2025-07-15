@@ -90,7 +90,31 @@ with st.sidebar:
     )
 
 def get_chrome_driver():
-    """Initialize the Chrome WebDriver with proper options for Streamlit Cloud"""
+    """
+    Initializes and configures Chrome WebDriver with headless options optimized for Streamlit Cloud deployment.
+    
+    Returns:
+        webdriver.Chrome: Configured Chrome WebDriver instance ready for web scraping
+        
+    Raises:
+        WebDriverException: If Chrome/Chromium installation fails or driver cannot be initialized
+        Exception: If ChromeDriverManager cannot download or install appropriate driver version
+        
+    Configuration:
+        - Headless mode for server environments
+        - JavaScript enabled for dynamic content
+        - GPU disabled for performance in cloud environments
+        - Sandbox disabled for containerized deployments
+        
+    Dependencies:
+        - webdriver-manager for automatic driver management
+        - selenium for browser automation
+        
+    Note:
+        Automatically handles Chrome driver version management and installation.
+        Optimized for Streamlit Cloud but works in local environments.
+        Uses ChromeType.CHROMIUM for broader compatibility.
+    """
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
@@ -230,7 +254,33 @@ class GenericConferenceScraper:
         return text
 
 def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, str]]:
-    """Extract academic information from text using OpenAI LLM"""
+    """
+    Extracts structured academic information from unstructured text using OpenAI LLM processing.
+    
+    Args:
+        text (str): Raw text content from web pages or documents containing academic information
+        openai_client (OpenAI): Configured OpenAI client instance with valid API credentials
+        
+    Returns:
+        List[Dict[str, str]]: List of dictionaries containing extracted academic data with keys:
+                            - 'name': Full name of academic individual
+                            - 'institution': University or research institution
+                            - 'title': Academic title or position
+                            - 'research_area': Primary research focus or field
+                            
+    Raises:
+        openai.OpenAIError: If API request fails, quota exceeded, or authentication fails
+        json.JSONDecodeError: If LLM response cannot be parsed as valid JSON
+        
+    Dependencies:
+        - OpenAI GPT model for intelligent text analysis
+        - Structured prompting for consistent academic information extraction
+        
+    Note:
+        Designed for academic conference websites, faculty listings, and research directories.
+        Uses intelligent parsing to handle various text formats and structures.
+        Results may vary based on input text quality and formatting consistency.
+    """
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
@@ -244,6 +294,35 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     return results
 
 def main():
+    """
+    Main execution function for the Web Scraper Streamlit application interface.
+    
+    Functionality:
+        - Renders comprehensive Streamlit UI for web scraping configuration
+        - Manages URL input, scraping parameters, and extraction settings
+        - Coordinates between ConferenceScraper class and academic information extraction
+        - Handles real-time progress indication and error reporting
+        - Provides data export capabilities (CSV, Excel, JSON formats)
+        - Manages session state for scraping results and configuration persistence
+        
+    Side Effects:
+        - Updates Streamlit session state with scraping results and settings
+        - Renders dynamic UI components based on scraping progress and results
+        - Handles file downloads and data persistence operations
+        - Manages WebDriver lifecycle and cleanup
+        
+    Features:
+        - Real-time scraping progress with status indicators
+        - Configurable wait times and scraping parameters
+        - Academic information extraction with AI-powered analysis
+        - Multiple export formats for different use cases
+        - Error handling with user-friendly feedback
+        
+    Note:
+        Entry point for the generic web scraping application.
+        Designed for academic conference websites but adaptable to other structured sites.
+        Includes comprehensive error handling for network issues, parsing failures, and API errors.
+    """
     st.title("Web Scraper")
 
     url = st.text_input(

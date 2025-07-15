@@ -72,8 +72,23 @@ question = st.text_input(
 )
 
 ########
-# Function to estimate tokens
 def estimate_tokens(input_text):
+    """
+    Estimates the token count for input text using GPT-4's cl100k_base encoding.
+    
+    Args:
+        input_text (str): Text content to analyze for token count
+        
+    Returns:
+        int: Estimated number of tokens the text will consume in GPT-4 models
+        
+    Dependencies:
+        - tiktoken library for OpenAI-compatible token counting
+        
+    Note:
+        Uses cl100k_base encoding which is standard for GPT-4 and GPT-4-turbo models.
+        Essential for managing API costs and staying within model context limits.
+    """
     encoding = tiktoken.get_encoding("cl100k_base")  # GPT-4 uses this encoding
     tokens = len(encoding.encode(input_text))
     return tokens

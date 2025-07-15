@@ -119,6 +119,30 @@ class ReadingListResponse(BaseModel):
 
 # Selenium WebDriver setup
 def get_chrome_driver():
+    """
+    Initializes Chrome WebDriver configured for academic reading list and library website scraping.
+    
+    Returns:
+        webdriver.Chrome: Chrome WebDriver instance optimized for university library systems
+        
+    Raises:
+        WebDriverException: If Chrome installation or driver initialization fails
+        Exception: If webdriver-manager cannot install appropriate driver version
+        
+    Configuration:
+        - Headless mode for automated operation
+        - Extended timeouts for slow university library systems
+        - JavaScript enabled for dynamic library catalogues
+        - Optimized for academic institutional authentication systems
+        
+    Dependencies:
+        - webdriver-manager for Chrome driver management
+        - selenium webdriver for browser automation
+        
+    Note:
+        Specifically configured for university library systems and reading list platforms
+        which often require longer load times and handle complex authentication workflows.
+    """
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
@@ -164,8 +188,37 @@ class ReadingListScraper:
         text = soup.get_text(separator='\n', strip=True)
         return re.sub(r'\n\s*\n', '\n\n', text)
 
-# Function to fetch the reading list using DuckDuckGo
 def get_reading_list(university: str, course: str):
+    """
+    Discovers and scrapes course reading lists from university websites using DuckDuckGo search.
+    
+    Args:
+        university (str): Full university name for targeted search (e.g., "Harvard University")
+        course (str): Specific course name, code, or subject area for reading list discovery
+        
+    Returns:
+        List[Tuple[str, str]]: List of tuples containing (text_content, source_url) pairs
+                              from discovered reading list and syllabus pages
+                              
+    Raises:
+        requests.exceptions.RequestException: If search API or target URLs are unreachable
+        Exception: If scraping fails due to website protection or parsing errors
+        
+    Workflow:
+        1. Constructs targeted search query for university reading lists
+        2. Performs DuckDuckGo search for relevant academic pages
+        3. Scrapes content from discovered reading list URLs
+        4. Extracts and cleans text content for LLM processing
+        
+    Dependencies:
+        - DuckDuckGo search API for reading list discovery
+        - WebScraper class for content extraction
+        - BeautifulSoup for HTML parsing and text cleaning
+        
+    Note:
+        Searches for official university reading lists, syllabi, and course resource pages.
+        Results quality depends on university's web presence and reading list publication practices.
+    """
     query = f"The following {course} offered in {university}  reading list  of books available for the university course offered OR site:.edu OR site:.ac.uk OR site:.org"
     results = DDGS().text(query, max_results=5)
 
@@ -182,8 +235,37 @@ def get_reading_list(university: str, course: str):
     else:
         return [], query
 
-# Function to process text with LLM
 def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: OpenAI) -> List[ReadingListItem]:
+    """
+    Processes scraped reading list content using OpenAI LLM to extract structured bibliographic information.
+    
+    Args:
+        texts_urls (List[tuple]): List of (text_content, source_url) tuples from scraped reading lists
+        query (str): Original search query for context and relevance filtering
+        openai_client (OpenAI): Configured OpenAI client instance for LLM processing
+        
+    Returns:
+        List[ReadingListItem]: Structured reading list entries containing:
+                              - title: Book or article title
+                              - author: Author name(s)
+                              - publication_info: Publisher, year, edition details
+                              - item_type: Book, journal article, chapter, etc.
+                              - source_url: Original URL where item was found
+                              
+    Raises:
+        openai.OpenAIError: If API request fails or authentication issues occur
+        ValidationError: If LLM response doesn't match ReadingListItem model schema
+        json.JSONDecodeError: If response parsing fails
+        
+    Dependencies:
+        - OpenAI GPT model for intelligent bibliographic extraction
+        - Pydantic ReadingListItem model for data validation
+        
+    Note:
+        Combines multiple scraped sources to create comprehensive reading lists.
+        Uses advanced prompting to identify and structure academic references from unstructured text.
+        Handles various citation formats and academic resource types.
+    """
     reading_list_items = []
     for text, url in texts_urls:
         response = openai_client.chat.completions.create(
@@ -198,8 +280,35 @@ def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: Op
         reading_list_data_parsed = json.loads(reading_list_data)
         reading_list_items.extend(reading_list_data_parsed.get("reading_list", []))
     return reading_list_items
-# Function to get fallback reading list
 def get_fallback_reading_list(course: str, openai_client: OpenAI) -> List[ReadingListItem]:
+    """
+    Generates a comprehensive academic reading list using OpenAI LLM when web scraping fails or returns insufficient results.
+    
+    Args:
+        course (str): Course name, subject area, or academic field for reading list generation
+        openai_client (OpenAI): Configured OpenAI client for LLM-based list generation
+        
+    Returns:
+        List[ReadingListItem]: AI-generated academic reading list with standard academic resources:
+                              - Essential textbooks and foundational works
+                              - Key journal articles and research papers
+                              - Supplementary readings and contemporary sources
+                              - Structured with proper bibliographic information
+                              
+    Raises:
+        openai.OpenAIError: If API request fails or model access issues occur
+        ValidationError: If generated response doesn't match ReadingListItem schema
+        
+    Dependencies:
+        - OpenAI GPT model with extensive academic knowledge
+        - Pydantic ReadingListItem model for response structure validation
+        
+    Note:
+        Serves as backup when university-specific reading lists cannot be found.
+        Generates academically appropriate resources based on course subject and level.
+        Includes mix of foundational texts, current research, and diverse perspectives.
+        Quality depends on LLM's training data and knowledge of academic field.
+    """
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
@@ -212,6 +321,41 @@ def get_fallback_reading_list(course: str, openai_client: OpenAI) -> List[Readin
     reading_list_data_parsed = json.loads(reading_list_data)
     return reading_list_data_parsed.get("reading_list", [])
 def main():
+    """
+    Main execution function for the Course Reading List Generator Streamlit application.
+    
+    Functionality:
+        - Renders Streamlit interface for university and course input
+        - Manages reading list discovery workflow with multiple fallback strategies
+        - Coordinates between web scraping and AI-generated reading list creation
+        - Handles user preferences for reading list type and academic level
+        - Provides comprehensive data export and citation formatting options
+        - Manages error handling for scraping failures and API limitations
+        
+    Side Effects:
+        - Updates Streamlit session state with reading list data and user settings
+        - Renders dynamic UI components based on discovery progress and results
+        - Handles academic citation export in multiple formats (APA, MLA, Chicago)
+        - Manages WebDriver lifecycle and resource cleanup for scraping operations
+        
+    Features:
+        - Multi-strategy reading list discovery (web scraping + AI generation)
+        - University-specific and general academic reading list creation
+        - Real-time progress indication during discovery and processing
+        - Academic citation formatting and bibliography generation
+        - Export capabilities for course management systems and reference managers
+        
+    Workflow:
+        1. Attempts web scraping for university-specific reading lists
+        2. Falls back to AI-generated lists if scraping fails or returns insufficient results
+        3. Processes and structures all discovered academic resources
+        4. Provides formatted output with proper academic citations
+        
+    Note:
+        Entry point for academic reading list research and generation application.
+        Designed for educators, students, and researchers requiring comprehensive course bibliographies.
+        Includes comprehensive error handling for various university website structures and access restrictions.
+    """
     st.title("Course Reading List")
 
     # Initialize session state

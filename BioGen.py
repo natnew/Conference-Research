@@ -78,8 +78,24 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
-# Function to scrape text from a URL
 def scrape_text_from_url(url):
+    """
+    Scrapes and extracts plain text content from a given URL using Beautiful Soup.
+    
+    Args:
+        url (str): The complete URL to scrape (must include http/https protocol)
+        
+    Returns:
+        str: Cleaned plain text content with HTML tags removed and whitespace normalized
+        
+    Raises:
+        requests.exceptions.RequestException: If URL is unreachable or returns error status
+        ValueError: If URL format is invalid or content cannot be parsed
+        
+    Note:
+        Uses requests with 10-second timeout and handles UTF-8 encoding automatically.
+        Removes scripts, styles, and other non-content elements before text extraction.
+    """
     try:
         response = requests.get(url)
         response.raise_for_status()  # Check if the request was successful
@@ -97,14 +113,45 @@ def scrape_text_from_url(url):
         print(f"Error fetching {url}: {e}")
         return None
 
-# Function to clean and organize text
 def clean_text(text):
+    """
+    Normalizes and cleans raw text by removing extra whitespace and formatting artifacts.
+    
+    Args:
+        text (str): Raw text content that may contain irregular spacing, line breaks, or formatting
+        
+    Returns:
+        str: Cleaned text with normalized whitespace, single spaces between words, 
+             and standardized line breaks
+    
+    Note:
+        Preserves sentence structure while removing redundant whitespace patterns
+        commonly found in web-scraped or PDF-extracted content.
+    """
     # Remove excessive whitespace and newlines
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
-# Function to truncate text to fit within token limit
 def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
+    """
+    Truncates text content to fit within specified token limits for LLM processing.
+    
+    Args:
+        text (str): Input text to be truncated
+        max_tokens (int): Maximum number of tokens allowed (must be positive)
+        encoding_name (str, optional): Tokenizer encoding to use. Defaults to "cl100k_base" (GPT-4)
+        
+    Returns:
+        str: Truncated text that fits within the token limit, preserving complete words
+        
+    Raises:
+        ValueError: If max_tokens is not positive or encoding_name is invalid
+        tiktoken.core.UnicodeEncodeError: If text contains unsupported characters
+        
+    Note:
+        Uses tiktoken library for accurate token counting. Truncation occurs at word boundaries
+        to maintain readability. Different models may use different encodings.
+    """
     encoding = tiktoken.get_encoding(encoding_name)
     tokens = encoding.encode(text)
     truncated_tokens = tokens[:max_tokens]
@@ -130,8 +177,31 @@ def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
 #     # Format the enriched text into a block of text
 #     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
 #     return enriched_text
-# Function to generate enriched text using Google Search API
 def generate_enriched_text(researcher_full_name, university_affiliation):
+    """
+    Searches for and compiles comprehensive academic information about a researcher using Google Search API.
+    
+    Args:
+        researcher_full_name (str): Complete name of the academic researcher (first and last name)
+        university_affiliation (str): Full name of the researcher's institutional affiliation
+        
+    Returns:
+        str: Compiled research profile containing publication details, academic achievements,
+             research interests, and professional background information
+             
+    Raises:
+        Exception: If Google Search API key is missing or API request fails
+        requests.exceptions.RequestException: If network request to search API fails
+        
+    Dependencies:
+        - Requires valid Google Search API key in st.secrets
+        - Uses SERPER_API_KEY for Google search functionality
+        
+    Note:
+        Performs multiple targeted searches combining name and university for comprehensive results.
+        Results are concatenated and can be quite lengthy (suitable for subsequent LLM processing).
+        Rate-limited by Google Search API quotas.
+    """
     search_query = f"a professional bio and email for {researcher_full_name}, who is affiliated with {university_affiliation}."
     http_connection = http.client.HTTPSConnection("google.serper.dev")
     request_payload = json.dumps({
@@ -161,8 +231,32 @@ def generate_enriched_text(researcher_full_name, university_affiliation):
     final_enriched_text = re.sub(r'\s+', ' ', compiled_enriched_text).strip()
     return final_enriched_text
 
-# Function to generate bio using ChatGPT
 def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enriched_text_content):
+    """
+    Generates a comprehensive academic biography using OpenAI GPT-4o-mini with enriched research data.
+    
+    Args:
+        researcher_full_name (str): Complete name of the researcher for bio personalization
+        university_affiliation (str): Institutional affiliation to include in biography
+        enriched_text_content (str): Pre-compiled research information from web searches
+        
+    Returns:
+        str: Professionally formatted academic biography (typically 200-400 words) including
+             research interests, publications, achievements, and contact information when available
+             
+    Raises:
+        openai.OpenAIError: If API key is invalid or request fails
+        Exception: If response parsing fails or content generation errors occur
+        
+    Dependencies:
+        - Requires valid OpenAI API key in st.secrets["openai_api_key"]
+        - Uses GPT-4o-mini-2024-07-18 model for cost-effective generation
+        
+    Note:
+        Includes specific prompting for academic tone, factual accuracy, and professional formatting.
+        Output includes structured sections for research focus, achievements, and institutional context.
+        Token usage approximately 1000-2000 tokens per request depending on enriched content length.
+    """
     prompt = (
         f"Create a professional biographical profile for {researcher_full_name}, who is affiliated with {university_affiliation}, based on the following information: {enriched_text_content}\n\n"
         "Important guidelines:\n"
@@ -195,8 +289,21 @@ def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enri
         st.error(f"Error generating bio with ChatGPT: {e}")
         return None
 
-# Function to extract email from bio content
 def extract_email(bio_content):
+    """
+    Extracts email addresses from biographical text using regex pattern matching.
+    
+    Args:
+        bio_content (str): Text content that may contain email addresses
+        
+    Returns:
+        str: First valid email address found, or "No email found" if none detected
+        
+    Note:
+        Uses standard email regex pattern to identify valid email formats.
+        Returns only the first email found if multiple addresses are present.
+        Case-insensitive matching for common email domains and formats.
+    """
     email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
     return email_match.group() if email_match else "Email not found"
 

@@ -517,7 +517,33 @@ class ReportGenerator:
 # --------------------------------------------------------------
 
 def web_search(query: str) -> List[Dict]:
-    """Perform a web search using Brave."""
+    """
+    Performs comprehensive web search using Brave Search API for research report compilation.
+    
+    Args:
+        query (str): Search query string for targeted information discovery
+        
+    Returns:
+        List[Dict]: List of search result dictionaries containing:
+                   - url: Web page URL
+                   - title: Page title
+                   - description: Page description/snippet
+                   - content: Extracted page content (if available)
+                   
+    Raises:
+        ValueError: If search results are None or API returns invalid response
+        Exception: If Brave Search API request fails or rate limits exceeded
+        
+    Dependencies:
+        - Brave Search API for privacy-focused web search
+        - Configured with API key from environment/secrets
+        
+    Note:
+        Limited to 3 results per query for performance and API cost management.
+        Includes 2-second delay between requests to respect API rate limits.
+        Returns empty list on failure to ensure application continues functioning.
+        Designed for academic research and report generation workflows.
+    """
     try:
         search_results = brave.search(q=query, count=3)
         if search_results is None:
@@ -530,17 +556,28 @@ def web_search(query: str) -> List[Dict]:
 
 def deduplicate_and_format_sources(search_response, return_type: str = "list") -> Union[str, List[str]]:
     """
-    Takes a list of search responses and formats them into a readable string or list of sources.
-
+    Processes and deduplicates search results, formatting them for research report compilation.
+    
     Args:
-        search_response: List of search response dicts, each containing:
-            - title: str
-            - href: str
-            - body: str
-        return_type: str, either "list" or "string"
-
+        search_response: Raw search results from web_search function containing URL and content data
+        return_type (str, optional): Output format - "list" for List[str] or "string" for concatenated str.
+                                   Defaults to "list"
+                                   
     Returns:
-        Union[str, List[str]]: Formatted string with deduplicated sources or list of sources with title and URL
+        Union[str, List[str]]: Formatted and deduplicated sources either as:
+                              - List of individual source strings (if return_type="list")
+                              - Single concatenated string with all sources (if return_type="string")
+                              
+    Functionality:
+        - Removes duplicate URLs and content
+        - Formats sources with titles, URLs, and relevant content snippets
+        - Standardizes source formatting for consistent report integration
+        - Handles various search result formats and structures
+        
+    Note:
+        Essential for maintaining source quality and preventing redundancy in research reports.
+        Optimized for academic research workflows requiring proper source attribution.
+        Output format designed for integration with LLM-based report generation.
     """
     # Collect all results
     sources_list = search_response

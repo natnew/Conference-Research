@@ -55,8 +55,31 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
-# Bio Generation Function
 def generate_bio_with_chatgpt(researcher_full_name, university_affiliation):
+    """
+    Generates a concise academic biography using OpenAI GPT-4o-mini for desktop research purposes.
+    
+    Args:
+        researcher_full_name (str): Complete name of the academic researcher
+        university_affiliation (str): Institutional affiliation for context
+        
+    Returns:
+        str: Brief academic biography (typically 100-200 words) focusing on research areas,
+             key achievements, and institutional role
+             
+    Raises:
+        openai.OpenAIError: If API key is invalid or request fails
+        Exception: If response generation fails
+        
+    Dependencies:
+        - Requires valid OpenAI API key in st.secrets["openai_api_key"]
+        - Uses GPT-4o-mini-2024-07-18 model
+        
+    Note:
+        Generates shorter biographies compared to main BioGen module.
+        Designed for quick desktop research and overview generation.
+        Does not include web search enrichment for faster processing.
+    """
     """
     Generate a professional bio using OpenAI's ChatGPT API.
     """
@@ -77,8 +100,26 @@ def generate_bio_with_chatgpt(researcher_full_name, university_affiliation):
     except Exception as e:
         return f"Error generating bio: {e}"
 
-# Main Function
 def main():
+    """
+    Main execution function for the Desktop Research Streamlit application interface.
+    
+    Functionality:
+        - Renders Streamlit UI components for researcher input
+        - Handles user form submission and validation
+        - Coordinates biography generation workflow
+        - Manages session state and error handling
+        - Displays results and download options
+        
+    Side Effects:
+        - Updates Streamlit session state variables
+        - Renders UI components and user feedback
+        - Handles file downloads and data persistence
+        
+    Note:
+        Entry point for the desktop research page. Manages the complete user interaction
+        flow from input collection to result display and export functionality.
+    """
     st.title("Desktop Research")
     st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet. :balloon:")
 

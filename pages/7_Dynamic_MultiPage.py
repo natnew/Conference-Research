@@ -52,11 +52,42 @@ cookie consents.
 """)
 
 def fetch_soup(page_url):
+    """
+    Fetches and parses HTML content from a URL into a BeautifulSoup object for scraping.
+    
+    Args:
+        page_url (str): Complete URL to fetch (must include protocol)
+        
+    Returns:
+        BeautifulSoup: Parsed HTML document ready for element extraction
+        
+    Raises:
+        requests.exceptions.RequestException: If URL is unreachable or returns error status
+        requests.exceptions.HTTPError: If HTTP status indicates request failure
+        
+    Note:
+        Uses default requests timeout and html.parser for consistent parsing.
+        Raises exception on HTTP errors to ensure valid content processing.
+    """
     http_response = requests.get(page_url)
     http_response.raise_for_status()
     return BeautifulSoup(http_response.text, "html.parser")
 
 def get_all_session_links(browse_url):
+    """
+    Discovers and collects all session page URLs from a conference browse/schedule page.
+    
+    Args:
+        browse_url (str): Main conference page URL containing links to individual sessions
+        
+    Returns:
+        set: Unique set of absolute URLs pointing to individual session pages
+        
+    Note:
+        Searches for links containing 'session_' pattern and ending with '.html'.
+        Pattern can be adjusted for different conference website structures.
+        Uses urljoin to convert relative URLs to absolute URLs for consistent access.
+    """
     main_page_soup = fetch_soup(browse_url)
     session_links = set()
     # Collect all links that look like session pages (adjust pattern as needed)
@@ -68,6 +99,23 @@ def get_all_session_links(browse_url):
     return session_links
 
 def extract_presenters_from_session(session_url):
+    """
+    Extracts presenter information from an individual conference session page.
+    
+    Args:
+        session_url (str): URL of specific session page to parse for presenter details
+        
+    Returns:
+        List[Dict]: List of presenter information dictionaries containing:
+                   - 'name': Presenter's full name
+                   - 'affiliation': Institution or organizational affiliation
+                   - 'session_url': Source session URL for reference
+                   
+    Note:
+        Expects HTML structure with <div class="authors"> containing <span class="presenter">.
+        Structure patterns may need adjustment for different conference website formats.
+        Returns empty list if no presenters found or if page structure doesn't match expected format.
+    """
     session_page_soup = fetch_soup(session_url)
     session_presenters = []
     # Assumes presenters are within <div class="authors">
@@ -92,6 +140,30 @@ def extract_presenters_from_session(session_url):
     return session_presenters
 
 def scrape_all_presenters(browse_url):
+    """
+    Orchestrates complete conference presenter extraction from browse page through all session pages.
+    
+    Args:
+        browse_url (str): Main conference browse/schedule page URL
+        
+    Returns:
+        List[Dict]: Comprehensive list of all presenters found across all conference sessions,
+                   with each entry containing name, affiliation, and source session URL
+                   
+    Raises:
+        requests.exceptions.RequestException: If any URL in the scraping process fails
+        
+    Workflow:
+        1. Discovers all session page URLs from browse page
+        2. Iterates through each session page
+        3. Extracts presenter information from each session
+        4. Compiles comprehensive presenter database
+        
+    Note:
+        Processes sessions sequentially to avoid overwhelming target servers.
+        Returns combined results from all sessions, may contain duplicates if presenters
+        appear in multiple sessions.
+    """
     all_conference_presenters = []
     try:
         session_links = get_all_session_links(browse_url)
@@ -108,6 +180,26 @@ def scrape_all_presenters(browse_url):
     return all_conference_presenters
 
 def main():
+    """
+    Main execution function for the Dynamic Multi-Page Conference Scraper Streamlit interface.
+    
+    Functionality:
+        - Renders Streamlit UI for conference URL input and scraping controls
+        - Manages scraping workflow execution and progress indication
+        - Handles error display and user feedback
+        - Provides data export functionality (CSV, Excel)
+        - Manages session state for scraping results persistence
+        
+    Side Effects:
+        - Updates Streamlit session state with scraping results
+        - Renders UI components including input fields, buttons, and data displays
+        - Handles file downloads and data export operations
+        
+    Note:
+        Entry point for the multi-page conference scraping application.
+        Coordinates between user interface and backend scraping functions.
+        Includes comprehensive error handling for various scraping failure scenarios.
+    """
     st.title("Dynamic MultiPage Scraper")
     st.info(
         "Enter the URL of a conference 'Browse' or session directory page. "

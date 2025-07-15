@@ -83,12 +83,50 @@ if "enhanced_email" not in st.session_state:
     st.session_state.enhanced_email = ""
 
 def update_template():
+    """
+    Updates the Streamlit session state email text with the currently selected email template.
+    
+    Side Effects:
+        - Modifies st.session_state.email_text with content from selected template
+        - Only updates if the selected template exists in the templates dictionary
+        
+    Dependencies:
+        - Requires st.session_state.template_choice to be set
+        - Accesses global templates dictionary for template content
+        
+    Note:
+        Called when user changes template selection in the Streamlit interface.
+        Preserves existing email text if selected template is not found.
+    """
     selected_template_text = templates.get(st.session_state.template_choice, "")
     if selected_template_text:
         st.session_state.email_text = selected_template_text
 
 
 def generate_response(original_email_text, tone, length):
+    """
+    Enhances email content using OpenAI GPT-4o-mini with specified tone and length parameters.
+    
+    Args:
+        original_email_text (str): Original email content to be enhanced
+        tone (str): Desired tone for the enhanced email (e.g., "professional", "friendly", "formal")
+        length (str): Target length for the enhanced email (e.g., "short", "medium", "long")
+        
+    Returns:
+        str: Enhanced email content with improved structure, tone, and formatting
+        
+    Raises:
+        openai.OpenAIError: If API key is invalid or request fails
+        Exception: If response generation or parsing fails
+        
+    Dependencies:
+        - Requires valid OpenAI API key in st.secrets["openai_api_key"]
+        - Uses GPT-4o-mini-2024-07-18 model for cost-effective text enhancement
+        
+    Note:
+        Provides specific prompting for tone adjustment and length control.
+        Maintains original message intent while improving clarity and professionalism.
+    """
     prompt = f"""
     Please enhance the following email. 
     Use a {tone.lower()} tone and ensure the email is {length.lower()} in length.
