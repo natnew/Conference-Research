@@ -47,7 +47,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, WebDriverException
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
@@ -148,45 +148,93 @@ def get_chrome_driver():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-logging')
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--allow-running-insecure-content')
 
     try:
         chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
         webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        webdriver_instance.set_page_load_timeout(30)  # Set timeout to prevent hanging
         return webdriver_instance
+    except WebDriverException as e:
+        st.error(f"WebDriver initialization failed: {str(e)}")
+        return None
     except Exception as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None
 
-# Scraper class
-class ReadingListScraper:
+# Context manager for WebDriver to ensure proper cleanup
+class WebDriverManager:
+    """Context manager for WebDriver instances to ensure proper cleanup and prevent memory leaks."""
+    
     def __init__(self):
+        self.driver = None
+    
+    def __enter__(self):
         self.driver = get_chrome_driver()
         if not self.driver:
-            st.error("Failed to initialize the scraper")
-            st.stop()
-
-    def __del__(self):
+            raise RuntimeError("Failed to initialize WebDriver")
+        return self.driver
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
         if self.driver:
             try:
                 self.driver.quit()
-            except:
-                pass
+            except Exception as e:
+                print(f"Error during WebDriver cleanup: {e}")
+            finally:
+                self.driver = None
+
+# Scraper class
+class ReadingListScraper:
+    def __init__(self):
+        self.driver = None
+
+    def __enter__(self):
+        self.driver = get_chrome_driver()
+        if not self.driver:
+            raise RuntimeError("Failed to initialize the scraper")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.driver:
+            try:
+                self.driver.quit()
+            except Exception as e:
+                print(f"Error during scraper cleanup: {e}")
+            finally:
+                self.driver = None
 
     def scrape_page(self, url: str, wait_time: int = 5) -> str:
+        if not self.driver:
+            raise RuntimeError("WebDriver not initialized")
+        
         try:
             self.driver.get(url)
             time.sleep(wait_time)
             return self.driver.page_source
+        except TimeoutException:
+            st.warning(f"Timeout accessing URL: {url}")
+            return ""
+        except WebDriverException as e:
+            st.error(f"WebDriver error accessing URL: {str(e)}")
+            return ""
         except Exception as e:
             st.error(f"Error accessing URL: {str(e)}")
             return ""
 
     def extract_text(self, content: str) -> str:
-        soup = BeautifulSoup(content, 'html.parser')
-        for script in soup(['script', 'style']):
-            script.decompose()
-        text = soup.get_text(separator='\n', strip=True)
-        return re.sub(r'\n\s*\n', '\n\n', text)
+        try:
+            soup = BeautifulSoup(content, 'html.parser')
+            for script in soup(['script', 'style']):
+                script.decompose()
+            text = soup.get_text(separator='\n', strip=True)
+            return re.sub(r'\n\s*\n', '\n\n', text)
+        except Exception as e:
+            st.error(f"Error extracting text: {str(e)}")
+            return ""
 
 def get_reading_list(university: str, course: str):
     """
@@ -224,13 +272,20 @@ def get_reading_list(university: str, course: str):
 
     if results:
         reading_list = []
-        scraper = ReadingListScraper()
-        for result in results:
-            url = result.get('href', '')
-            content = scraper.scrape_page(url)
-            if content:
-                text = scraper.extract_text(content)
-                reading_list.append((text, url))
+        try:
+            with ReadingListScraper() as scraper:
+                for result in results:
+                    url = result.get('href', '')
+                    content = scraper.scrape_page(url)
+                    if content:
+                        text = scraper.extract_text(content)
+                        reading_list.append((text, url))
+        except RuntimeError as e:
+            st.error(f"Scraper initialization failed: {e}")
+            return [], query
+        except Exception as e:
+            st.error(f"Error during scraping: {e}")
+            return [], query
         return reading_list, query
     else:
         return [], query

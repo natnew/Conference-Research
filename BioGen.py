@@ -46,6 +46,9 @@ from bs4 import BeautifulSoup
 import tiktoken
 import http.client
 import json
+import time
+import random
+from urllib.parse import urlparse
 
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -78,12 +81,85 @@ with st.sidebar:
     st.markdown("This tool is a work in progress.")
     openai_api_key = st.secrets["openai_api_key"]
 
-def scrape_text_from_url(url):
+def retry_api_call(max_retries=3, backoff_factor=1.0):
+    """
+    Decorator to retry API calls with exponential backoff.
+    
+    Args:
+        max_retries (int): Maximum number of retry attempts
+        backoff_factor (float): Factor for exponential backoff delay
+        
+    Returns:
+        function: Decorated function with retry logic
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except (requests.RequestException, openai.OpenAIError, ConnectionError) as e:
+                    if attempt == max_retries:
+                        raise e
+                    delay = backoff_factor * (2 ** attempt) + random.uniform(0, 1)
+                    st.warning(f"API call failed (attempt {attempt + 1}/{max_retries + 1}). Retrying in {delay:.2f} seconds...")
+                    time.sleep(delay)
+            return None
+        return wrapper
+    return decorator
+
+def validate_file_upload(uploaded_file):
+    """
+    Validates uploaded file for security and format requirements.
+    
+    Args:
+        uploaded_file: Streamlit UploadedFile object
+        
+    Returns:
+        tuple: (is_valid: bool, error_message: str)
+        
+    Raises:
+        ValueError: If file validation fails
+    """
+    if uploaded_file is None:
+        return False, "No file uploaded"
+    
+    # Check file size (max 50MB)
+    max_size = 50 * 1024 * 1024  # 50MB in bytes
+    if uploaded_file.size > max_size:
+        return False, f"File size ({uploaded_file.size / (1024*1024):.1f}MB) exceeds maximum allowed size (50MB)"
+    
+    # Check file extension
+    allowed_extensions = ['.csv', '.xlsx', '.xls']
+    file_extension = '.' + uploaded_file.name.split('.')[-1].lower()
+    if file_extension not in allowed_extensions:
+        return False, f"File type '{file_extension}' not allowed. Supported formats: {', '.join(allowed_extensions)}"
+    
+    # Check for suspicious file names
+    suspicious_patterns = ['..', '/', '\\', '<', '>', ':', '"', '|', '?', '*']
+    if any(pattern in uploaded_file.name for pattern in suspicious_patterns):
+        return False, "File name contains invalid characters"
+    
+    # Basic MIME type check
+    expected_mime_types = {
+        '.csv': ['text/csv', 'application/csv', 'text/plain'],
+        '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        '.xls': ['application/vnd.ms-excel']
+    }
+    
+    if file_extension in expected_mime_types:
+        if uploaded_file.type not in expected_mime_types[file_extension]:
+            st.warning(f"MIME type mismatch for {file_extension}: expected {expected_mime_types[file_extension]}, got {uploaded_file.type}")
+    
+    return True, "File validation passed"
+
+@retry_api_call(max_retries=2, backoff_factor=0.5)
+def scrape_text_from_url(url, timeout=10):
     """
     Scrapes and extracts plain text content from a given URL using Beautiful Soup.
     
     Args:
         url (str): The complete URL to scrape (must include http/https protocol)
+        timeout (int): Request timeout in seconds
         
     Returns:
         str: Cleaned plain text content with HTML tags removed and whitespace normalized
@@ -93,24 +169,51 @@ def scrape_text_from_url(url):
         ValueError: If URL format is invalid or content cannot be parsed
         
     Note:
-        Uses requests with 10-second timeout and handles UTF-8 encoding automatically.
+        Uses requests with configurable timeout and handles UTF-8 encoding automatically.
         Removes scripts, styles, and other non-content elements before text extraction.
     """
+    # Validate URL format
     try:
-        response = requests.get(url)
+        parsed_url = urlparse(url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            raise ValueError(f"Invalid URL format: {url}")
+    except Exception as e:
+        print(f"URL validation error for {url}: {e}")
+        return None
+    
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()  # Check if the request was successful
         response.encoding = 'utf-8'  # Specify the encoding
+        
         try:
             soup = BeautifulSoup(response.content, 'html.parser')  # You can also try 'lxml' or 'html5lib'
+            
+            # Remove script and style elements
+            for script in soup(["script", "style"]):
+                script.decompose()
+            
             # Extract text from paragraphs and other relevant tags
             paragraphs = soup.find_all(['p', 'li', 'span', 'div'])
             text = ' '.join([para.get_text() for para in paragraphs])
-        except Exception as e:
+        except (ValueError, AttributeError, TypeError) as e:
             print(f"Error parsing {url} with BeautifulSoup: {e}")
             text = response.text  # Fall back to raw text content
         return text
+    except requests.exceptions.Timeout:
+        print(f"Timeout error fetching {url}")
+        return None
+    except requests.exceptions.ConnectionError:
+        print(f"Connection error fetching {url}")
+        return None
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error {e.response.status_code} fetching {url}")
+        return None
     except requests.RequestException as e:
-        print(f"Error fetching {url}: {e}")
+        print(f"Request error fetching {url}: {e}")
         return None
 
 def clean_text(text):
@@ -158,7 +261,6 @@ def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
     truncated_text = encoding.decode(truncated_tokens)
     return truncated_text
 
-# Function to generate enriched text using DDGS
 # def generate_enriched_text(full_name, university):
 #     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
 #     results = DDGS().text(query, max_results=3)
@@ -177,6 +279,7 @@ def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
 #     # Format the enriched text into a block of text
 #     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
 #     return enriched_text
+@retry_api_call(max_retries=3, backoff_factor=1.0)
 def generate_enriched_text(researcher_full_name, university_affiliation):
     """
     Searches for and compiles comprehensive academic information about a researcher using Google Search API.
@@ -231,6 +334,7 @@ def generate_enriched_text(researcher_full_name, university_affiliation):
     final_enriched_text = re.sub(r'\s+', ' ', compiled_enriched_text).strip()
     return final_enriched_text
 
+@retry_api_call(max_retries=3, backoff_factor=1.0)
 def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enriched_text_content):
     """
     Generates a comprehensive academic biography using OpenAI GPT-4o-mini with enriched research data.
@@ -285,8 +389,14 @@ def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enri
         bio_results = chat_response.choices[0].message.content
 
         return bio_results
+    except openai.OpenAIError as e:
+        st.error(f"OpenAI API error: {e}")
+        return None
+    except (KeyError, ValueError) as e:
+        st.error(f"Error processing API response: {e}")
+        return None
     except Exception as e:
-        st.error(f"Error generating bio with ChatGPT: {e}")
+        st.error(f"Unexpected error generating bio with ChatGPT: {e}")
         return None
 
 def extract_email(bio_content):
@@ -313,6 +423,13 @@ st.title("BioGen - Automated Bio Generator")
 # File Upload
 uploaded_dataset = st.file_uploader("Upload your CSV/XLSX file :balloon:", type=["csv", "xlsx"])
 if uploaded_dataset:
+    # Validate uploaded file
+    is_valid, validation_message = validate_file_upload(uploaded_dataset)
+    if not is_valid:
+        st.error(f"File validation failed: {validation_message}")
+        st.stop()
+    else:
+        st.success(validation_message)
     # Load File
     if uploaded_dataset.name.endswith(".csv"):
         dataset_dataframe = pd.read_csv(uploaded_dataset)
