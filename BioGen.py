@@ -1,3 +1,39 @@
+"""
+BioGen - Automated Biographical Profile Generator
+===============================================
+
+A Streamlit web application that automates the generation of professional biographical
+profiles for academic and professional contacts. Part of the Conference & Campus Research
+Assistant suite for streamlining conference and campus visit research workflows.
+
+KEY FEATURES:
+- Batch processing with chunked execution and web scraping using Google Serper API
+- AI-powered bio generation using OpenAI GPT-4o-mini with automatic email extraction
+- Excel export functionality and token management for API efficiency
+- Error handling and fallback mechanisms for robust operation
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key for GPT model access
+- serper_api_key: Google Serper API key for web search functionality
+- Dependencies: streamlit, pandas, openai, requests, beautifulsoup4, tiktoken
+
+INPUT REQUIREMENTS:
+- CSV/XLSX format with required columns: 'Name', 'University' (or 'Affiliation')
+- Optional columns: 'Bio', 'Email' (will be created if not present)
+
+WORKFLOW:
+1. Upload CSV/XLSX → 2. Preview and configure chunks → 3. Select chunk index
+4. Generate bios using web search + AI synthesis → 5. Review results → 6. Download Excel
+
+API INTEGRATIONS:
+- OpenAI GPT-4o-mini: Bio generation with structured prompts avoiding title assumptions
+- Google Serper API: Web search for academic profile information with content scraping
+
+USAGE NOTES:
+Process data in chunks to manage API costs and rate limits. Review generated content
+for accuracy and ensure compliance with institutional policies for automated research.
+"""
+
 import streamlit as st
 import pandas as pd
 import openai
@@ -95,40 +131,40 @@ def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
 #     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
 #     return enriched_text
 # Function to generate enriched text using Google Search API
-def generate_enriched_text(full_name, university):
-    query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
-    conn = http.client.HTTPSConnection("google.serper.dev")
-    payload = json.dumps({
-        "q": query
+def generate_enriched_text(researcher_full_name, university_affiliation):
+    search_query = f"a professional bio and email for {researcher_full_name}, who is affiliated with {university_affiliation}."
+    http_connection = http.client.HTTPSConnection("google.serper.dev")
+    request_payload = json.dumps({
+        "q": search_query
     })
-    headers = {
+    request_headers = {
         'X-API-KEY': st.secrets["serper_api_key"],
         'Content-Type': 'application/json'
     }
-    conn.request("POST", "/search", payload, headers)
-    res = conn.getresponse()
-    data = res.read()
-    response_data = json.loads(data.decode("utf-8"))
+    http_connection.request("POST", "/search", request_payload, request_headers)
+    api_response = http_connection.getresponse()
+    response_data_raw = api_response.read()
+    parsed_response_data = json.loads(response_data_raw.decode("utf-8"))
 
-    enriched_text = ""
-    for result in response_data.get('organic', []):
-        url = result['link']
-        body_text = result['snippet']
-        scraped_text = scrape_text_from_url(url)
-        if scraped_text is not None:
-            combined_text = f"{body_text} {scraped_text}"
-            enriched_text += clean_text(combined_text) + " "
+    compiled_enriched_text = ""
+    for search_result in parsed_response_data.get('organic', []):
+        result_url = search_result['link']
+        snippet_text = search_result['snippet']
+        scraped_content = scrape_text_from_url(result_url)
+        if scraped_content is not None:
+            combined_content = f"{snippet_text} {scraped_content}"
+            compiled_enriched_text += clean_text(combined_content) + " "
         else:
-            enriched_text += clean_text(body_text) + " "
+            compiled_enriched_text += clean_text(snippet_text) + " "
 
     # Format the enriched text into a block of text
-    enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
-    return enriched_text
+    final_enriched_text = re.sub(r'\s+', ' ', compiled_enriched_text).strip()
+    return final_enriched_text
 
 # Function to generate bio using ChatGPT
-def generate_bio_with_chatgpt(full_name,university,truncated_text):
+def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enriched_text_content):
     prompt = (
-        f"Create a professional biographical profile for {full_name}, who is affiliated with {university}, based on the following information: {truncated_text}\n\n"
+        f"Create a professional biographical profile for {researcher_full_name}, who is affiliated with {university_affiliation}, based on the following information: {enriched_text_content}\n\n"
         "Important guidelines:\n"
         "1. Do NOT assume any titles (like Dr. or Professor) unless explicitly mentioned in the provided information\n"
         "2. Only include factual information that is directly supported by the provided text\n"
@@ -145,16 +181,16 @@ def generate_bio_with_chatgpt(full_name,university,truncated_text):
     )
     try:
         # Initialize the OpenAI client
-        client = OpenAI(api_key=st.secrets["openai_api_key"])
+        openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
 
         # Generate response using the official OpenAI method
-        response = client.chat.completions.create(
+        chat_response = openai_client.chat.completions.create(
             model="gpt-4o-mini-2024-07-18",
             messages=[{"role": "user", "content": prompt}]
         )
-        results = response.choices[0].message.content
+        bio_results = chat_response.choices[0].message.content
 
-        return results
+        return bio_results
     except Exception as e:
         st.error(f"Error generating bio with ChatGPT: {e}")
         return None
@@ -168,81 +204,81 @@ def extract_email(bio_content):
 st.title("BioGen - Automated Bio Generator")
 
 # File Upload
-uploaded_file = st.file_uploader("Upload your CSV/XLSX file :balloon:", type=["csv", "xlsx"])
-if uploaded_file:
+uploaded_dataset = st.file_uploader("Upload your CSV/XLSX file :balloon:", type=["csv", "xlsx"])
+if uploaded_dataset:
     # Load File
-    if uploaded_file.name.endswith(".csv"):
-        data = pd.read_csv(uploaded_file)
+    if uploaded_dataset.name.endswith(".csv"):
+        dataset_dataframe = pd.read_csv(uploaded_dataset)
     else:
-        data = pd.read_excel(uploaded_file)
+        dataset_dataframe = pd.read_excel(uploaded_dataset)
 
     st.write("### File Preview:")
-    st.write(data.head())
+    st.write(dataset_dataframe.head())
 
     # If 'University' column is missing but 'Affiliation' exists, rename it
-    if 'University' not in data.columns and 'Affiliation' in data.columns:
-        data.rename(columns={'Affiliation': 'University'}, inplace=True)
+    if 'University' not in dataset_dataframe.columns and 'Affiliation' in dataset_dataframe.columns:
+        dataset_dataframe.rename(columns={'Affiliation': 'University'}, inplace=True)
         st.info("'Affiliation' column found and renamed to 'University' for processing.")
 
     # Check if required columns are present
     required_columns = ['Name', 'University']
-    if all(col in data.columns for col in required_columns):
+    if all(col in dataset_dataframe.columns for col in required_columns):
         st.success("File contains the required columns for processing.")
 
         # Add a placeholder for the Bio column if not already present
-        if 'Bio' not in data.columns:
-            data['Bio'] = ""
-        if 'Email' not in data.columns:
-            data['Email'] = ""
+        if 'Bio' not in dataset_dataframe.columns:
+            dataset_dataframe['Bio'] = ""
+        if 'Email' not in dataset_dataframe.columns:
+            dataset_dataframe['Email'] = ""
 
         # Specify Chunk Size
-        default_chunk = min(10, len(data))
-        chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(data), value=default_chunk)
+        default_chunk_size = min(10, len(dataset_dataframe))
+        processing_chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(dataset_dataframe), value=default_chunk_size)
 
-        total_chunks = (len(data) + chunk_size - 1) // chunk_size
+        total_chunks = (len(dataset_dataframe) + processing_chunk_size - 1) // processing_chunk_size
         st.write(f"### Total Chunks: {total_chunks}")
 
         # Select Chunk to Process
-        chunk_index = st.number_input("Select Chunk Index", min_value=0, max_value=total_chunks - 1, value=0, step=1)
-        chunk_data = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
+        selected_chunk_index = st.number_input("Select Chunk Index", min_value=0, max_value=total_chunks - 1, value=0, step=1)
+        current_chunk_data = dataset_dataframe.iloc[selected_chunk_index * processing_chunk_size:(selected_chunk_index + 1) * processing_chunk_size]
         st.write("### Current Chunk:")
-        st.write(chunk_data)
+        st.write(current_chunk_data)
 
         if st.button("Generate Bios for Current Chunk"):
             # Iterate through each row in the chunk
-            for index, row in chunk_data.iterrows():
-                full_name = row['Name']
-                university = row['University']
+            for data_index, data_row in current_chunk_data.iterrows():
+                researcher_name = data_row['Name']
+                researcher_university = data_row['University']
 
                 # Generate enriched text using DDGS
-                enriched_text = generate_enriched_text(full_name, university)
+                enriched_research_text = generate_enriched_text(researcher_name, researcher_university)
 
                 # Truncate enriched text to fit within token limit
-                max_tokens = 100000  # Adjust this value based on your model's token limit
-                truncated_text = truncate_text(enriched_text, max_tokens)
+                max_token_limit = 100000  # Adjust this value based on your model's token limit
+                truncated_enriched_text = truncate_text(enriched_research_text, max_token_limit)
 
                 # Generate bio using ChatGPT
-                bio_content = generate_bio_with_chatgpt(full_name,university,truncated_text)
-                if bio_content:
-                    data.at[index, 'Bio'] = bio_content  # Update the bio column
+                generated_bio_content = generate_bio_with_chatgpt(researcher_name, researcher_university, truncated_enriched_text)
+                if generated_bio_content:
+                    dataset_dataframe.at[data_index, 'Bio'] = generated_bio_content  # Update the bio column
 
                     # Extract email from the bio content
-                    email_address = extract_email(bio_content)
-                    data.at[index, 'Email'] = email_address
+                    extracted_email = extract_email(generated_bio_content)
+                    dataset_dataframe.at[data_index, 'Email'] = extracted_email
 
             # Display Updated Chunk
-            updated_chunk = data.iloc[chunk_index * chunk_size:(chunk_index + 1) * chunk_size]
+            updated_chunk_display = dataset_dataframe.iloc[selected_chunk_index * processing_chunk_size:(selected_chunk_index + 1) * processing_chunk_size]
             st.write("### Updated Chunk with Bios:")
-            st.write(updated_chunk)
+            st.write(updated_chunk_display)
 
             # Download Option
-            output = BytesIO()
-            updated_chunk.to_excel(output, index=False, engine='openpyxl')
-            output.seek(0)
+            excel_output = BytesIO()
+            updated_chunk_display.to_excel(excel_output, index=False, engine='openpyxl')
+            excel_output.seek(0)
             st.download_button(
                 label="Download Current Chunk as an Excel Sheet",
-                data=output,
-                file_name=f"chunk_{chunk_index}_bios.xlsx",
+                data=excel_output,
+                file_name=f"chunk_{selected_chunk_index}_bios.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         st.info("Use the Chunk Index to process the next set of rows.")

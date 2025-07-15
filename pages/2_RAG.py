@@ -1,3 +1,31 @@
+"""
+RAG - Retrieval-Augmented Generation Lead Generation Module
+==========================================================
+
+A Streamlit component that implements RAG for intelligent document analysis and question answering.
+Upload academic documents and perform contextual searches to extract information about conference
+participants, research areas, and affiliations.
+
+KEY FEATURES:
+- Multi-format document processing (TXT, MD, XLSX, PDF)
+- Vector embeddings with FAISS search and LangChain integration
+- Interactive Q&A interface with token management
+- Real-time analysis of conference participants and academic profiles
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, openai, pandas, tiktoken, PyPDF2, langchain, faiss-cpu
+
+WORKFLOW:
+1. Upload documents → 2. Process and chunk → 3. Create embeddings → 4. Store in FAISS
+5. Ask questions → 6. Retrieve relevant chunks → 7. Generate answers with source attribution
+
+USE CASES:
+- Conference participant analysis and contact extraction
+- Academic paper searches by topic/methodology
+- University affiliation filtering and collaboration identification
+"""
+
 import streamlit as st
 from openai import OpenAI
 import pandas as pd
@@ -45,16 +73,16 @@ question = st.text_input(
 
 ########
 # Function to estimate tokens
-def estimate_tokens(text):
+def estimate_tokens(input_text):
     encoding = tiktoken.get_encoding("cl100k_base")  # GPT-4 uses this encoding
-    tokens = len(encoding.encode(text))
+    tokens = len(encoding.encode(input_text))
     return tokens
 
-def extract_text_from_pdf(file):
+def extract_text_from_pdf(pdf_file):
     """
     Extract all text from a PDF using PyPDF2.
     """
-    pdf_reader = PyPDF2.PdfReader(file)
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
     all_text = []
     for page_num in range(len(pdf_reader.pages)):
         page = pdf_reader.pages[page_num]
@@ -63,37 +91,37 @@ def extract_text_from_pdf(file):
             all_text.append(page_text)
     return "\n".join(all_text)
 
-article = None
+document_content = None
 
 if uploaded_file:
     if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.md'):
         # Read text content
         try:
-            article = uploaded_file.read().decode('utf-8')
+            document_content = uploaded_file.read().decode('utf-8')
         except UnicodeDecodeError:
             st.error("Could not decode the text file. Please ensure it's UTF-8 or ISO-8859-1.")
-            article = None
+            document_content = None
 
     elif uploaded_file.name.endswith('.xlsx'):
         # Read Excel content
-        df = pd.read_excel(uploaded_file)
-        article = df.to_string(index=False)
+        excel_dataframe = pd.read_excel(uploaded_file)
+        document_content = excel_dataframe.to_string(index=False)
 
     elif uploaded_file.name.endswith('.pdf'):
         # Parse PDF content
         try:
-            article = extract_text_from_pdf(uploaded_file)
+            document_content = extract_text_from_pdf(uploaded_file)
         except Exception as e:
             st.error(f"Error reading PDF: {e}")
-            article = None
+            document_content = None
 
     else:
         st.error("Unsupported file type.")
-        article = None
+        document_content = None
 
-    if article:
+    if document_content:
         # Estimate tokens of the full article plus the question
-        total_tokens = estimate_tokens(article) + estimate_tokens(question)
+        total_tokens = estimate_tokens(document_content) + estimate_tokens(question)
         st.markdown(f"**Estimated Token Count:** {total_tokens}")
 
         # Warn if token count is too high
@@ -108,40 +136,40 @@ if uploaded_file:
 ########
 
 # Process the uploaded file and question with LangChain-style chunking and retrieval
-if uploaded_file and question and openai_api_key and article:
+if uploaded_file and question and openai_api_key and document_content:
     try:
         # Step 1: Chunk the article text into manageable pieces
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-        chunks = text_splitter.split_text(article)
-        st.write(f"Text has been split into {len(chunks)} chunks.")
+        text_chunks = text_splitter.split_text(document_content)
+        st.write(f"Text has been split into {len(text_chunks)} chunks.")
 
         # Step 2: Create embeddings and build a FAISS vector store
-        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-        vectorstore = FAISS.from_texts(chunks, embeddings)
+        openai_embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+        vector_store = FAISS.from_texts(text_chunks, openai_embeddings)
         st.info("Embeddings created and vector store built.")
 
         # Step 3: Set up the retrieval chain using GPT-4 as the language model
-        chat_llm = ChatOpenAI(model_name="gpt-4", openai_api_key=openai_api_key)
-        retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+        chat_language_model = ChatOpenAI(model_name="gpt-4", openai_api_key=openai_api_key)
+        document_retriever = vector_store.as_retriever(search_kwargs={"k": 3})
         qa_chain = RetrievalQA.from_chain_type(
-            llm=chat_llm,
+            llm=chat_language_model,
             chain_type="stuff",
-            retriever=retriever,
+            retriever=document_retriever,
             return_source_documents=True,
         )
 
         # Step 4: Process the question using the retrieval chain
         with st.spinner("Querying the document..."):
-            result = qa_chain({"query": question})
+            qa_result = qa_chain({"query": question})
 
         # Step 5: Display the answer and source documents
         st.write("### Answer")
-        st.write(result["result"])
+        st.write(qa_result["result"])
         st.write("---")
         st.write("### Source Documents (Extracts)")
-        for i, doc in enumerate(result["source_documents"]):
+        for i, source_doc in enumerate(qa_result["source_documents"]):
             st.write(f"**Document {i+1}:**")
-            st.write(doc.page_content[:500] + "...")
+            st.write(source_doc.page_content[:500] + "...")
     except Exception as e:
         st.error(f"An error occurred during processing: {e}")
 elif uploaded_file and question and not openai_api_key:

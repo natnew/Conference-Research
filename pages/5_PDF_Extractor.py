@@ -1,3 +1,36 @@
+"""
+PDF Extractor - Intelligent Document Analysis Module
+===================================================
+
+A Streamlit PDF processing tool using AI-powered extraction to identify and structure
+academic information from conference proceedings, participant lists, and institutional
+documents. Automatically extracts names, affiliations, and locations from PDFs.
+
+KEY FEATURES:
+- Advanced PDF text extraction using PyMuPDF and pymupdf4llm
+- AI-powered entity recognition with Pydantic validation
+- Parallel processing for large document batches
+- Intelligent name/affiliation detection and Excel export
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, pandas, pydantic, openai, fitz, pymupdf4llm, concurrent.futures
+- Input: Text-based PDFs (not image-only scans)
+
+WORKFLOW:
+1. Upload PDFs → 2. Process and convert to text → 3. AI analyzes and extracts entities
+4. Validate with Pydantic models → 5. Review results → 6. Export to Excel
+
+EXTRACTION MODELS:
+- ExtractedInfo: name, university, location
+- ExtractionResponse: List of all identified individuals
+- CorrectionResponse: Error validation and correction
+
+USE CASES:
+- Conference participant extraction and academic collaboration analysis
+- Author affiliation processing and contact database creation
+"""
+
 import streamlit as st
 import pandas as pd
 import re
@@ -54,40 +87,40 @@ class CorrectionResponse(BaseModel):
 def extract_text_from_pdf(pdf_path):
     pdf_document = fitz.open(pdf_path)
     total_pages = pdf_document.page_count
-    extracted_texts = []
+    page_texts = []
 
-    for page in range(total_pages):
-        md_text = pymupdf4llm.to_markdown(pdf_path, pages=[page])
-        extracted_texts.append(md_text)
+    for page_number in range(total_pages):
+        markdown_text = pymupdf4llm.to_markdown(pdf_path, pages=[page_number])
+        page_texts.append(markdown_text)
 
     pdf_document.close()
-    return extracted_texts
+    return page_texts
 
 # Function to extract information using LLM
-def extract_info_with_llm(text, openai_client):
+def extract_info_with_llm(document_text, openai_client):
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {"role": "system", "content": """Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just give the country name of the location don't include the city. 
             Ensure the data you provide is accurate, clean of any weird character in the names try to reconstruct them to the best of your capabilities, and verifiable with the source provided.
             If you cannot infer the location just leave it empty."""},
-            {"role": "user", "content": text}
+            {"role": "user", "content": document_text}
         ],
         response_format=ExtractionResponse
     )
-    extracted_data = response.choices[0].message.content
-    extracted_data_parsed = json.loads(extracted_data)
-    return extracted_data_parsed.get("extracted_info", [])
+    api_response_data = response.choices[0].message.content
+    parsed_extraction_data = json.loads(api_response_data)
+    return parsed_extraction_data.get("extracted_info", [])
 
 # Function to correct extracted information using LLM
-def correct_info_with_llm(extracted_data, text, openai_client):
+def correct_info_with_llm(raw_extracted_data, source_text, openai_client):
     correction_prompt = """ Review and clean the extracted information below against the source text.
 
                             EXTRACTED DATA:
-                            {extracted_data}
+                            {raw_extracted_data}
                             
                             SOURCE TEXT:
-                            {text}
+                            {source_text}
                             
                             INSTRUCTIONS:
                             1. Verify names and universities against the source text only
@@ -125,17 +158,17 @@ def correct_info_with_llm(extracted_data, text, openai_client):
         ],
         response_format=CorrectionResponse
     )
-    corrected_data = response.choices[0].message.content
-    corrected_data_parsed = json.loads(corrected_data)
-    return corrected_data_parsed.get("corrected_info", [])
+    correction_response = response.choices[0].message.content
+    parsed_correction_data = json.loads(correction_response)
+    return parsed_correction_data.get("corrected_info", [])
 
 # Streamlit App UI
 st.title("PDF Extractor - Names, Universities, and Locations")
 st.write("Upload a PDF file, extract and clean its text, and find names, universities, and locations. :balloon:")
 
 # Initialize session state
-if 'df' not in st.session_state:
-    st.session_state.df = pd.DataFrame()
+if 'extracted_dataframe' not in st.session_state:
+    st.session_state.extracted_dataframe = pd.DataFrame()
 if 'extraction_done' not in st.session_state:
     st.session_state.extraction_done = False
 
@@ -147,64 +180,64 @@ if uploaded_file is not None and not st.session_state.extraction_done:
         try:
             # Extract text from PDF
             pdf_bytes = uploaded_file.getvalue()
-            with open("temp.pdf", "wb") as temp_pdf:
-                temp_pdf.write(pdf_bytes)
+            with open("temp.pdf", "wb") as temp_pdf_file:
+                temp_pdf_file.write(pdf_bytes)
 
-            extracted_texts = extract_text_from_pdf("temp.pdf")
+            page_texts = extract_text_from_pdf("temp.pdf")
             openai_client = OpenAI(api_key=openai_api_key)
 
-            all_extracted_data = []
+            all_raw_extractions = []
 
             # Use ThreadPoolExecutor for parallel processing
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(extract_info_with_llm, text, openai_client) for text in extracted_texts]
-                for future in futures:
-                    extracted_data = future.result()
-                    all_extracted_data.extend(extracted_data)
+                extraction_futures = [executor.submit(extract_info_with_llm, page_text, openai_client) for page_text in page_texts]
+                for future in extraction_futures:
+                    page_extracted_data = future.result()
+                    all_raw_extractions.extend(page_extracted_data)
 
             # Use ThreadPoolExecutor for parallel processing of correction
-            corrected_data = []
+            final_corrected_data = []
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(correct_info_with_llm, data, extracted_texts[0], openai_client) for data in all_extracted_data]
-                for future in futures:
-                    corrected_info = future.result()
-                    corrected_data.extend(corrected_info)
+                correction_futures = [executor.submit(correct_info_with_llm, extraction_item, page_texts[0], openai_client) for extraction_item in all_raw_extractions]
+                for future in correction_futures:
+                    corrected_entries = future.result()
+                    final_corrected_data.extend(corrected_entries)
 
             # Convert to DataFrame and remove duplicates
-            df = pd.DataFrame(corrected_data)
-            df.drop_duplicates(inplace=True)
+            results_dataframe = pd.DataFrame(final_corrected_data)
+            results_dataframe.drop_duplicates(inplace=True)
 
             # Store DataFrame in session state
-            st.session_state.df = df
+            st.session_state.extracted_dataframe = results_dataframe
             st.session_state.extraction_done = True
 
-            if not df.empty:
+            if not results_dataframe.empty:
                 st.success("Extraction completed!")
                 st.write("### Extracted Names, Universities, and Locations")
-                st.dataframe(df)
+                st.dataframe(results_dataframe)
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
 # Check if DataFrame exists in session state
-if 'df' in st.session_state and not st.session_state.df.empty:
+if 'extracted_dataframe' in st.session_state and not st.session_state.extracted_dataframe.empty:
     # Filtering by location
     st.write("### Filter by Location")
-    available_locations = st.session_state.df['location'].dropna().unique()
+    available_locations = st.session_state.extracted_dataframe['location'].dropna().unique()
     selected_locations = st.multiselect("Select locations to filter", available_locations)
 
     if selected_locations:
-        filtered_df = st.session_state.df[st.session_state.df['location'].isin(selected_locations)]
+        location_filtered_dataframe = st.session_state.extracted_dataframe[st.session_state.extracted_dataframe['location'].isin(selected_locations)]
         st.write("### Filtered DataFrame")
-        st.dataframe(filtered_df)
+        st.dataframe(location_filtered_dataframe)
 
         # Download as Excel
-        output = BytesIO()
-        filtered_df.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
+        filtered_excel_output = BytesIO()
+        location_filtered_dataframe.to_excel(filtered_excel_output, index=False, engine='openpyxl')
+        filtered_excel_output.seek(0)
         st.download_button(
             label="Download Filtered Data as Excel",
-            data=output,
+            data=filtered_excel_output,
             file_name="filtered_names_and_university_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
@@ -212,12 +245,12 @@ if 'df' in st.session_state and not st.session_state.df.empty:
         st.warning("Please select at least one location to filter the data.")
 
     # Download original DataFrame as Excel
-    original_output = BytesIO()
-    st.session_state.df.to_excel(original_output, index=False, engine='openpyxl')
-    original_output.seek(0)
+    original_excel_output = BytesIO()
+    st.session_state.extracted_dataframe.to_excel(original_excel_output, index=False, engine='openpyxl')
+    original_excel_output.seek(0)
     st.download_button(
         label="Download Original Data as Excel",
-        data=original_output,
+        data=original_excel_output,
         file_name="original_names_and_university_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )

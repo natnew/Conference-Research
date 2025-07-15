@@ -1,3 +1,40 @@
+"""
+Deep Research - AI-Powered Multi-Agent Research System
+=====================================================
+
+An advanced Streamlit research automation tool employing multi-agent AI systems for
+comprehensive research on academic topics, institutions, and individuals. Features
+autonomous web searching, content synthesis, and structured report generation.
+
+KEY FEATURES:
+- Multi-agent AI architecture with specialized research agents
+- Autonomous research planning and web search integration (Brave API)
+- Iterative research with feedback loops and quality validation
+- Structured report generation with real-time progress tracking
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- brave_api_key: Brave Search API key
+- Dependencies: streamlit, openai, brave, pydantic, typing, logging
+
+ARCHITECTURE - AGENT COMPONENTS:
+1. Research Planner: Decomposes queries into sections
+2. Search Agent: Performs targeted web searches
+3. Analysis Agent: Synthesizes multi-source information
+4. Validation Agent: Reviews quality and generates feedback
+5. Report Generator: Compiles structured final reports
+
+WORKFLOW:
+1. Submit research query → 2. Plan and decompose → 3. Generate search queries
+4. Execute web searches → 5. Analyze and synthesize → 6. Validate quality
+7. Perform additional searches → 8. Generate comprehensive report
+
+USE CASES:
+- Academic institution analysis and literature reviews
+- Conference research and collaboration identification
+- Grant funding analysis and competitive program research
+"""
+
 import streamlit as st
 import time
 import os

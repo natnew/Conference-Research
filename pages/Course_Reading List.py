@@ -1,3 +1,42 @@
+"""
+Course Reading List - Academic Bibliography & Material Discovery Tool
+====================================================================
+
+A specialized Streamlit application for automatically discovering, compiling, and organizing
+reading lists for university courses. Combines AI-powered content analysis with intelligent
+web search to create comprehensive bibliographies and resource collections.
+
+KEY FEATURES:
+- AI-driven material discovery using DuckDuckGo search with content filtering
+- Automated bibliography generation with proper academic formatting (APA, MLA, Chicago)
+- Source verification and course-specific customization
+- Export capabilities and integration with citation managers
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, duckduckgo_search, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai
+- Input: Course codes, titles, and academic discipline information
+
+ARCHITECTURE:
+Content Pipeline: Course input → search query generation → web search → AI relevance assessment
+→ bibliography compilation → citation formatting → export
+
+WORKFLOW:
+Automated: Input course details → AI generates queries → multi-source search → content analysis
+→ categorize materials → compile bibliography → export
+Manual: Direct input → AI-assisted discovery → custom organization → integration
+
+CONTENT CATEGORIES:
+Core: Textbooks, peer-reviewed articles, foundational texts
+Supplementary: Lecture notes, case studies, multimedia, OER
+Reference: Dictionaries, databases, primary sources
+
+USE CASES:
+- Course development and curriculum planning
+- Student research preparation and academic library collection
+- Graduate program creation and professional development support
+"""
+
 import streamlit as st
 from duckduckgo_search import DDGS
 from selenium import webdriver
@@ -87,9 +126,9 @@ def get_chrome_driver():
     chrome_options.add_argument('--disable-dev-shm-usage')
 
     try:
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        return driver
+        chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        return webdriver_instance
     except Exception as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None

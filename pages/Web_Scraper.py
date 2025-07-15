@@ -1,3 +1,41 @@
+"""
+Web Scraper - Advanced Academic Website Extraction Tool
+======================================================
+
+A sophisticated Streamlit web scraping application for extracting academic profiles from
+conference websites, institutional pages, and academic databases. Uses Selenium WebDriver
+for dynamic content handling and AI-powered data extraction.
+
+KEY FEATURES:
+- Selenium WebDriver automation with cookie consent management
+- AI-powered name/affiliation extraction using OpenAI models
+- Beautiful Soup HTML parsing with Pydantic validation
+- Excel export and intelligent wait strategies for dynamic content
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai
+- System: Chrome browser (auto-managed)
+
+TECHNICAL ARCHITECTURE:
+- Chrome WebDriver with headless mode and automated driver management
+- Content pipeline: URL navigation → cookie handling → dynamic loading → HTML extraction
+- AI analysis → data validation → structured formatting → export
+
+WORKFLOW:
+1. Input URL → 2. Configure parameters → 3. Navigate and handle popups
+4. Wait for content → 5. Extract with Beautiful Soup → 6. AI analyzes content
+7. Validate data → 8. Present results → 9. Export to Excel
+
+USE CASES:
+- Conference participant extraction and faculty directory scraping
+- Academic event speaker collection and contact database building
+- Research collaboration analysis and outreach list creation
+
+COMPATIBILITY:
+JavaScript-heavy sites, SPAs, GDPR consent sites, dynamic AJAX content
+"""
+
 import os
 import streamlit as st
 from selenium import webdriver
@@ -61,9 +99,9 @@ def get_chrome_driver():
     chrome_options.add_argument('--enable-javascript')
 
     try:
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        return driver
+        chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        return webdriver_instance
     except Exception as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None
@@ -81,16 +119,16 @@ class GenericConferenceScraper:
 
     def __init__(self):
         """Initialize the scraper with cached Selenium WebDriver"""
-        self.driver = get_chrome_driver()
-        if not self.driver:
+        self.webdriver_instance = get_chrome_driver()
+        if not self.webdriver_instance:
             st.error("Failed to initialize the scraper")
             st.stop()
 
     def __del__(self):
         """Clean up the WebDriver"""
-        if hasattr(self, 'driver') and self.driver:
+        if hasattr(self, 'webdriver_instance') and self.webdriver_instance:
             try:
-                self.driver.quit()
+                self.webdriver_instance.quit()
             except:
                 pass
 

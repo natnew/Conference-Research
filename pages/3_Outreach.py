@@ -1,3 +1,34 @@
+"""
+Outreach - Email Generation Module
+=================================
+
+A Streamlit email composition tool for personalized academic outreach. Provides templated
+email generation with AI-powered customization for conference networking, collaboration
+proposals, and professional relationship building.
+
+KEY FEATURES:
+- Pre-built email templates for academic scenarios
+- AI-powered personalization and content suggestions
+- Real-time preview and editing capabilities
+- Template variables for dynamic content insertion
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, langchain
+
+TEMPLATE VARIABLES:
+[NAME], [CONFERENCE NAME], [DATE], [CITY], [TOPIC], [TIME], [DAY], [MONTH], [YOUR NAME]
+
+WORKFLOW:
+1. Select template → 2. Input recipient details → 3. AI personalizes content
+4. Review and edit → 5. Copy for sending
+
+USE CASES:
+- Conference meeting requests and textbook collaboration proposals
+- Research partnerships and campus visit coordination
+- Academic event invitations and follow-up communications
+"""
+
 import streamlit as st
 from langchain.llms import OpenAI
 
@@ -52,25 +83,25 @@ if "enhanced_email" not in st.session_state:
     st.session_state.enhanced_email = ""
 
 def update_template():
-    template_text = templates.get(st.session_state.template_choice, "")
-    if template_text:
-        st.session_state.email_text = template_text
+    selected_template_text = templates.get(st.session_state.template_choice, "")
+    if selected_template_text:
+        st.session_state.email_text = selected_template_text
 
 
-def generate_response(original_text, tone, length):
+def generate_response(original_email_text, tone, length):
     prompt = f"""
     Please enhance the following email. 
     Use a {tone.lower()} tone and ensure the email is {length.lower()} in length.
     
     Original Email:
-    {original_text}
+    {original_email_text}
     
     Enhanced Email:
     """
     try:
-        llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
-        response = llm(prompt)
-        st.session_state.enhanced_email = response
+        language_model = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
+        enhanced_response = language_model(prompt)
+        st.session_state.enhanced_email = enhanced_response
     except Exception as e:
         st.error(f"Error generating response: {e}")
 

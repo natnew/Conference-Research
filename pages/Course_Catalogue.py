@@ -1,3 +1,36 @@
+"""
+Course Catalogue - Educational Content Extraction & Analysis Tool
+================================================================
+
+A comprehensive Streamlit application for extracting, analyzing, and summarizing course
+information from educational websites and academic institutions. Combines web scraping
+with AI-powered content analysis for institutional research and academic planning.
+
+KEY FEATURES:
+- Automated web scraping with Selenium WebDriver for dynamic content
+- AI-powered course extraction using OpenAI models with DuckDuckGo integration
+- Course module leader identification and reading list extraction
+- Structured data organization with progress tracking and export capabilities
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai, requests, duckduckgo_search
+- System: Chrome browser (auto-managed)
+
+ARCHITECTURE:
+Multi-Modal Processing: Web scraping → Manual entry → AI analysis → Search integration
+Pipeline: URL navigation → dynamic loading → HTML parsing → AI extraction → data compilation
+
+WORKFLOW:
+Web Scraping: Input URL → configure parameters → extract content → AI processes → export
+Manual Entry: Input course names → DuckDuckGo search → AI analysis → manual review
+
+USE CASES:
+- Academic program research and course content analysis
+- Reading list compilation and faculty assignment analysis
+- Curriculum development and student advising support
+"""
+
 import os
 import streamlit as st
 from selenium import webdriver
@@ -95,9 +128,9 @@ def get_chrome_driver():
     chrome_options.add_argument('--disable-dev-shm-usage')
 
     try:
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        return driver
+        chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        return webdriver_instance
     except Exception as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None

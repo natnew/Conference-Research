@@ -1,3 +1,36 @@
+"""
+Desktop Research - Academic Profile Search Module
+================================================
+
+A Streamlit tool for comprehensive academic profile searches using local data files and
+AI-generated biographical content. Facilitates academic networking by providing detailed
+researcher information through intelligent data processing.
+
+KEY FEATURES:
+- Local file search (CSV/XLSX) with real-time filtering
+- AI-powered biography generation using OpenAI GPT models
+- Academic profile synthesis including research/teaching interests
+- Contact information extraction and export capabilities
+
+REQUIREMENTS:
+- openai_api_key: OpenAI API key
+- Dependencies: streamlit, pandas, openai, re
+- Input: CSV/XLSX files with Name, University/Affiliation columns
+
+WORKFLOW:
+1. Upload data files → 2. Search/filter by name/institution/research area
+3. Select individuals → 4. AI generates comprehensive profiles → 5. Export results
+
+AI BIOGRAPHY INCLUDES:
+- Academic background and current position
+- Research interests and teaching responsibilities
+- Publications and contact information
+
+USE CASES:
+- Pre-conference research and academic collaboration discovery
+- Research interest mapping and contact compilation for outreach
+"""
+
 import streamlit as st
 import pandas as pd
 import re
@@ -23,24 +56,24 @@ with st.sidebar:
     openai_api_key = st.secrets["openai_api_key"]
 
 # Bio Generation Function
-def generate_bio_with_chatgpt(full_name, university):
+def generate_bio_with_chatgpt(researcher_full_name, university_affiliation):
     """
     Generate a professional bio using OpenAI's ChatGPT API.
     """
     prompt = (
-        f"Generate a professional bio for {full_name}, who is affiliated with {university}. "
+        f"Generate a professional bio for {researcher_full_name}, who is affiliated with {university_affiliation}. "
         "Include their research interests, teaching interests, any paper titles they may have published, "
         "and contact information such as email."
     )
     try:
         # Initialize the OpenAI client
-        client = OpenAI(api_key=openai_api_key)
+        openai_client = OpenAI(api_key=openai_api_key)
 
         # Generate response
-        response = client.chat.completions.create(
+        chat_response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
         )
-        return response.choices[0].message.content
+        return chat_response.choices[0].message.content
     except Exception as e:
         return f"Error generating bio: {e}"
 
@@ -50,61 +83,61 @@ def main():
     st.markdown("Search for academic profiles by querying local files (CSV/XLSX) or the internet. :balloon:")
 
     # User Input Fields
-    full_name = st.text_input("Full Name (First and Last Name)")
-    university = st.text_input("University")
+    researcher_full_name = st.text_input("Full Name (First and Last Name)")
+    university_affiliation = st.text_input("University")
     search_scope = st.selectbox("Where would you like to search?", ["Local Files", "Internet", "Both"])
 
     # Optional File Upload
-    uploaded_files = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
+    uploaded_datasets = st.file_uploader("Upload CSV/XLSX files (optional for local search)", type=["csv", "xlsx"], accept_multiple_files=True)
 
     if st.button("Search"):
         if search_scope == "Internet":
             # Internet Search with ChatGPT
-            if full_name and university:
+            if researcher_full_name and university_affiliation:
                 st.write("### Generating Bio with AI...")
-                bio_content = generate_bio_with_chatgpt(full_name, university)
+                bio_content = generate_bio_with_chatgpt(researcher_full_name, university_affiliation)
                 st.write("### Bio Content:")
                 st.write(bio_content)
 
                 # Extract Email
                 email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
-                email_address = email_match.group() if email_match else "Email not found"
-                st.write(f"### Extracted Email: {email_address}")
+                extracted_email_address = email_match.group() if email_match else "Email not found"
+                st.write(f"### Extracted Email: {extracted_email_address}")
             else:
                 st.error("Please provide both Full Name and University.")
 
         if search_scope in ["Local Files", "Both"]:
             # Process Local File Search
-            if uploaded_files:
+            if uploaded_datasets:
                 st.write("### Searching in Local Files...")
-                for file in uploaded_files:
-                    if file.name.endswith(".csv"):
-                        df = pd.read_csv(file)
+                for dataset_file in uploaded_datasets:
+                    if dataset_file.name.endswith(".csv"):
+                        file_dataframe = pd.read_csv(dataset_file)
                     else:
-                        df = pd.read_excel(file)
+                        file_dataframe = pd.read_excel(dataset_file)
 
                     st.write("### File Preview:")
-                    st.write(df.head())
+                    st.write(file_dataframe.head())
 
                     # If 'University' column is missing but 'Affiliation' exists, rename it
-                    if 'University' not in df.columns and 'Affiliation' in df.columns:
-                        df.rename(columns={'Affiliation': 'University'}, inplace=True)
+                    if 'University' not in file_dataframe.columns and 'Affiliation' in file_dataframe.columns:
+                        file_dataframe.rename(columns={'Affiliation': 'University'}, inplace=True)
                         st.info("'Affiliation' column found and renamed to 'University' for processing.")
 
                     # Check required columns
-                    if 'Name' in df.columns and 'University' in df.columns:
+                    if 'Name' in file_dataframe.columns and 'University' in file_dataframe.columns:
                         st.success("File contains required columns.")
-                        df['Bio'] = df.apply(
+                        file_dataframe['Bio'] = file_dataframe.apply(
                             lambda row: generate_bio_with_chatgpt(row['Name'], row['University']), axis=1
                         )
                         st.write("### Updated Data:")
-                        st.write(df)
+                        st.write(file_dataframe)
 
                         # Download Option
-                        csv = df.to_csv(index=False)
+                        csv_export = file_dataframe.to_csv(index=False)
                         st.download_button(
                             label="Download Updated File",
-                            data=csv,
+                            data=csv_export,
                             file_name="updated_data_with_bios.csv",
                             mime="text/csv"
                         )
