@@ -1,0 +1,45 @@
+# Production environment configuration
+# Optimized for performance, security, and reliability
+
+environment: "production"
+debug: false
+
+# API Configuration - Production-optimized settings
+api:
+  openai:
+    timeout: 30  # Balanced timeout
+    max_tokens: 1000  # Full token limit
+  serper:
+    timeout: 10  # Standard timeout
+    max_results: 10  # Full result set
+  groq:
+    timeout: 15
+
+# File Upload Configuration - Strict security
+file_upload:
+  max_size_mb: 50  # Full size limit
+  validation_strict: true  # Strict validation for security
+
+# WebDriver Configuration - Production settings
+webdriver:
+  headless: true  # Always headless in production
+  timeout: 30  # Standard timeout
+  user_agent: "Conference-Research-App/1.0"
+
+# Retry Configuration - Robust retry logic
+retry:
+  max_attempts: 3  # Full retry attempts
+  initial_delay: 1.0  # Standard delay
+  backoff_factor: 2.0  # Exponential backoff
+  max_delay: 60.0  # Maximum delay cap
+
+# Logging Configuration - Production logging
+logging:
+  level: "INFO"  # Standard logging level
+  format: "json"  # Structured logging for production
+  file_enabled: true  # Enable file logging
+  file_path: "/var/log/conference-research/app.log"
+
+# Feature Flags - Production features
+enable_caching: true  # Enable caching for performance
+enable_analytics: true  # Enable usage analytics

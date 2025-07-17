@@ -50,6 +50,61 @@ import time
 import random
 from urllib.parse import urlparse
 
+# Configuration management
+try:
+    from con_research.config.config_manager import get_config, get_secret, get_config_manager
+    # Initialize configuration
+    config_manager = get_config_manager()
+    config = get_config()
+    
+    # Validate configuration at startup
+    startup_errors = config_manager.validate_startup()
+    if startup_errors:
+        for error in startup_errors:
+            st.error(f"Configuration Error: {error}")
+        if config.environment.value == "production":
+            st.stop()
+    
+except ImportError as e:
+    st.warning(f"Configuration system not available: {e}. Using fallback configuration.")
+    # Fallback configuration class
+    class FallbackConfig:
+        class API:
+            openai_model = "gpt-4o-mini-2024-07-18"
+            openai_max_tokens = 1000
+            openai_timeout = 30
+            serper_timeout = 10
+            serper_max_results = 10
+        
+        class FileUpload:
+            max_size_mb = 50
+            allowed_extensions = [".csv", ".xlsx", ".xls"]
+            validation_strict = True
+        
+        class WebDriver:
+            timeout = 30
+            headless = True
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        
+        class Retry:
+            max_attempts = 3
+            initial_delay = 1.0
+            backoff_factor = 2.0
+        
+        api = API()
+        file_upload = FileUpload()
+        webdriver = WebDriver()
+        retry = Retry()
+    
+    config = FallbackConfig()
+    
+    def get_secret(key, default=None):
+        """Fallback secret getter using Streamlit secrets."""
+        try:
+            return st.secrets.get(key, default)
+        except:
+            return default
+
 # Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
@@ -79,19 +134,33 @@ with st.sidebar:
         "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles. "
     )
     st.markdown("This tool is a work in progress.")
-    openai_api_key = st.secrets["openai_api_key"]
+    
+    # Display environment and configuration info
+    if hasattr(config, 'environment'):
+        st.caption(f"Environment: {config.environment.value}")
 
-def retry_api_call(max_retries=3, backoff_factor=1.0):
+# Initialize API keys from configuration
+openai_api_key = get_secret("openai_api_key")
+serper_api_key = get_secret("serper_api_key")
+
+def retry_api_call(max_retries=None, backoff_factor=None):
     """
     Decorator to retry API calls with exponential backoff.
+    Uses configuration-driven defaults with override capability.
     
     Args:
-        max_retries (int): Maximum number of retry attempts
-        backoff_factor (float): Factor for exponential backoff delay
+        max_retries (int): Maximum number of retry attempts (uses config default if None)
+        backoff_factor (float): Factor for exponential backoff delay (uses config default if None)
         
     Returns:
         function: Decorated function with retry logic
     """
+    # Use configuration defaults if not specified
+    if max_retries is None:
+        max_retries = config.retry.max_attempts
+    if backoff_factor is None:
+        backoff_factor = config.retry.backoff_factor
+    
     def decorator(func):
         def wrapper(*args, **kwargs):
             for attempt in range(max_retries + 1):
@@ -100,7 +169,9 @@ def retry_api_call(max_retries=3, backoff_factor=1.0):
                 except (requests.RequestException, openai.OpenAIError, ConnectionError) as e:
                     if attempt == max_retries:
                         raise e
-                    delay = backoff_factor * (2 ** attempt) + random.uniform(0, 1)
+                    delay = config.retry.initial_delay * (backoff_factor ** attempt) + random.uniform(0, 1)
+                    # Cap the delay at max_delay from config
+                    delay = min(delay, getattr(config.retry, 'max_delay', 60.0))
                     st.warning(f"API call failed (attempt {attempt + 1}/{max_retries + 1}). Retrying in {delay:.2f} seconds...")
                     time.sleep(delay)
             return None
@@ -110,6 +181,7 @@ def retry_api_call(max_retries=3, backoff_factor=1.0):
 def validate_file_upload(uploaded_file):
     """
     Validates uploaded file for security and format requirements.
+    Uses configuration-driven validation settings.
     
     Args:
         uploaded_file: Streamlit UploadedFile object
@@ -123,13 +195,13 @@ def validate_file_upload(uploaded_file):
     if uploaded_file is None:
         return False, "No file uploaded"
     
-    # Check file size (max 50MB)
-    max_size = 50 * 1024 * 1024  # 50MB in bytes
+    # Check file size using configuration
+    max_size = config.file_upload.max_size_mb * 1024 * 1024  # Convert MB to bytes
     if uploaded_file.size > max_size:
-        return False, f"File size ({uploaded_file.size / (1024*1024):.1f}MB) exceeds maximum allowed size (50MB)"
+        return False, f"File size ({uploaded_file.size / (1024*1024):.1f}MB) exceeds maximum allowed size ({config.file_upload.max_size_mb}MB)"
     
-    # Check file extension
-    allowed_extensions = ['.csv', '.xlsx', '.xls']
+    # Check file extension using configuration
+    allowed_extensions = config.file_upload.allowed_extensions
     file_extension = '.' + uploaded_file.name.split('.')[-1].lower()
     if file_extension not in allowed_extensions:
         return False, f"File type '{file_extension}' not allowed. Supported formats: {', '.join(allowed_extensions)}"
@@ -139,27 +211,23 @@ def validate_file_upload(uploaded_file):
     if any(pattern in uploaded_file.name for pattern in suspicious_patterns):
         return False, "File name contains invalid characters"
     
-    # Basic MIME type check
-    expected_mime_types = {
-        '.csv': ['text/csv', 'application/csv', 'text/plain'],
-        '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-        '.xls': ['application/vnd.ms-excel']
-    }
-    
-    if file_extension in expected_mime_types:
-        if uploaded_file.type not in expected_mime_types[file_extension]:
-            st.warning(f"MIME type mismatch for {file_extension}: expected {expected_mime_types[file_extension]}, got {uploaded_file.type}")
+    # Basic MIME type check using configuration
+    allowed_mime_types = getattr(config.file_upload, 'allowed_mime_types', [])
+    if config.file_upload.validation_strict and allowed_mime_types:
+        if uploaded_file.type not in allowed_mime_types:
+            st.warning(f"MIME type '{uploaded_file.type}' may not be supported. Expected: {allowed_mime_types}")
     
     return True, "File validation passed"
 
-@retry_api_call(max_retries=2, backoff_factor=0.5)
-def scrape_text_from_url(url, timeout=10):
+@retry_api_call()  # Use configuration defaults
+def scrape_text_from_url(url, timeout=None):
     """
     Scrapes and extracts plain text content from a given URL using Beautiful Soup.
+    Uses configuration-driven timeout and user agent settings.
     
     Args:
         url (str): The complete URL to scrape (must include http/https protocol)
-        timeout (int): Request timeout in seconds
+        timeout (int): Request timeout in seconds (uses config default if None)
         
     Returns:
         str: Cleaned plain text content with HTML tags removed and whitespace normalized
@@ -172,6 +240,10 @@ def scrape_text_from_url(url, timeout=10):
         Uses requests with configurable timeout and handles UTF-8 encoding automatically.
         Removes scripts, styles, and other non-content elements before text extraction.
     """
+    # Use configuration default if timeout not specified
+    if timeout is None:
+        timeout = config.webdriver.timeout
+    
     # Validate URL format
     try:
         parsed_url = urlparse(url)
@@ -183,7 +255,7 @@ def scrape_text_from_url(url, timeout=10):
     
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': config.webdriver.user_agent
         }
         response = requests.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()  # Check if the request was successful

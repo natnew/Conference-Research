@@ -1,0 +1,44 @@
+# Testing environment configuration
+# Optimized for fast, reliable automated testing
+
+environment: "testing"
+debug: false
+
+# API Configuration - Fast timeouts for tests
+api:
+  openai:
+    timeout: 5  # Short timeout for fast test failures
+    max_tokens: 100  # Smaller responses for faster tests
+  serper:
+    timeout: 5
+    max_results: 3  # Minimal results for testing
+  groq:
+    timeout: 5
+
+# File Upload Configuration - Strict validation for security tests
+file_upload:
+  max_size_mb: 5  # Small limit for test files
+  validation_strict: true  # Strict validation for security testing
+
+# WebDriver Configuration - Optimized for CI/CD
+webdriver:
+  headless: true  # Always headless in testing
+  timeout: 15  # Reasonable timeout for CI
+  user_agent: "Conference-Research-Test-Agent/1.0"
+
+# Retry Configuration - Minimal retries for fast test execution
+retry:
+  max_attempts: 1  # No retries in tests for predictable behavior
+  initial_delay: 0.1  # Very short delays
+  backoff_factor: 1.0  # No exponential backoff
+  max_delay: 1.0
+
+# Logging Configuration - Minimal logging for cleaner test output
+logging:
+  level: "WARNING"  # Only warnings and errors
+  format: "standard"
+  file_enabled: false  # No file logging in tests
+
+# Feature Flags - Disable all for consistent testing
+enable_caching: false
+enable_analytics: false

@@ -51,6 +51,43 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Configuration and Environment Files
+.env
+.env.local
+.env.development
+.env.testing
+.env.production
+config/secrets.yaml
+config/local.yaml
+*.key
+*.pem
+
+# Testing artifacts
+.mypy_cache/
+.ruff_cache/
+bandit-report.json
+safety-report.json
+pip-audit-report.json
+
+# Development tools
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+
+# Poetry
+poetry.lock
+
 # Translations
 *.mo
 *.pot

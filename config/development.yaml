@@ -1,0 +1,38 @@
+# Development environment configuration
+# Overrides base configuration for local development
+
+environment: "development"
+debug: true
+
+# API Configuration - Development settings
+api:
+  openai:
+    timeout: 60  # Longer timeout for debugging
+  serper:
+    timeout: 15  # Longer timeout for debugging
+    max_results: 5  # Fewer results for faster testing
+
+# File Upload Configuration - Relaxed for development
+file_upload:
+  max_size_mb: 10  # Smaller limit for faster testing
+  validation_strict: false  # Less strict validation
+
+# WebDriver Configuration - Development-friendly
+webdriver:
+  headless: false  # Show browser for debugging
+  timeout: 60  # Longer timeout for debugging
+
+# Retry Configuration - Faster failures for development
+retry:
+  max_attempts: 2  # Fewer retries for faster feedback
+  initial_delay: 0.5  # Shorter delays
+
+# Logging Configuration - Verbose for development
+logging:
+  level: "DEBUG"
+  format: "detailed"
+  file_enabled: true
+
+# Feature Flags - Enable for testing
+enable_caching: true
+enable_analytics: false  # Disable analytics in dev

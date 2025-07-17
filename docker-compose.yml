@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  conference-research:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount source code for development
+      - .:/home/developer/app
+      # Persist Chrome user data
+      - chrome_data:/home/developer/.cache/chromium
+    environment:
+      - ENVIRONMENT=development
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+      - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+      # Mock API keys for development (replace with real ones via .env file)
+      - OPENAI_API_KEY=dev_openai_key_here
+      - SERPER_API_KEY=dev_serper_key_here
+    env_file:
+      - .env.development
+    depends_on:
+      - redis
+    networks:
+      - conference_research_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - conference_research_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Optional: Development tools container
+  dev-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/home/developer/app
+    environment:
+      - ENVIRONMENT=development
+    networks:
+      - conference_research_network
+    command: tail -f /dev/null  # Keep container running
+    profiles:
+      - dev-tools
+
+volumes:
+  chrome_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  conference_research_network:
+    driver: bridge
