@@ -8,14 +8,13 @@ autonomous web searching, content synthesis, and structured report generation.
 
 KEY FEATURES:
 - Multi-agent AI architecture with specialized research agents
-- Autonomous research planning and web search integration (Brave API)
+- Autonomous research planning and web search integration (DuckDuckGo)
 - Iterative research with feedback loops and quality validation
 - Structured report generation with real-time progress tracking
 
 REQUIREMENTS:
 - openai_api_key: OpenAI API key
-- brave_api_key: Brave Search API key
-- Dependencies: streamlit, openai, brave, pydantic, typing, logging
+- Dependencies: streamlit, openai, duckduckgo-search, pydantic, typing, logging
 
 ARCHITECTURE - AGENT COMPONENTS:
 1. Research Planner: Decomposes queries into sections
@@ -42,7 +41,7 @@ import logging
 from typing import List, Dict, TypedDict, Literal, Annotated, Union
 from pydantic import BaseModel, Field
 from openai import OpenAI
-from brave import Brave
+from duckduckgo_search import DDGS
 from openai import LengthFinishReasonError
 import operator
 
@@ -58,9 +57,8 @@ openai_api_key = st.secrets["openai_api_key"]
 client = OpenAI(api_key=openai_api_key)
 model = "gpt-4o-mini"
 
-# Initialize Brave client
-brave_api_key = st.secrets["brave_api_key"]
-brave = Brave(api_key=brave_api_key)
+# Initialize DuckDuckGo search
+ddgs = DDGS()
 
 # --------------------------------------------------------------
 # Step 1: Define the data models
@@ -518,7 +516,7 @@ class ReportGenerator:
 
 def web_search(query: str) -> List[Dict]:
     """
-    Performs comprehensive web search using Brave Search API for research report compilation.
+    Performs comprehensive web search using DuckDuckGo Search API for research report compilation.
     
     Args:
         query (str): Search query string for targeted information discovery
@@ -532,11 +530,11 @@ def web_search(query: str) -> List[Dict]:
                    
     Raises:
         ValueError: If search results are None or API returns invalid response
-        Exception: If Brave Search API request fails or rate limits exceeded
+        Exception: If DuckDuckGo Search API request fails or rate limits exceeded
         
     Dependencies:
-        - Brave Search API for privacy-focused web search
-        - Configured with API key from environment/secrets
+        - DuckDuckGo Search for privacy-focused web search
+        - No API key required
         
     Note:
         Limited to 3 results per query for performance and API cost management.
@@ -545,12 +543,23 @@ def web_search(query: str) -> List[Dict]:
         Designed for academic research and report generation workflows.
     """
     try:
-        search_results = brave.search(q=query, count=3)
-        if search_results is None:
-            raise ValueError("Search results are None")
+        search_results = list(ddgs.text(query, max_results=3))
+        if not search_results:
+            raise ValueError("No search results returned")
         time.sleep(2) 
-        return search_results.web_results
+        
+        # Convert DuckDuckGo format to expected format
+        formatted_results = []
+        for result in search_results:
+            formatted_results.append({
+                'url': result.get('href', ''),
+                'title': result.get('title', ''),
+                'description': result.get('body', ''),
+                'content': result.get('body', '')  # DuckDuckGo provides snippet as body
+            })
+        return formatted_results
     except Exception as e:
+        st.error(f"Search error: {str(e)}")
         return []
 
 

@@ -170,9 +170,7 @@ with st.form('email_form'):
     enhance = st.form_submit_button('Enhance')
     
     if enhance:
-        if not openai_api_key.startswith('sk-'):
-            st.warning('Please enter your OpenAI API key!', icon='⚠')
-        else:
+        if openai_api_key.startswith('sk-'):
             generate_response(email_text, tone, length)
 
 # Display enhanced email for editing and copying

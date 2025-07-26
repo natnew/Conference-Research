@@ -172,7 +172,7 @@ class GenericConferenceScraper:
 
             for button_xpath in cookie_buttons:
                 try:
-                    WebDriverWait(self.driver, 5).until(
+                    WebDriverWait(self.webdriver_instance, 5).until(
                         EC.element_to_be_clickable((By.XPATH, button_xpath))
                     ).click()
                     st.info("Cookie consent handled")
@@ -199,7 +199,7 @@ class GenericConferenceScraper:
 
             for indicator in content_indicators:
                 try:
-                    WebDriverWait(self.driver, timeout).until(
+                    WebDriverWait(self.webdriver_instance, timeout).until(
                         EC.presence_of_element_located((By.XPATH, indicator))
                     )
                     return True
@@ -213,12 +213,12 @@ class GenericConferenceScraper:
 
     def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
         """Scrape webpage content with cookie handling and dynamic content waiting"""
-        if not self.driver:
+        if not self.webdriver_instance:
             return ""
 
         try:
             st.info(f"Accessing URL: {url}")
-            self.driver.get(url)
+            self.webdriver_instance.get(url)
             time.sleep(wait_time)  # Initial wait for page load
 
             # Handle cookie consent
@@ -234,7 +234,7 @@ class GenericConferenceScraper:
                 st.warning("Content loading timeout - proceeding with available content")
 
             # Get the page source after all handling
-            return self.driver.page_source
+            return self.webdriver_instance.page_source
         except Exception as e:
             st.error(f"Error accessing URL: {str(e)}")
             return ""
