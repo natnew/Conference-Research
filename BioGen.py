@@ -65,8 +65,8 @@ try:
         if config.environment.value == "production":
             st.stop()
     
-except ImportError as e:
-    st.warning(f"Configuration system not available: {e}. Using fallback configuration.")
+except ImportError:
+    # Silent fallback configuration - no user warning needed
     # Fallback configuration class
     class FallbackConfig:
         class API:
