@@ -46,7 +46,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import re
-import json
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from openai import OpenAI
@@ -208,7 +207,6 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     Raises:
         openai.OpenAIError: If API request fails or authentication issues occur
         ValidationError: If LLM response doesn't match CoursePreview model schema
-        json.JSONDecodeError: If response parsing fails
         
     Dependencies:
         - OpenAI GPT model for intelligent course information extraction
@@ -222,15 +220,16 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract a detailed list, of course, names as described  from the provided text. Return results as a structured output defined in the response mode of the model."},
-            {"role": "user", "content": text}
+            {
+                "role": "system",
+                "content": "Extract a detailed list, of course, names as described  from the provided text. Return results as a structured output defined in the response mode of the model.",
+            },
+            {"role": "user", "content": text},
         ],
-        response_format=CourseCatalogueResponse
+        response_model=CourseCatalogueResponse,
     )
-    courses_data = response.choices[0].message.content
-    courses_parsed = json.loads(courses_data)
-    courses_list = courses_parsed.get("courses", [])
-    return courses_list
+    parsed = response.parse()
+    return parsed.courses
 
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
     """
@@ -267,15 +266,16 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is  not explicitly mentioned in the text reply with a default value 'not available at the moment'."},
-            {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
+            {
+                "role": "system",
+                "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is  not explicitly mentioned in the text reply with a default value 'not available at the moment'.",
+            },
+            {"role": "user", "content": f"Course Name: {course_name}\n{text}"},
         ],
-        response_format=CourseDetailResponse
+        response_model=CourseDetailResponse,
     )
-    course_detail_data = response.choices[0].message.content
-    course_detail_data_parsed = json.loads(course_detail_data)
-    course_details = course_detail_data_parsed.get("course_detail", [])
-    return course_details
+    parsed = response.parse()
+    return parsed.course_detail
 
 def search_duckduckgo(query: str) -> str:
     """
