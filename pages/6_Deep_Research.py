@@ -149,7 +149,9 @@ The queries should:
 2. Help satisfy the requirements specified in the report organization
 
 Make the queries specific enough to find high-quality, relevant sources while covering the breadth needed for the report structure.
-</Task>"""
+</Task>
+
+Return a JSON object with a "queries" field containing the search queries."""
 
 report_planner_instructions = """I want a plan for a report.
 
@@ -185,7 +187,8 @@ Here is context to use to plan the sections of the report:
 Here is feedback on the report structure from review (if any):
 {feedback}
 </Feedback>
-"""
+
+Return a JSON object with a "sections" field listing each section."""
 
 query_writer_instructions = """You are an expert technical writer crafting targeted web search queries that will gather comprehensive information for writing a technical report section.
 
@@ -250,7 +253,8 @@ section_writer_instructions = """You are an expert technical writer crafting one
 - Starts with bold insight
 - No preamble prior to creating the section content
 </Quality checks>
-"""
+
+Return a JSON object with a "content" field containing the section text."""
 
 section_grader_instructions = """Review a report section relative to the specified topic:
 
@@ -276,7 +280,8 @@ If the section fails any criteria, generate specific follow-up search queries to
         description="List of follow-up search queries.",
     )
 </format>
-"""
+
+Return a JSON object with "grade" and "follow_up_queries" fields."""
 
 final_section_writer_instructions = """You are an expert technical writer crafting a section that synthesizes information from the rest of the report.
 
@@ -328,7 +333,8 @@ For Conclusion/Summary:
 - For conclusion: 100-150 word limit, ## for section title, only ONE structural element at most, no sources section
 - Markdown format
 - Do not include word count or any preamble in your response
-</Quality checks>"""
+</Quality checks>
+Return a JSON object with a "content" field containing the section text."""
 
 # --------------------------------------------------------------
 # Step 3: Implement the report generator
