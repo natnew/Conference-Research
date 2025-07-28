@@ -40,7 +40,6 @@ from typing import List, Optional
 from openai import OpenAI
 import fitz  # PyMuPDF
 import pymupdf4llm
-import json
 from concurrent.futures import ThreadPoolExecutor
 
 # Sidebar content
@@ -135,7 +134,6 @@ def extract_info_with_llm(document_text, openai_client):
                    
     Raises:
         openai.OpenAIError: If API request fails or rate limits are exceeded
-        json.JSONDecodeError: If LLM response cannot be parsed as valid JSON
         ValidationError: If response doesn't match ExtractionResponse schema
         
     Dependencies:
@@ -143,23 +141,27 @@ def extract_info_with_llm(document_text, openai_client):
         - Pydantic ExtractionResponse model for response validation
         
     Note:
-        Uses structured output with response_format for consistent JSON responses.
+        Uses structured output with ``response_model`` for consistent JSON responses.
         Includes location inference based on university knowledge when location not explicit.
         Designed for academic conference documents and participant lists.
     """
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": """Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just give the country name of the location don't include the city. 
-            Ensure the data you provide is accurate, clean of any weird character in the names try to reconstruct them to the best of your capabilities, and verifiable with the source provided.
-            If you cannot infer the location just leave it empty."""},
-            {"role": "user", "content": document_text}
+            {
+                "role": "system",
+                "content": (
+                    "Extract names, universities, and locations from the provided text if there is no location infer it from your general knowledge of where the university is located but just give the country name of the location don't include the city.\n"
+                    "Ensure the data you provide is accurate, clean of any weird character in the names try to reconstruct them to the best of your capabilities, and verifiable with the source provided.\n"
+                    "If you cannot infer the location just leave it empty."
+                ),
+            },
+            {"role": "user", "content": document_text},
         ],
-        response_format=ExtractionResponse
+        response_model=ExtractionResponse,
     )
-    api_response_data = response.choices[0].message.content
-    parsed_extraction_data = json.loads(api_response_data)
-    return parsed_extraction_data.get("extracted_info", [])
+    parsed = response.parse()
+    return parsed.extracted_info
 
 def correct_info_with_llm(raw_extracted_data, source_text, openai_client):
     """
@@ -176,7 +178,6 @@ def correct_info_with_llm(raw_extracted_data, source_text, openai_client):
                    
     Raises:
         openai.OpenAIError: If API request fails or quota exceeded
-        json.JSONDecodeError: If correction response cannot be parsed
         ValidationError: If response doesn't match CorrectionResponse schema
         
     Dependencies:
@@ -231,13 +232,12 @@ def correct_info_with_llm(raw_extracted_data, source_text, openai_client):
         model="gpt-4o-2024-08-06",
         messages=[
             {"role": "system", "content": "You are a corrector. Correct and clean the extracted information based on the original text."},
-            {"role": "user", "content": correction_prompt}
+            {"role": "user", "content": correction_prompt},
         ],
-        response_format=CorrectionResponse
+        response_model=CorrectionResponse,
     )
-    correction_response = response.choices[0].message.content
-    parsed_correction_data = json.loads(correction_response)
-    return parsed_correction_data.get("corrected_info", [])
+    parsed = response.parse()
+    return parsed.corrected_info
 
 # Streamlit App UI
 st.title("PDF Extractor - Names, Universities, and Locations")

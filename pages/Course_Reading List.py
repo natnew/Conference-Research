@@ -52,7 +52,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import re
-import json
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from openai import OpenAI
@@ -310,7 +309,6 @@ def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: Op
     Raises:
         openai.OpenAIError: If API request fails or authentication issues occur
         ValidationError: If LLM response doesn't match ReadingListItem model schema
-        json.JSONDecodeError: If response parsing fails
         
     Dependencies:
         - OpenAI GPT model for intelligent bibliographic extraction
@@ -326,14 +324,18 @@ def process_text_with_llm(texts_urls: List[tuple], query: str, openai_client: Op
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini-2024-07-18",
             messages=[
-                {"role": "system", "content": f"You are provided with scraped text and you are a professional lecturer that can use this text to curate detailed reading list items from the provided text. Use the provided URL to populate the link field. The search query used to retrieve this text is: '{query}'. Return results as a structured output defined in the response model."},
-                {"role": "user", "content": f"Text: {text}\nURL: {url}"}
+                {
+                    "role": "system",
+                    "content": (
+                        f"You are provided with scraped text and you are a professional lecturer that can use this text to curate detailed reading list items from the provided text. Use the provided URL to populate the link field. The search query used to retrieve this text is: '{query}'. Return results as a structured output defined in the response model."
+                    ),
+                },
+                {"role": "user", "content": f"Text: {text}\nURL: {url}"},
             ],
-            response_format=ReadingListResponse
+            response_model=ReadingListResponse,
         )
-        reading_list_data = response.choices[0].message.content
-        reading_list_data_parsed = json.loads(reading_list_data)
-        reading_list_items.extend(reading_list_data_parsed.get("reading_list", []))
+        parsed = response.parse()
+        reading_list_items.extend(parsed.reading_list)
     return reading_list_items
 def get_fallback_reading_list(course: str, openai_client: OpenAI) -> List[ReadingListItem]:
     """
@@ -367,14 +369,18 @@ def get_fallback_reading_list(course: str, openai_client: OpenAI) -> List[Readin
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": f"Generate a recommended reading list for the course '{course}'. Include details such as title, author, edition, publisher, and year. Return results as a structured output defined in the response model."},
-            {"role": "user", "content": f"Course: {course}"}
+            {
+                "role": "system",
+                "content": (
+                    f"Generate a recommended reading list for the course '{course}'. Include details such as title, author, edition, publisher, and year. Return results as a structured output defined in the response model."
+                ),
+            },
+            {"role": "user", "content": f"Course: {course}"},
         ],
-        response_format=ReadingListResponse
+        response_model=ReadingListResponse,
     )
-    reading_list_data = response.choices[0].message.content
-    reading_list_data_parsed = json.loads(reading_list_data)
-    return reading_list_data_parsed.get("reading_list", [])
+    parsed = response.parse()
+    return parsed.reading_list
 def main():
     """
     Main execution function for the Course Reading List Generator Streamlit application.

@@ -51,7 +51,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import re
-import json
 from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from openai import OpenAI
@@ -262,15 +261,14 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
         openai_client (OpenAI): Configured OpenAI client instance with valid API credentials
         
     Returns:
-        List[Dict[str, str]]: List of dictionaries containing extracted academic data with keys:
-                            - 'name': Full name of academic individual
-                            - 'institution': University or research institution
-                            - 'title': Academic title or position
-                            - 'research_area': Primary research focus or field
+        Dict[str, List[Dict[str, str]]]: Parsed academic information with a
+        ``participant_details`` key containing dictionaries with:
+                            - ``name``: Full name of academic individual
+                            - ``affiliation``: University or research institution
+                            - ``location``: Country location inferred from affiliation
                             
     Raises:
         openai.OpenAIError: If API request fails, quota exceeded, or authentication fails
-        json.JSONDecodeError: If LLM response cannot be parsed as valid JSON
         
     Dependencies:
         - OpenAI GPT model for intelligent text analysis
@@ -284,14 +282,22 @@ def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, st
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
-            {"role": "system", "content": "Extract the names, affiliations, and locations from the following text and for location if not present and based on the affiliations you can infer it from your general knowledge and just provide the country name in the location and DON'T include the city name. Return the results as a JSON array of objects with 'name', 'affiliation', and 'location' keys."},
-            {"role": "user", "content": text}
+            {
+                "role": "system",
+                "content": (
+                    "Extract the names, affiliations, and locations from the following text and for location if not present "
+                    "and based on the affiliations you can infer it from your general knowledge and just provide the country "
+                    "name in the location and DON'T include the city name. Return the results as a JSON array of objects with "
+                    "'name', 'affiliation', and 'location' keys."
+                ),
+            },
+            {"role": "user", "content": text},
         ],
-        response_format=ParticipantList
+        response_model=ParticipantList,
     )
 
-    results = response.choices[0].message.content
-    return results
+    parsed = response.parse()
+    return parsed.model_dump()
 
 def main():
     """
@@ -360,11 +366,9 @@ def main():
 
                     with st.spinner("Extracting information..."):
                         openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
-                        academics = extract_academic_info(readable_text, openai_client)
+                        academics_dict = extract_academic_info(readable_text, openai_client)
 
-                    if academics:
-                        # Parse the JSON response
-                        academics_dict = json.loads(academics)
+                    if academics_dict:
                         academics_list = academics_dict.get("participant_details", [])
                         df = pd.DataFrame(academics_list)
 
