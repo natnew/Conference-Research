@@ -222,7 +222,7 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
         messages=[
             {
                 "role": "system",
-                "content": "Extract a detailed list, of course, names as described  from the provided text. Return results as a structured output defined in the response mode of the model.",
+                "content": "Extract a detailed list of course names from the provided text. The results must be returned in JSON format.",
             },
             {"role": "user", "content": text},
         ],
@@ -269,7 +269,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         messages=[
             {
                 "role": "system",
-                "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is  not explicitly mentioned in the text reply with a default value 'not available at the moment'.",
+                "content": "Extract detailed information about the course from the provided text. If the name of the module leader or module leader email is not explicitly mentioned, reply with the default value 'not available at the moment'. The results must be returned in JSON format.",
             },
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"},
         ],
