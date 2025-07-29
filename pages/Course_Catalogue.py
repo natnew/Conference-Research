@@ -226,9 +226,10 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
             },
             {"role": "user", "content": text},
         ],
-        response_model=CourseCatalogueResponse,
+        response_format={"type": "json_object"},
     )
-    parsed = response.parse()
+    parsed_json = response.choices[0].message.content
+    parsed = CourseCatalogueResponse.model_validate_json(parsed_json)
     return parsed.courses
 
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
@@ -272,9 +273,10 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
             },
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"},
         ],
-        response_model=CourseDetailResponse,
+        response_format={"type": "json_object"},
     )
-    parsed = response.parse()
+    parsed_json = response.choices[0].message.content
+    parsed = CourseDetailResponse.model_validate_json(parsed_json)
     return parsed.course_detail
 
 def search_duckduckgo(query: str) -> str:
