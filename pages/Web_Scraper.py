@@ -46,7 +46,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, WebDriverException
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
@@ -125,8 +125,11 @@ def get_chrome_driver():
         chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
         webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
         return webdriver_instance
-    except Exception as e:
+    except WebDriverException as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Unexpected error during driver initialization: {str(e)}")
         return None
 
 class AcademicInfo(BaseModel):
