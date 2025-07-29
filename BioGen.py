@@ -40,7 +40,7 @@ import openai
 import re
 from io import BytesIO
 from openai import OpenAI
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 import requests
 from bs4 import BeautifulSoup
 import tiktoken

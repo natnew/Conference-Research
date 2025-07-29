@@ -55,7 +55,7 @@ for name in [
     "bs4",
     "pandas",
     "requests",
-    "duckduckgo_search",
+    "ddgs",
 ]:
     sys.modules.setdefault(name, types.ModuleType(name))
 
@@ -84,7 +84,7 @@ class DummyDDGS:
         return []
 
 
-sys.modules["duckduckgo_search"].DDGS = DummyDDGS
+sys.modules["ddgs"].DDGS = DummyDDGS
 
 pydantic_mod = types.ModuleType("pydantic")
 

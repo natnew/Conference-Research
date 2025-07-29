@@ -37,7 +37,7 @@ dependencies = [
     "webdriver-manager>=4.0.0",
     "openpyxl>=3.1.0",
     "tiktoken>=0.5.2,<0.6.0",
-    "duckduckgo_search>=3.8.0",
+    "ddgs>=1.0.0",
     "xlsxwriter>=3.2.0",
     "pdfminer.six>=20221105",
     "PyPDF2>=3.0.0",
@@ -201,7 +201,7 @@ module = [
     "streamlit.*",
     "selenium.*",
     "webdriver_manager.*",
-    "duckduckgo_search.*",
+    "ddgs.*",
     "tiktoken.*",
     "serpapi.*",
 ]

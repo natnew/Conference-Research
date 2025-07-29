@@ -14,7 +14,7 @@ KEY FEATURES:
 
 REQUIREMENTS:
 - openai_api_key: OpenAI API key
-- Dependencies: streamlit, duckduckgo_search, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai
+- Dependencies: streamlit, ddgs, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai
 - Input: Course codes, titles, and academic discipline information
 
 ARCHITECTURE:
@@ -38,7 +38,7 @@ USE CASES:
 """
 
 import streamlit as st
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
