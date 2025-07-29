@@ -32,6 +32,8 @@ USE CASES:
 """
 
 import os
+import json
+import logging
 import streamlit as st
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -46,11 +48,18 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import re
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Dict
 from openai import OpenAI
 import requests
 from duckduckgo_search import DDGS
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 
 
@@ -229,10 +238,17 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
         response_format={"type": "json_object"},
     )
     parsed_json = response.choices[0].message.content
-    parsed = CourseCatalogueResponse.model_validate_json(parsed_json)
+    try:
+        parsed = CourseCatalogueResponse.model_validate_json(parsed_json)
+    except (ValidationError, json.JSONDecodeError) as e:
+        st.error("Failed to parse course list. Please try again later.")
+        logger.error("Course catalogue parse error: %s", e)
+        return []
     return parsed.courses
 
-def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
+def extract_course_details(
+    course_name: str, text: str, openai_client: OpenAI
+) -> Optional[CourseDetail]:
     """
     Extracts comprehensive detailed information for a specific course using targeted LLM analysis.
     
@@ -242,7 +258,7 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         openai_client (OpenAI): Configured OpenAI client for detailed analysis
         
     Returns:
-        CourseDetail: Comprehensive course object containing:
+        Optional[CourseDetail]: Comprehensive course object containing:
                      - course_code: Official identifier
                      - full_title: Complete course title
                      - detailed_description: Full course description and objectives
@@ -276,7 +292,12 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         response_format={"type": "json_object"},
     )
     parsed_json = response.choices[0].message.content
-    parsed = CourseDetailResponse.model_validate_json(parsed_json)
+    try:
+        parsed = CourseDetailResponse.model_validate_json(parsed_json)
+    except (ValidationError, json.JSONDecodeError) as e:
+        st.error("Failed to parse course details. Please try again later.")
+        logger.error("Course detail parse error: %s", e)
+        return None
     return parsed.course_detail
 
 def search_duckduckgo(query: str) -> str:
