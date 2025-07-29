@@ -41,7 +41,7 @@ import logging
 from typing import List, Dict, TypedDict, Literal, Annotated, Union
 from pydantic import BaseModel, Field, ValidationError
 from openai import OpenAI
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from openai import LengthFinishReasonError
 import operator
 

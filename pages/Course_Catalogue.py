@@ -14,7 +14,7 @@ KEY FEATURES:
 
 REQUIREMENTS:
 - openai_api_key: OpenAI API key
-- Dependencies: streamlit, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai, requests, duckduckgo_search
+- Dependencies: streamlit, selenium, webdriver-manager, beautifulsoup4, pandas, pydantic, openai, requests, ddgs
 - System: Chrome browser (auto-managed)
 
 ARCHITECTURE:
@@ -52,7 +52,7 @@ from typing import List, Optional, Dict
 from openai import OpenAI
 import openai
 import requests
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 import time
 from functools import wraps
 import re
