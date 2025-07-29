@@ -41,7 +41,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, WebDriverException
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
@@ -50,10 +50,81 @@ from pydantic import BaseModel, Field
 import json
 from typing import List, Optional, Dict
 from openai import OpenAI
+import openai
 import requests
 from duckduckgo_search import DDGS
+import time
+from functools import wraps
+import re
+from urllib.parse import urlparse
 
 
+def validate_url(url: str) -> bool:
+    """
+    Validates if the provided string is a properly formatted URL.
+    
+    Args:
+        url (str): URL string to validate
+        
+    Returns:
+        bool: True if URL is valid, False otherwise
+        
+    Note:
+        Validates both http and https schemes and basic URL structure.
+    """
+    if not url or not isinstance(url, str):
+        return False
+    
+    try:
+        result = urlparse(url)
+        return all([result.scheme in ['http', 'https'], result.netloc])
+    except Exception:
+        return False
+
+
+
+def retry_with_exponential_backoff(max_retries: int = 3, base_delay: float = 1.0):
+    """
+    Decorator that implements exponential backoff retry logic for API calls.
+    
+    Args:
+        max_retries (int): Maximum number of retry attempts
+        base_delay (float): Base delay in seconds for exponential backoff
+        
+    Returns:
+        Decorated function with retry logic
+        
+    Note:
+        Specifically designed for OpenAI API calls with proper error handling
+        for rate limits, timeouts, and transient failures.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except openai.RateLimitError as e:
+                    if attempt == max_retries:
+                        raise e
+                    delay = base_delay * (2 ** attempt)
+                    st.warning(f"Rate limit hit, retrying in {delay} seconds...")
+                    time.sleep(delay)
+                except openai.APIError as e:
+                    if attempt == max_retries:
+                        raise e
+                    delay = base_delay * (2 ** attempt)
+                    st.warning(f"API error, retrying in {delay} seconds...")
+                    time.sleep(delay)
+                except Exception as e:
+                    if attempt == max_retries:
+                        raise e
+                    delay = base_delay * (2 ** attempt)
+                    st.warning(f"Unexpected error, retrying in {delay} seconds...")
+                    time.sleep(delay)
+            return None
+        return wrapper
+    return decorator
 
 # Sidebar content
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
@@ -160,8 +231,11 @@ def get_chrome_driver():
         webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
         webdriver_instance.set_page_load_timeout(30)  # Set timeout to prevent hanging
         return webdriver_instance
-    except Exception as e:
+    except WebDriverException as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Unexpected error during driver initialization: {str(e)}")
         return None
 
 # Scraper class with proper context management
@@ -179,8 +253,10 @@ class CourseScraper:
         if self.driver:
             try:
                 self.driver.quit()
+            except WebDriverException as e:
+                print(f"WebDriver cleanup error: {e}")
             except Exception as e:
-                print(f"Error during scraper cleanup: {e}")
+                print(f"Unexpected error during scraper cleanup: {e}")
             finally:
                 self.driver = None
 
@@ -195,8 +271,11 @@ class CourseScraper:
         except TimeoutException:
             st.warning(f"Timeout accessing URL: {url}")
             return ""
+        except WebDriverException as e:
+            st.error(f"WebDriver error accessing URL {url}: {str(e)}")
+            return ""
         except Exception as e:
-            st.error(f"Error accessing URL: {str(e)}")
+            st.error(f"Unexpected error accessing URL {url}: {str(e)}")
             return ""
 
     def extract_text(self, content: str) -> str:
@@ -206,6 +285,7 @@ class CourseScraper:
         text = soup.get_text(separator='\n', strip=True)
         return re.sub(r'\n\s*\n', '\n\n', text)
 
+@retry_with_exponential_backoff(max_retries=3, base_delay=1.0)
 def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     """
     Extracts course information from university catalogue text using OpenAI LLM with structured output.
@@ -241,8 +321,10 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
                 "role": "system",
                 "content": (
                     "Extract a list of course names from the provided text. "
+                    "DO NOT include any URLs, links, or web addresses in your response. "
                     "Return a JSON object with a 'courses' field containing "
-                    "objects that each include a single 'course_name' string.\n"
+                    "objects that each include a single 'course_name' string. "
+                    "Focus only on actual course titles and names, not website links. "
                     "Example response: {\"courses\": [{\"course_name\": \"Introduction to AI\"}]}"
                 ),
             },
@@ -253,12 +335,34 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     parsed_json = response.choices[0].message.content
     try:
         parsed_dict = json.loads(parsed_json)
+        if 'courses' not in parsed_dict:
+            st.error("Invalid response format: 'courses' key not found")
+            return []
+        
+        # Validate that courses is a list and contains properly formatted course objects
+        courses_list = parsed_dict['courses']
+        if not isinstance(courses_list, list):
+            st.error("Invalid response format: 'courses' should be a list")
+            return []
+        
+        # Validate each course object has the required 'course_name' field
+        for course in courses_list:
+            if not isinstance(course, dict) or 'course_name' not in course:
+                st.error("Invalid course format: missing 'course_name' field")
+                return []
+        
     except json.JSONDecodeError as e:
         st.error(f"Failed to parse JSON from model: {e}")
         return []
-    parsed = CourseCatalogueResponse.model_validate(parsed_dict)
-    return parsed.courses
+    
+    try:
+        parsed = CourseCatalogueResponse.model_validate(parsed_dict)
+        return parsed.courses
+    except Exception as e:
+        st.error(f"Failed to validate course data structure: {e}")
+        return []
 
+@retry_with_exponential_backoff(max_retries=3, base_delay=1.0)
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
     """
     Extracts comprehensive detailed information for a specific course using targeted LLM analysis.
@@ -296,25 +400,39 @@ def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -
         messages=[
             {
                 "role": "system",
-                "content": "Extract detailed information about the course from the provided text. If the name of the module leader or module leader email is not explicitly mentioned, reply with the default value 'not available at the moment'. The results must be returned in JSON format.",
+                "content": (
+                    "Extract detailed information about the course from the provided text. "
+                    "DO NOT include any URLs, links, or web addresses in your response. "
+                    "If the name of the module leader or module leader email is not explicitly mentioned, "
+                    "reply with the default value 'not available at the moment'. "
+                    "Focus only on course content, descriptions, and academic information. "
+                    "The results must be returned in JSON format."
+                ),
             },
             {"role": "user", "content": f"Course Name: {course_name}\n{text}"},
         ],
         response_format={"type": "json_object"},
     )
     parsed_json = response.choices[0].message.content
-    parsed = CourseDetailResponse.model_validate_json(parsed_json)
-    return parsed.course_detail
+    try:
+        parsed = CourseDetailResponse.model_validate_json(parsed_json)
+        return parsed.course_detail
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to parse course details JSON: {e}")
+        return None
+    except Exception as e:
+        st.error(f"Failed to validate course details structure: {e}")
+        return None
 
-def search_duckduckgo(query: str) -> str:
+def search_course_information(query: str) -> str:
     """
-    Performs web search using DuckDuckGo API for course catalogue and university information discovery.
+    Searches for course information using DuckDuckGo without returning any URLs.
     
     Args:
-        query (str): Search query combining university name, department, and course information
+        query (str): Search query for course information
         
     Returns:
-        str: First relevant URL found for course catalogue, or empty string if none found
+        str: Textual course information content, or empty string if none found
              
     Raises:
         requests.exceptions.RequestException: If DuckDuckGo API is unreachable
@@ -325,17 +443,30 @@ def search_duckduckgo(query: str) -> str:
         - requests library for HTTP communication
         
     Note:
-        Provides privacy-focused alternative to Google Search for academic research.
-        Results may be less comprehensive than Google but avoid tracking and usage limitations.
-        Optimized for finding university course catalogues and academic program information.
+        Provides privacy-focused search for course information without exposing URLs.
+        Returns only textual content that can be used for course analysis.
     """
     try:
         results = DDGS().text(query, max_results=5)
         if results and len(results) > 0:
-            return results[0]['href']  # Return the first URL found
+            # Combine search result descriptions/snippets instead of returning URLs
+            course_info = []
+            for result in results:
+                if 'body' in result and result['body']:
+                    course_info.append(result['body'])
+                elif 'title' in result and result['title']:
+                    course_info.append(result['title'])
+            
+            return ' '.join(course_info) if course_info else ""
+        return ""
+    except requests.exceptions.RequestException as e:
+        st.warning(f"Search API connection failed: {str(e)}")
+        return ""
+    except KeyError as e:
+        st.warning(f"Search response format error: {str(e)}")
         return ""
     except Exception as e:
-        st.warning(f"DuckDuckGo search failed: {str(e)}")
+        st.warning(f"Course information search failed: {str(e)}")
         return ""
 
 # Updated Streamlit App with state management
@@ -399,21 +530,24 @@ def main():
     # Extract Courses Button
     if st.button("Extract Courses"):
         if url:
-            with st.spinner("Retrieving course catalogue..."):
-                try:
-                    with CourseScraper() as scraper:
-                        content = scraper.scrape_page(url)
+            if not validate_url(url):
+                st.error("Please enter a valid URL (must start with http:// or https://)")
+            else:
+                with st.spinner("Retrieving course catalogue..."):
+                    try:
+                        with CourseScraper() as scraper:
+                            content = scraper.scrape_page(url)
 
-                        if content:
-                            st.session_state.raw_text = scraper.extract_text(content)
-                            st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                            st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-                        else:
-                            st.error("Failed to scrape the page.")
-                except RuntimeError as e:
-                    st.error(f"Scraper initialization failed: {str(e)}")
-                except Exception as e:
-                    st.error(f"Unexpected error during scraping: {str(e)}")
+                            if content:
+                                st.session_state.raw_text = scraper.extract_text(content)
+                                st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                                st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                            else:
+                                st.error("Failed to scrape the page.")
+                    except RuntimeError as e:
+                        st.error(f"Scraper initialization failed: {str(e)}")
+                    except Exception as e:
+                        st.error(f"Unexpected error during scraping: {str(e)}")
         else:
             st.warning("Please provide a URL.")
 
@@ -427,56 +561,77 @@ def main():
 
     if st.button("Find Similar Courses"):
         if manual_description:
-            with st.spinner("Retrieving course catalogue..."):
-                search_query = f"university course catalogue for {manual_description}"
-                url = search_duckduckgo(search_query)
-                if url:
+            with st.spinner("Searching for course information..."):
+                search_query = f"university course {manual_description} syllabus curriculum"
+                course_info = search_course_information(search_query)
+                if course_info:
                     try:
-                        with CourseScraper() as scraper:
-                            content = scraper.scrape_page(url)
-
-                            if content:
-                                st.session_state.raw_text = scraper.extract_text(content)
-                                st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                                st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-                                st.success(f"Found course catalogue at: {url}")
-                            else:
-                                st.error("Failed to scrape the found page.")
-                    except RuntimeError as e:
-                        st.error(f"Scraper initialization failed: {str(e)}")
+                        # Use the search results as text input for course extraction
+                        st.session_state.raw_text = course_info
+                        st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                        st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                        if st.session_state.courses:
+                            st.success(f"Found {len(st.session_state.courses)} related courses from search results")
+                        else:
+                            st.warning("No courses found in the search results. Try a more specific description.")
                     except Exception as e:
-                        st.error(f"Unexpected error during scraping: {str(e)}")
+                        st.error(f"Error processing search results: {str(e)}")
                 else:
-                    st.warning("No relevant course catalogue URL found. Try a more specific description.")
+                    st.warning("No relevant course information found. Try a more specific description.")
         else:
             st.warning("Please provide a course description.")
 
     # Display courses if available
     if st.session_state.courses:
         st.subheader("Course Preview")
-        courses_df = pd.json_normalize(st.session_state.courses)
-        selected_course_name = st.selectbox(
-            "Select a course to view details:",
-            courses_df['course_name'],
-            help="Choose a course from the extracted list to see detailed information."
-        )
+        try:
+            courses_df = pd.json_normalize(st.session_state.courses)
+            if 'course_name' not in courses_df.columns:
+                st.error("Course data is missing required 'course_name' field. Please try extracting courses again.")
+                st.session_state.courses = None
+                return
+            
+            selected_course_name = st.selectbox(
+                "Select a course to view details:",
+                courses_df['course_name'],
+                help="Choose a course from the extracted list to see detailed information."
+            )
+        except Exception as e:
+            st.error(f"Error processing course data: {str(e)}")
+            st.session_state.courses = None
+            return
 
         # View Course Details Button
         if selected_course_name and st.button("View Course Details"):
             with st.spinner("Loading course details..."):
-                st.session_state.selected_course_details = extract_course_details(
+                course_details = extract_course_details(
                     selected_course_name,
                     st.session_state.raw_text,
                     openai_client
                 )
+                if course_details:
+                    st.session_state.selected_course_details = course_details
+                else:
+                    st.error("Failed to extract course details. Please try again.")
 
         # Display course details if available
         if st.session_state.selected_course_details:
             st.subheader("Course Details")
-            # Normalize the JSON data
-            course_detail_df = pd.json_normalize(st.session_state.selected_course_details)
-            # Display DataFrame
-            st.dataframe(course_detail_df)
+            try:
+                # Normalize the JSON data
+                course_detail_df = pd.json_normalize(st.session_state.selected_course_details)
+                # Display DataFrame
+                st.dataframe(course_detail_df)
+            except Exception as e:
+                st.error(f"Error displaying course details: {str(e)}")
+                # Display details in a more basic format as fallback
+                st.write("**Course Details:**")
+                details = st.session_state.selected_course_details
+                if hasattr(details, '__dict__'):
+                    for key, value in details.__dict__.items():
+                        st.write(f"**{key.replace('_', ' ').title()}:** {value}")
+                else:
+                    st.write(details)
 
 if __name__ == "__main__":
     main()
