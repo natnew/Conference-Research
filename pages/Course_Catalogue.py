@@ -48,6 +48,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
+codex/wrap-model_validate_json-in-try-block
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,6 +56,19 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import re
+from pydantic import BaseModel, Field
+import json
+from typing import List, Optional, Dict
+from openai import OpenAI
+import requests
+from duckduckgo_search import DDGS
+
 
 
 
@@ -226,7 +240,12 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
         messages=[
             {
                 "role": "system",
-                "content": "Extract a detailed list of course names from the provided text. The results must be returned in JSON format.",
+                "content": (
+                    "Extract a list of course names from the provided text. "
+                    "Return a JSON object with a 'courses' field containing "
+                    "objects that each include a single 'course_name' string.\n"
+                    "Example response: {\"courses\": [{\"course_name\": \"Introduction to AI\"}]}"
+                ),
             },
             {"role": "user", "content": text},
         ],
@@ -234,11 +253,19 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
     )
     parsed_json = response.choices[0].message.content
     try:
+codex/wrap-model_validate_json-in-try-block
         parsed = CourseCatalogueResponse.model_validate_json(parsed_json)
     except (ValidationError, json.JSONDecodeError) as e:
         st.error("Failed to parse course list. Please try again later.")
         logger.error("Course catalogue parse error: %s", e)
         return []
+
+        parsed_dict = json.loads(parsed_json)
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to parse JSON from model: {e}")
+        return []
+    parsed = CourseCatalogueResponse.model_validate(parsed_dict)
+    main
     return parsed.courses
 
 def extract_course_details(
