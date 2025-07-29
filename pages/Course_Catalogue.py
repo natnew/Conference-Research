@@ -47,6 +47,7 @@ import pandas as pd
 import time
 import re
 from pydantic import BaseModel, Field
+import json
 from typing import List, Optional, Dict
 from openai import OpenAI
 import requests
@@ -222,14 +223,24 @@ def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
         messages=[
             {
                 "role": "system",
-                "content": "Extract a detailed list of course names from the provided text. The results must be returned in JSON format.",
+                "content": (
+                    "Extract a list of course names from the provided text. "
+                    "Return a JSON object with a 'courses' field containing "
+                    "objects that each include a single 'course_name' string.\n"
+                    "Example response: {\"courses\": [{\"course_name\": \"Introduction to AI\"}]}"
+                ),
             },
             {"role": "user", "content": text},
         ],
         response_format={"type": "json_object"},
     )
     parsed_json = response.choices[0].message.content
-    parsed = CourseCatalogueResponse.model_validate_json(parsed_json)
+    try:
+        parsed_dict = json.loads(parsed_json)
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to parse JSON from model: {e}")
+        return []
+    parsed = CourseCatalogueResponse.model_validate(parsed_dict)
     return parsed.courses
 
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
