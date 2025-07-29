@@ -39,7 +39,7 @@ import time
 import os
 import logging
 from typing import List, Dict, TypedDict, Literal, Annotated, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from openai import OpenAI
 from duckduckgo_search import DDGS
 from openai import LengthFinishReasonError
@@ -64,37 +64,52 @@ ddgs = DDGS()
 # Step 1: Define the data models
 # --------------------------------------------------------------
 
+
 class Section(BaseModel):
     name: str = Field(description="Section name")
     description: str = Field(description="Overview of section topics")
     research: bool = Field(description="Research required flag")
     content: str = Field(description="Section content")
 
+
 class Sections(BaseModel):
     sections: List[Section] = Field(description="Sections of the report.")
+
 
 class SearchQuery(BaseModel):
     search_query: str = Field(None, description="Query for web search.")
 
+
 class Queries(BaseModel):
     queries: List[SearchQuery] = Field(description="List of search queries.")
 
+
 class Feedback(BaseModel):
-    grade: Literal["pass", "fail"] = Field(description="Evaluation result indicating whether the response meets requirements ('pass') or needs revision ('fail').")
-    follow_up_queries: List[SearchQuery] = Field(description="List of follow-up search queries.")
+    grade: Literal["pass", "fail"] = Field(
+        description="Evaluation result indicating whether the response meets requirements ('pass') or needs revision ('fail')."
+    )
+    follow_up_queries: List[SearchQuery] = Field(
+        description="List of follow-up search queries."
+    )
+
 
 class ReportStateInput(TypedDict):
     topic: str  # Report topic
 
+
 class ReportStateOutput(TypedDict):
     final_report: str  # Final report
+
 
 class ReportState(TypedDict):
     topic: str  # Report topic
     sections: List[Section]  # List of report sections
     completed_sections: Annotated[List[Section], operator.add]  # Send() API key
-    report_sections_from_research: str  # String of any completed sections from research to write final sections
+    report_sections_from_research: (
+        str  # String of any completed sections from research to write final sections
+    )
     final_report: str  # Final report
+
 
 class SectionState(TypedDict):
     section: Section  # Report section
@@ -102,15 +117,24 @@ class SectionState(TypedDict):
     search_queries: List[SearchQuery]  # List of search queries
     source_str: str  # String of formatted source content from web search
     feedback_on_report_plan: str  # Feedback on the report plan
-    report_sections_from_research: str  # String of any completed sections from research to write final sections
-    completed_sections: List[Section]  # Final key we duplicate in outer state for Send() API
+    report_sections_from_research: (
+        str  # String of any completed sections from research to write final sections
+    )
+    completed_sections: List[
+        Section
+    ]  # Final key we duplicate in outer state for Send() API
+
 
 class SectionOutputState(TypedDict):
-    completed_sections: List[Section]  # Final key we duplicate in outer state for Send() API
+    completed_sections: List[
+        Section
+    ]  # Final key we duplicate in outer state for Send() API
+
 
 class SectionContent(BaseModel):
     content: str = Field(description="Written content for the section")
     key_points: List[str] = Field(description="Main points covered")
+
 
 # --------------------------------------------------------------
 # Step 2: Define prompts
@@ -340,15 +364,20 @@ Return a JSON object with a "content" field containing the section text."""
 # Step 3: Implement the report generator
 # --------------------------------------------------------------
 
+
 class ReportGenerator:
     def __init__(self):
         self.sections_content = {}
         self.sources = set()
 
-    def generate_search_queries(self, topic: str, report_organization: str, number_of_queries: int) -> List[SearchQuery]:
+    def generate_search_queries(
+        self, topic: str, report_organization: str, number_of_queries: int
+    ) -> List[SearchQuery]:
         """Generate search queries for the report."""
         system_instructions_query = report_planner_query_writer_instructions.format(
-            topic=topic, report_organization=report_organization, number_of_queries=number_of_queries
+            topic=topic,
+            report_organization=report_organization,
+            number_of_queries=number_of_queries,
         )
         try:
             completion = client.chat.completions.create(
@@ -356,19 +385,30 @@ class ReportGenerator:
                 messages=[{"role": "system", "content": system_instructions_query}],
                 response_format={"type": "json_object"},
             )
-            return Queries.parse_raw(
-                completion.choices[0].message.content
-            ).queries
+            return Queries.parse_raw(completion.choices[0].message.content).queries
         except LengthFinishReasonError as e:
-            st.error("Search query generation exceeded token limit. Returning truncated response.")
+            st.error(
+                "Search query generation exceeded token limit. Returning truncated response."
+            )
             return Queries.parse_raw(
                 e.completion.choices[0].message.content
             ).queries  # Return the truncated queries
+        except ValidationError as ve:
+            st.error(
+                "Search query generation returned malformed data. Check logs for details."
+            )
+            logger.error("Search query parse error: %s", ve)
+            return []
 
-    def generate_report_plan(self, topic: str, report_organization: str, context: str, feedback: str) -> Sections:
+    def generate_report_plan(
+        self, topic: str, report_organization: str, context: str, feedback: str
+    ) -> Sections:
         """Generate the report plan with sections."""
         system_instructions_sections = report_planner_instructions.format(
-            topic=topic, report_organization=report_organization, context=context, feedback=feedback
+            topic=topic,
+            report_organization=report_organization,
+            context=context,
+            feedback=feedback,
         )
         try:
             completion = client.chat.completions.create(
@@ -376,19 +416,27 @@ class ReportGenerator:
                 messages=[{"role": "system", "content": system_instructions_sections}],
                 response_format={"type": "json_object"},
             )
-            return Sections.parse_raw(
-                completion.choices[0].message.content
-            )
+            return Sections.parse_raw(completion.choices[0].message.content)
         except LengthFinishReasonError as e:
-            st.error("Report plan generation exceeded token limit. Returning truncated response.")
+            st.error(
+                "Report plan generation exceeded token limit. Returning truncated response."
+            )
             return Sections.parse_raw(
                 e.completion.choices[0].message.content
             )  # Return the truncated report plan
 
-    def write_section(self, section_topic: str, section_description: str, context: str, section_content: str) -> str:
+    def write_section(
+        self,
+        section_topic: str,
+        section_description: str,
+        context: str,
+        section_content: str,
+    ) -> str:
         """Write a section of the report."""
         system_instructions = section_writer_instructions.format(
-            section_topic=section_topic, section_content=section_content, context=context
+            section_topic=section_topic,
+            section_content=section_content,
+            context=context,
         )
         try:
             completion = client.chat.completions.create(
@@ -400,32 +448,38 @@ class ReportGenerator:
                 completion.choices[0].message.content
             ).content
         except LengthFinishReasonError as e:
-            st.error("Section writing exceeded token limit. Returning truncated response.")
+            st.error(
+                "Section writing exceeded token limit. Returning truncated response."
+            )
             return SectionContent.parse_raw(
                 e.completion.choices[0].message.content
             ).content  # Return the truncated section content
 
     def evaluate_section(self, section_topic: str, section_content: str) -> Feedback:
         """Evaluate a section of the report."""
-        system_instructions = section_grader_instructions.format(section_topic=section_topic, section=section_content)
+        system_instructions = section_grader_instructions.format(
+            section_topic=section_topic, section=section_content
+        )
         try:
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": system_instructions}],
                 response_format={"type": "json_object"},
             )
-            return Feedback.parse_raw(
-                completion.choices[0].message.content
-            )
+            return Feedback.parse_raw(completion.choices[0].message.content)
         except LengthFinishReasonError as e:
-            st.error("Section evaluation exceeded token limit. Returning truncated response.")
+            st.error(
+                "Section evaluation exceeded token limit. Returning truncated response."
+            )
             return Feedback.parse_raw(
                 e.completion.choices[0].message.content
             )  # Return the truncated feedback
 
     def write_final_sections(self, section_topic: str, context: str) -> str:
         """Write the final sections of the report."""
-        system_instructions = final_section_writer_instructions.format(section_topic=section_topic, context=context)
+        system_instructions = final_section_writer_instructions.format(
+            section_topic=section_topic, context=context
+        )
         try:
             completion = client.chat.completions.create(
                 model=model,
@@ -436,18 +490,24 @@ class ReportGenerator:
                 completion.choices[0].message.content
             ).content
         except LengthFinishReasonError as e:
-            st.error("Final section writing exceeded token limit. Returning truncated response.")
+            st.error(
+                "Final section writing exceeded token limit. Returning truncated response."
+            )
             return SectionContent.parse_raw(
                 e.completion.choices[0].message.content
             ).content  # Return the truncated final section content
 
-    def generate_report(self, topic: str, report_organization: str, context: str, feedback: str) -> ReportStateOutput:
+    def generate_report(
+        self, topic: str, report_organization: str, context: str, feedback: str
+    ) -> ReportStateOutput:
         """Generate the full report."""
         progress_placeholder = st.empty()
         progress_placeholder.info(f"Starting report generation for: {topic}")
 
         # Generate search queries
-        search_queries = self.generate_search_queries(topic, report_organization, number_of_queries=2)
+        search_queries = self.generate_search_queries(
+            topic, report_organization, number_of_queries=2
+        )
         progress_placeholder.info(f"Generated search queries: {search_queries}")
 
         # Perform web searches and collect sources
@@ -457,20 +517,30 @@ class ReportGenerator:
             all_search_results.extend(search_results)
 
         # Deduplicate and format sources
-        sources_list = deduplicate_and_format_sources(all_search_results, return_type="list")
+        sources_list = deduplicate_and_format_sources(
+            all_search_results, return_type="list"
+        )
         self.sources.update(sources_list)
 
         # Format sources for context
-        source_str = deduplicate_and_format_sources(all_search_results, return_type="string")
+        source_str = deduplicate_and_format_sources(
+            all_search_results, return_type="string"
+        )
 
         # Generate report plan
-        report_plan = self.generate_report_plan(topic, report_organization, source_str, feedback)
-        progress_placeholder.info(f"Generated report plan with {len(report_plan.sections)} sections")
+        report_plan = self.generate_report_plan(
+            topic, report_organization, source_str, feedback
+        )
+        progress_placeholder.info(
+            f"Generated report plan with {len(report_plan.sections)} sections"
+        )
 
         # Write each section
         for section in report_plan.sections:
             progress_placeholder.info(f"Writing section: {section.name}")
-            section_content = self.write_section(section.name, section.description, source_str, section.content)
+            section_content = self.write_section(
+                section.name, section.description, source_str, section.content
+            )
             section.content = section_content
             self.sections_content[section.name] = section
 
@@ -479,19 +549,27 @@ class ReportGenerator:
             progress_placeholder.info(f"Evaluating section: {section.name}")
             evaluation = self.evaluate_section(section.name, section.content)
             if evaluation.grade == "fail":
-                progress_placeholder.info(f"Section {section.name} failed evaluation. Generating follow-up queries.")
+                progress_placeholder.info(
+                    f"Section {section.name} failed evaluation. Generating follow-up queries."
+                )
                 follow_up_queries = evaluation.follow_up_queries
                 # Perform follow-up searches and refine the section
                 for query in follow_up_queries:
                     search_results = web_search(query.search_query)
                     all_search_results.extend(search_results)
-                section_content = self.write_section(section.name, section.description, source_str, section.content)
+                section_content = self.write_section(
+                    section.name, section.description, source_str, section.content
+                )
                 section.content = section_content
                 self.sections_content[section.name] = section
 
         # Write final sections
-        introduction = self.write_final_sections("Introduction", "\n\n".join([s.content for s in report_plan.sections]))
-        conclusion = self.write_final_sections("Conclusion", "\n\n".join([s.content for s in report_plan.sections]))
+        introduction = self.write_final_sections(
+            "Introduction", "\n\n".join([s.content for s in report_plan.sections])
+        )
+        conclusion = self.write_final_sections(
+            "Conclusion", "\n\n".join([s.content for s in report_plan.sections])
+        )
 
         # Compile the final report
         all_sections = "\n\n".join([s.content for s in report_plan.sections])
@@ -504,7 +582,9 @@ class ReportGenerator:
         """
 
         # Append sources to the final report
-        sources_section = deduplicate_and_format_sources(all_search_results, return_type="list")
+        sources_section = deduplicate_and_format_sources(
+            all_search_results, return_type="list"
+        )
         sources_section_str = "\n".join(sources_section)
         final_report += f"\n\n### Sources\n{sources_section_str}"
 
@@ -516,32 +596,34 @@ class ReportGenerator:
 
         return {"final_report": final_report}
 
+
 # --------------------------------------------------------------
 # Step 4: Define the tool for web search
 # --------------------------------------------------------------
 
+
 def web_search(query: str) -> List[Dict]:
     """
     Performs comprehensive web search using DuckDuckGo Search API for research report compilation.
-    
+
     Args:
         query (str): Search query string for targeted information discovery
-        
+
     Returns:
         List[Dict]: List of search result dictionaries containing:
                    - url: Web page URL
                    - title: Page title
                    - description: Page description/snippet
                    - content: Extracted page content (if available)
-                   
+
     Raises:
         ValueError: If search results are None or API returns invalid response
         Exception: If DuckDuckGo Search API request fails or rate limits exceeded
-        
+
     Dependencies:
         - DuckDuckGo Search for privacy-focused web search
         - No API key required
-        
+
     Note:
         Limited to 3 results per query for performance and API cost management.
         Includes 2-second delay between requests to respect API rate limits.
@@ -552,43 +634,49 @@ def web_search(query: str) -> List[Dict]:
         search_results = list(ddgs.text(query, max_results=3))
         if not search_results:
             raise ValueError("No search results returned")
-        time.sleep(2) 
-        
+        time.sleep(2)
+
         # Convert DuckDuckGo format to expected format
         formatted_results = []
         for result in search_results:
-            formatted_results.append({
-                'url': result.get('href', ''),
-                'title': result.get('title', ''),
-                'description': result.get('body', ''),
-                'content': result.get('body', '')  # DuckDuckGo provides snippet as body
-            })
+            formatted_results.append(
+                {
+                    "url": result.get("href", ""),
+                    "title": result.get("title", ""),
+                    "description": result.get("body", ""),
+                    "content": result.get(
+                        "body", ""
+                    ),  # DuckDuckGo provides snippet as body
+                }
+            )
         return formatted_results
     except Exception as e:
         st.error(f"Search error: {str(e)}")
         return []
 
 
-def deduplicate_and_format_sources(search_response, return_type: str = "list") -> Union[str, List[str]]:
+def deduplicate_and_format_sources(
+    search_response, return_type: str = "list"
+) -> Union[str, List[str]]:
     """
     Processes and deduplicates search results, formatting them for research report compilation.
-    
+
     Args:
         search_response: Raw search results from web_search function containing URL and content data
         return_type (str, optional): Output format - "list" for List[str] or "string" for concatenated str.
                                    Defaults to "list"
-                                   
+
     Returns:
         Union[str, List[str]]: Formatted and deduplicated sources either as:
                               - List of individual source strings (if return_type="list")
                               - Single concatenated string with all sources (if return_type="string")
-                              
+
     Functionality:
         - Removes duplicate URLs and content
         - Formats sources with titles, URLs, and relevant content snippets
         - Standardizes source formatting for consistent report integration
         - Handles various search result formats and structures
-        
+
     Note:
         Essential for maintaining source quality and preventing redundancy in research reports.
         Optimized for academic research workflows requiring proper source attribution.
@@ -598,7 +686,7 @@ def deduplicate_and_format_sources(search_response, return_type: str = "list") -
     sources_list = search_response
 
     # Deduplicate by URL
-    unique_sources = {source['url']: source for source in sources_list}
+    unique_sources = {source["url"]: source for source in sources_list}
 
     if return_type == "list":
         # Format output as a list of sources
@@ -612,20 +700,30 @@ def deduplicate_and_format_sources(search_response, return_type: str = "list") -
         for i, source in enumerate(unique_sources.values(), 1):
             formatted_text += f"- {source['title']}\n"
             formatted_text += f"  URL: {source['url']}\n"
-            formatted_text += f"  Most relevant content from source: {source['description']}\n"
+            formatted_text += (
+                f"  Most relevant content from source: {source['description']}\n"
+            )
         return formatted_text.strip()
+
 
 # --------------------------------------------------------------
 # Step 5: Streamlit app
 # --------------------------------------------------------------
 
-st.set_page_config(page_title="Deep Research", page_icon="🔍", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Deep Research",
+    page_icon="🔍",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 st.title("Deep Research")
 
 with st.sidebar:
     st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
-    st.write("A self-service app that automates the generation of reports and assists in research tasks.")
+    st.write(
+        "A self-service app that automates the generation of reports and assists in research tasks."
+    )
     st.markdown("# About This Tool")
 
     st.header("How It Works")
@@ -640,12 +738,18 @@ with st.sidebar:
     )
 
     engine_choice = st.selectbox("Select Research Engine", options=["OpenAI"])
-    research_depth = st.selectbox("Select Research Depth", ["Basic", "In-depth", "Advanced"])
+    research_depth = st.selectbox(
+        "Select Research Depth", ["Basic", "In-depth", "Advanced"]
+    )
 
 st.markdown("### Enter Your Research Query")
 query = st.text_area("Type your query here...", height=150)
 
-uploaded_files = st.file_uploader("Upload supporting documents (optional)", type=["pdf", "png", "jpg"], accept_multiple_files=True)
+uploaded_files = st.file_uploader(
+    "Upload supporting documents (optional)",
+    type=["pdf", "png", "jpg"],
+    accept_multiple_files=True,
+)
 
 start_button = st.button("Start Research")
 
@@ -660,9 +764,13 @@ if start_button:
             report_generator = ReportGenerator()
 
             # Generate the report
-            result = report_generator.generate_report(topic=query, report_organization=DEFAULT_REPORT_STRUCTURE, context="", feedback=None)
+            result = report_generator.generate_report(
+                topic=query,
+                report_organization=DEFAULT_REPORT_STRUCTURE,
+                context="",
+                feedback=None,
+            )
 
             # Output the final report
             final_report = result["final_report"]
             report_placeholder.markdown(final_report, unsafe_allow_html=True)
-
