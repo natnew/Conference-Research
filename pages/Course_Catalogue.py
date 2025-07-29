@@ -31,28 +31,23 @@ USE CASES:
 - Curriculum development and student advising support
 """
 
-import os
 import json
 import logging
+import re
+import time
+from typing import List, Optional
+
+import pandas as pd
 import streamlit as st
+from bs4 import BeautifulSoup
+from duckduckgo_search import DDGS
+from openai import OpenAI
+from pydantic import BaseModel, Field, ValidationError
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
-from bs4 import BeautifulSoup
-import pandas as pd
-import time
-import re
-from pydantic import BaseModel, Field, ValidationError
-from typing import List, Optional, Dict
-from openai import OpenAI
-import requests
-from duckduckgo_search import DDGS
 
 logging.basicConfig(
     level=logging.INFO,
