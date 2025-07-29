@@ -50,6 +50,7 @@ import json
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from openai import OpenAI
+import openai
 import requests
 from duckduckgo_search import DDGS
 
@@ -135,13 +136,23 @@ def get_chrome_driver():
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None
 
-# Scraper class remains the same
+# Enhanced CourseScraper class with context manager
 class CourseScraper:
     def __init__(self):
         self.driver = get_chrome_driver()
         if not self.driver:
             st.error("Failed to initialize the scraper")
             st.stop()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.driver:
+            try:
+                self.driver.quit()
+            except Exception as e:
+                st.error(f"Error closing WebDriver: {str(e)}")
 
     def __del__(self):
         if self.driver:
@@ -160,41 +171,232 @@ class CourseScraper:
             return ""
 
     def extract_text(self, content: str) -> str:
+        """Enhanced text extraction with course content filtering."""
         soup = BeautifulSoup(content, 'html.parser')
-        for script in soup(['script', 'style']):
-            script.decompose()
+        
+        # Remove navigation, footer, and administrative content
+        for element in soup(['nav', 'footer', 'header', 'aside', 'script', 'style']):
+            element.decompose()
+        
+        # Remove common non-course elements by class names
+        for element in soup.find_all(attrs={'class': re.compile(r'navigation|menu|footer|sidebar|banner', re.I)}):
+            element.decompose()
+        
         text = soup.get_text(separator='\n', strip=True)
         return re.sub(r'\n\s*\n', '\n\n', text)
 
-# Extract courses function remains the same
-def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
-    response = openai_client.beta.chat.completions.parse(
-        model="gpt-4o-mini-2024-07-18",
-        messages=[
-            {"role": "system", "content": "Extract a detailed list, of course, names as described  from the provided text. Return results as a structured output defined in the response mode of the model."},
-            {"role": "user", "content": text}
-        ],
-        response_format=CourseCatalogueResponse
-    )
-    courses_data = response.choices[0].message.content
-    courses_parsed = json.loads(courses_data)
-    courses_list = courses_parsed.get("courses", [])
-    return courses_list
+def validate_course_names(courses: List[CoursePreview]) -> List[CoursePreview]:
+    """
+    Filter out invalid or generic course names using pattern matching.
+    
+    Args:
+        courses: List of extracted course previews
+        
+    Returns:
+        Filtered list of valid course names
+    """
+    # Common phrases to exclude
+    excluded_patterns = [
+        r'english language.*usage',
+        r'language requirement',
+        r'language proficiency',
+        r'general information',
+        r'contact us',
+        r'about us',
+        r'navigation',
+        r'home page',
+        r'search',
+        r'login',
+        r'register',
+        r'privacy policy',
+        r'terms of service',
+        r'admissions',
+        r'student services',
+        r'apply now',
+        r'download',
+        r'view all',
+        r'more info',
+        r'click here'
+    ]
+    
+    validated_courses = []
+    for course in courses:
+        course_name_lower = course.course_name.lower().strip()
+        
+        # Skip if matches excluded patterns
+        if any(re.search(pattern, course_name_lower) for pattern in excluded_patterns):
+            continue
+            
+        # Skip if too short or too generic
+        if len(course.course_name.strip()) < 5:
+            continue
+            
+        # Skip if all caps (likely navigation/header text)
+        if course.course_name.isupper() and len(course.course_name) < 50:
+            continue
+            
+        # Skip if contains common non-course indicators
+        if any(indicator in course_name_lower for indicator in ['©', 'copyright', 'all rights', 'cookie', 'policy']):
+            continue
+            
+        validated_courses.append(course)
+    
+    return validated_courses
 
-# Extract course details function remains the same
+def validate_url(url: str) -> bool:
+    """
+    Validate URL format and accessibility.
+    
+    Args:
+        url: URL to validate
+        
+    Returns:
+        True if URL is valid and accessible
+    """
+    # Basic URL format validation
+    url_pattern = re.compile(
+        r'^https?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    if not url_pattern.match(url):
+        st.error("Please enter a valid URL format (e.g., https://example.com)")
+        return False
+    
+    try:
+        response = requests.head(url, timeout=10, allow_redirects=True)
+        if response.status_code >= 400:
+            st.error(f"URL returned status code: {response.status_code}")
+            return False
+        return True
+    except requests.RequestException as e:
+        st.error(f"Unable to access URL: {str(e)}")
+        return False
+
+# Enhanced course extraction with improved AI prompt specificity
+def extract_courses(text: str, openai_client: OpenAI) -> List[CoursePreview]:
+    """
+    Extract course names from academic text with improved specificity and error handling.
+    
+    Args:
+        text: Raw text content from course catalogue page
+        openai_client: Initialized OpenAI client
+        
+    Returns:
+        List of CoursePreview objects with extracted course names
+        
+    Raises:
+        Exception: Logs errors but returns empty list to maintain application flow
+    """
+    try:
+        response = openai_client.beta.chat.completions.parse(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": """Extract ONLY actual academic course titles from the provided text. 
+                    
+                    INCLUDE:
+                    - Specific subject courses (e.g., "Introduction to Psychology", "Advanced Mathematics", "Molecular Biology")
+                    - Degree program modules (e.g., "Research Methods", "Final Year Project", "Dissertation")
+                    - Specialized academic topics with clear educational content
+                    - Named course codes with descriptions (e.g., "PSYC101: Introduction to Psychology")
+                    - Academic seminars and workshops that are part of formal curriculum
+                    
+                    EXCLUDE:
+                    - General university requirements (e.g., "English language & usage", "Language proficiency")
+                    - Navigation menu items (e.g., "Home", "About", "Contact")
+                    - Administrative information (e.g., "Admissions", "Student Services")
+                    - Generic text about language proficiency or entry requirements
+                    - Footer content, copyright notices, or contact information
+                    - University policies, general descriptions, or mission statements
+                    - Search functionality, login prompts, or website navigation
+                    - Degree names without specific course content (e.g., "Bachelor of Arts")
+                    
+                    Focus on courses that students would actually enroll in as part of their academic program.
+                    Return only legitimate academic course names with substantive educational content."""
+                },
+                {"role": "user", "content": text}
+            ],
+            response_format=CourseCatalogueResponse,
+            timeout=30
+        )
+        courses_data = response.choices[0].message.content
+        courses_parsed = json.loads(courses_data)
+        courses_list = courses_parsed.get("courses", [])
+        
+        # Apply post-processing validation
+        validated_courses = validate_course_names(courses_list)
+        return validated_courses
+        
+    except openai.OpenAIError as e:
+        st.error(f"OpenAI API error: {str(e)}")
+        return []
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to parse AI response: {str(e)}")
+        return []
+    except Exception as e:
+        st.error(f"Unexpected error during course extraction: {str(e)}")
+        return []
+
+# Extract course details function with improved error handling
 def extract_course_details(course_name: str, text: str, openai_client: OpenAI) -> CourseDetail:
-    response = openai_client.beta.chat.completions.parse(
-        model="gpt-4o-mini-2024-07-18",
-        messages=[
-            {"role": "system", "content": "Extract detailed information about the course from the provided text if the name of the module leader or module leader email is  not explicitly mentioned in the text reply with a default value 'not available at the moment'."},
-            {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
-        ],
-        response_format=CourseDetailResponse
-    )
-    course_detail_data = response.choices[0].message.content
-    course_detail_data_parsed = json.loads(course_detail_data)
-    course_details = course_detail_data_parsed.get("course_detail", [])
-    return course_details
+    """
+    Extract detailed course information with enhanced error handling.
+    
+    Args:
+        course_name: Name of the course to extract details for
+        text: Raw text content containing course information
+        openai_client: Initialized OpenAI client
+        
+    Returns:
+        CourseDetail object with extracted information
+        
+    Raises:
+        Exception: Logs errors but returns None to maintain application flow
+    """
+    try:
+        response = openai_client.beta.chat.completions.parse(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": """Extract detailed information about the specific course from the provided text. 
+                    
+                    REQUIRED INFORMATION:
+                    - Course name (exact match from text)
+                    - Course overview (brief summary of content and objectives)
+                    - Course details (comprehensive description including structure, modules, assessment)
+                    - Module leader name (look for titles: Director, Senior Lecturer, Associate Professor, Professor)
+                    - Module leader email (if explicitly mentioned)
+                    
+                    IMPORTANT: If module leader name or email is not explicitly mentioned in the text, 
+                    respond with 'not available at the moment' for those fields.
+                    
+                    Focus only on the specified course and ignore general university information."""
+                },
+                {"role": "user", "content": f"Course Name: {course_name}\n{text}"}
+            ],
+            response_format=CourseDetailResponse,
+            timeout=30
+        )
+        course_detail_data = response.choices[0].message.content
+        course_detail_data_parsed = json.loads(course_detail_data)
+        course_details = course_detail_data_parsed.get("course_detail", {})
+        return course_details
+        
+    except openai.OpenAIError as e:
+        st.error(f"OpenAI API error while extracting course details: {str(e)}")
+        return None
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to parse course details response: {str(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Unexpected error during course detail extraction: {str(e)}")
+        return None
 
 # Function to search DuckDuckGo
 def search_duckduckgo(query: str) -> str:
@@ -226,17 +428,20 @@ def main():
     )
     # Extract Courses Button
     if st.button("Extract Courses"):
-        if url:
+        if url and validate_url(url):
             with st.spinner("Retrieving course catalogue..."):
-                scraper = CourseScraper()
-                content = scraper.scrape_page(url)
+                with CourseScraper() as scraper:
+                    content = scraper.scrape_page(url)
 
-                if content:
-                    st.session_state.raw_text = scraper.extract_text(content)
-                    st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                    st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-                else:
-                    st.error("Failed to scrape the page.")
+                    if content:
+                        st.session_state.raw_text = scraper.extract_text(content)
+                        st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                        st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                    else:
+                        st.error("Failed to scrape the page.")
+        elif url:
+            # URL validation failed, error message already shown by validate_url
+            pass
         else:
             st.warning("Please provide a URL.")
 
@@ -254,15 +459,15 @@ def main():
                 search_query = f" a similar detailed course catalogue for {manual_description}"
                 url = search_duckduckgo(search_query)
                 if url:
-                    scraper = CourseScraper()
-                    content = scraper.scrape_page(url)
+                    with CourseScraper() as scraper:
+                        content = scraper.scrape_page(url)
 
-                    if content:
-                        st.session_state.raw_text = scraper.extract_text(content)
-                        st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                        st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-                    else:
-                        st.error("Failed to scrape the page.")
+                        if content:
+                            st.session_state.raw_text = scraper.extract_text(content)
+                            st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                            st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                        else:
+                            st.error("Failed to scrape the page.")
                 else:
                     st.warning("No relevant URL found.")
         else:
@@ -281,11 +486,15 @@ def main():
         # View Course Details Button
         if selected_course_name and st.button("View Course Details"):
             with st.spinner("Loading course details..."):
-                st.session_state.selected_course_details = extract_course_details(
+                course_details = extract_course_details(
                     selected_course_name,
                     st.session_state.raw_text,
                     openai_client
                 )
+                if course_details:
+                    st.session_state.selected_course_details = course_details
+                else:
+                    st.error("Failed to extract course details. Please try again.")
 
         # Display course details if available
         if st.session_state.selected_course_details:
