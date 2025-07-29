@@ -50,4 +50,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced analytics and reporting capabilities
 - Mobile-responsive interface improvements
 - Additional API integrations for enhanced research capabilities
+- Bumped OpenAI client requirement to >=1.30.0 for structured output support
 
