@@ -110,7 +110,7 @@ class CourseDetail(BaseModel):
         description="The name of the module leader explicitly mentioned in the text with the title ‘Director of…..’ or ‘Senior Lecturer’ or ‘Associate Professor’ or ‘Professor’. If not available, respond with 'not available at the moment'."
     )
     module_leader_email: Optional[str] = Field(
-        ...,
+        default="not available at the moment",
         description="The email of the module leader explicitly mentioned in the text. If not available, respond with 'not available at the moment'."
     )
 class CourseCatalogueResponse(BaseModel):
@@ -150,35 +150,51 @@ def get_chrome_driver():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-logging')
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--allow-running-insecure-content')
 
     try:
         chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
         webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        webdriver_instance.set_page_load_timeout(30)  # Set timeout to prevent hanging
         return webdriver_instance
     except Exception as e:
         st.error(f"Failed to initialize Chrome driver: {str(e)}")
         return None
 
-# Scraper class remains the same
+# Scraper class with proper context management
 class CourseScraper:
     def __init__(self):
+        self.driver = None
+
+    def __enter__(self):
         self.driver = get_chrome_driver()
         if not self.driver:
-            st.error("Failed to initialize the scraper")
-            st.stop()
+            raise RuntimeError("Failed to initialize the scraper")
+        return self
 
-    def __del__(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         if self.driver:
             try:
                 self.driver.quit()
-            except:
-                pass
+            except Exception as e:
+                print(f"Error during scraper cleanup: {e}")
+            finally:
+                self.driver = None
 
     def scrape_page(self, url: str, wait_time: int = 7) -> str:
+        if not self.driver:
+            raise RuntimeError("WebDriver not initialized")
+        
         try:
             self.driver.get(url)
             time.sleep(wait_time)
             return self.driver.page_source
+        except TimeoutException:
+            st.warning(f"Timeout accessing URL: {url}")
+            return ""
         except Exception as e:
             st.error(f"Error accessing URL: {str(e)}")
             return ""
@@ -298,8 +314,7 @@ def search_duckduckgo(query: str) -> str:
         query (str): Search query combining university name, department, and course information
         
     Returns:
-        str: Consolidated search results text containing relevant course catalogue links,
-             descriptions, and university academic information
+        str: First relevant URL found for course catalogue, or empty string if none found
              
     Raises:
         requests.exceptions.RequestException: If DuckDuckGo API is unreachable
@@ -314,10 +329,14 @@ def search_duckduckgo(query: str) -> str:
         Results may be less comprehensive than Google but avoid tracking and usage limitations.
         Optimized for finding university course catalogues and academic program information.
     """
-    results = DDGS().text(query, max_results=5)
-    if results:
-        return results[0]['href']  # Return the first URL found
-    return ""
+    try:
+        results = DDGS().text(query, max_results=5)
+        if results and len(results) > 0:
+            return results[0]['href']  # Return the first URL found
+        return ""
+    except Exception as e:
+        st.warning(f"DuckDuckGo search failed: {str(e)}")
+        return ""
 
 # Updated Streamlit App with state management
 def main():
@@ -360,7 +379,15 @@ def main():
     if 'selected_course_details' not in st.session_state:
         st.session_state.selected_course_details = None
 
-    openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+    # Initialize OpenAI client with validation
+    try:
+        openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+    except KeyError:
+        st.error("OpenAI API key not found in secrets. Please configure your API key.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Failed to initialize OpenAI client: {str(e)}")
+        st.stop()
 
     # URL Input
     st.subheader("Enter Course Catalogue URL")
@@ -373,15 +400,20 @@ def main():
     if st.button("Extract Courses"):
         if url:
             with st.spinner("Retrieving course catalogue..."):
-                scraper = CourseScraper()
-                content = scraper.scrape_page(url)
+                try:
+                    with CourseScraper() as scraper:
+                        content = scraper.scrape_page(url)
 
-                if content:
-                    st.session_state.raw_text = scraper.extract_text(content)
-                    st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                    st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-                else:
-                    st.error("Failed to scrape the page.")
+                        if content:
+                            st.session_state.raw_text = scraper.extract_text(content)
+                            st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                            st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                        else:
+                            st.error("Failed to scrape the page.")
+                except RuntimeError as e:
+                    st.error(f"Scraper initialization failed: {str(e)}")
+                except Exception as e:
+                    st.error(f"Unexpected error during scraping: {str(e)}")
         else:
             st.warning("Please provide a URL.")
 
@@ -396,20 +428,26 @@ def main():
     if st.button("Find Similar Courses"):
         if manual_description:
             with st.spinner("Retrieving course catalogue..."):
-                search_query = f" a similar detailed course catalogue for {manual_description}"
+                search_query = f"university course catalogue for {manual_description}"
                 url = search_duckduckgo(search_query)
                 if url:
-                    scraper = CourseScraper()
-                    content = scraper.scrape_page(url)
+                    try:
+                        with CourseScraper() as scraper:
+                            content = scraper.scrape_page(url)
 
-                    if content:
-                        st.session_state.raw_text = scraper.extract_text(content)
-                        st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
-                        st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
-                    else:
-                        st.error("Failed to scrape the page.")
+                            if content:
+                                st.session_state.raw_text = scraper.extract_text(content)
+                                st.session_state.courses = extract_courses(st.session_state.raw_text, openai_client)
+                                st.session_state.selected_course_details = None  # Reset course details when new courses are extracted
+                                st.success(f"Found course catalogue at: {url}")
+                            else:
+                                st.error("Failed to scrape the found page.")
+                    except RuntimeError as e:
+                        st.error(f"Scraper initialization failed: {str(e)}")
+                    except Exception as e:
+                        st.error(f"Unexpected error during scraping: {str(e)}")
                 else:
-                    st.warning("No relevant URL found.")
+                    st.warning("No relevant course catalogue URL found. Try a more specific description.")
         else:
             st.warning("Please provide a course description.")
 
