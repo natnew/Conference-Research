@@ -13,6 +13,7 @@ webdriver-manager>=4.0.0
 openpyxl>=3.1.0
 tiktoken>=0.5.2,<0.6.0
 ddgs>=1.0.0
+crawl4ai>=0.1.0
 xlsxwriter>=3.2.0
 pdfminer.six>=20221105
 PyPDF2>=3.0.0
@@ -21,7 +22,6 @@ langchain>=0.1.0
 langchain_openai>=0.1.0
 google-generativeai>=0.5.0
 streamlit-authenticator>=0.2.0
-duckduckgo_search
 
 # Configuration and validation
 pydantic>=2.0.0
@@ -30,10 +30,3 @@ pyyaml>=6.0
 # Note: For development dependencies, use: pip install -e ".[dev,test]"
 # For security scanning, use: pip install -e ".[security]"
 # For documentation, use: pip install -e ".[docs]"
-
-
-
-
-
-
-
