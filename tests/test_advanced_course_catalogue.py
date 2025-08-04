@@ -1,3 +1,4 @@
+import importlib
 import sys
 import types
 
@@ -55,3 +56,18 @@ def test_crawl_from_query_uses_ddgs_and_crawler(monkeypatch):
     crawler = CourseCrawler()
     html = crawl_from_query("Math", "Oxford", crawler)
     assert html == "<html>content</html>"
+
+
+@pytest.mark.unit
+def test_main_shows_install_message_when_crawl4ai_missing(monkeypatch):
+    sys.modules.pop("crawl4ai", None)
+    sys.modules.pop("pages.Advanced_Course_Catalogue", None)
+    page = importlib.import_module("pages.Advanced_Course_Catalogue")
+
+    captured: dict[str, str] = {}
+    monkeypatch.setattr(page.st, "error", lambda msg: captured.setdefault("msg", msg))
+    monkeypatch.setattr(page.st, "title", lambda *a, **k: None)
+
+    page.main()
+
+    assert "install crawl4ai" in captured["msg"].lower()

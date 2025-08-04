@@ -10,8 +10,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import streamlit as st
-from crawl4ai import WebCrawler
 from duckduckgo_search import DDGS
+
+try:  # pragma: no cover - handled in tests
+    from crawl4ai import WebCrawler
+except ModuleNotFoundError:  # pragma: no cover
+    WebCrawler = None  # type: ignore[assignment]
 
 from pages.Course_Catalogue import extract_courses
 
@@ -23,11 +27,18 @@ class CourseCrawler:
     The crawler fetches the raw HTML content for a given URL.
     """
 
-    crawler: WebCrawler = field(default_factory=WebCrawler)
+    crawler: WebCrawler | None = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.crawler = WebCrawler() if WebCrawler else None
 
     def fetch(self, url: str) -> str:
         """Return the HTML content for ``url`` using Crawl4AI."""
 
+        if not self.crawler:
+            raise RuntimeError(
+                "crawl4ai is not installed. Please install crawl4ai to use this feature."
+            )
         result = self.crawler.crawl(url)
         return result.get("html", "")
 
@@ -70,6 +81,9 @@ def main() -> None:
     """Streamlit UI entry point for the advanced course catalogue."""
 
     st.title("Advanced Course Catalogue")
+    if WebCrawler is None:
+        st.error("crawl4ai is not installed. Please install crawl4ai to use this page.")
+        return
     course = st.text_input("Course name")
     university = st.text_input("University")
     if st.button("Search"):
