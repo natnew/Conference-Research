@@ -4,7 +4,7 @@
 
 # Auto-generated with pip-compile — DO NOT EDIT BY HAND
 beautifulsoup4==4.12.3
-crawl4ai==0.1.0
+crawl4ai==0.7.2
 httpx[http2]==0.28.0
 langchain-core==0.1.52
 langchain-openai==0.1.6
