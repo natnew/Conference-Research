@@ -1,8 +1,4 @@
 # Conference Research Application - Production Dependencies
-# Generated from pyproject.toml - do not edit manually
-# Use 'pip install -e .' to install from pyproject.toml
-
-# Auto-generated with pip-compile — DO NOT EDIT BY HAND
 beautifulsoup4==4.12.3
 crawl4ai==0.7.2
 httpx[http2]==0.28.0
@@ -11,12 +7,12 @@ langchain-openai==0.1.6
 openai==1.30.1
 pandas==2.2.2
 playwright==1.44.0
-pydantic==2.7.2
+pydantic==2.11.0          # ← raised to satisfy crawl4ai
 pymupdf4llm==0.0.8
 pyyaml==6.0.2
 requests==2.32.3
 streamlit==1.34.0
 streamlit-authenticator==0.2.3
 tiktoken==0.5.2
-xlsxwriter==3.3.2
+xlsxwriter==3.2.5         # ← valid version
 
