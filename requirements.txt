@@ -6,7 +6,7 @@ langchain-core==0.1.52
 langchain-openai==0.1.6
 openai==1.30.1
 pandas==2.2.2
-playwright==1.44.0
+playwright==1.49.0
 pydantic==2.11.0          # ← raised to satisfy crawl4ai
 pymupdf4llm==0.0.8
 pyyaml==6.0.2
