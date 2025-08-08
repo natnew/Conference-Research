@@ -368,7 +368,11 @@ def main():
                             st.text_area("", readable_text, height=300)
 
                     with st.spinner("Extracting information..."):
-                        openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+                        openai_key = st.secrets.get("openai_api_key")
+                        if not openai_key:
+                            st.error("OpenAI API key is not configured. Please add 'openai_api_key' to Streamlit secrets.")
+                            return
+                        openai_client = OpenAI(api_key=openai_key)
                         academics_dict = extract_academic_info(readable_text, openai_client)
 
                     if academics_dict:

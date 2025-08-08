@@ -53,7 +53,9 @@ with st.sidebar:
         "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and AI-generated bios to uncover detailed academic profiles."
     )
     st.markdown("This tool is a work in progress.")
-    openai_api_key = st.secrets["openai_api_key"]
+    openai_api_key = st.secrets.get("openai_api_key")
+    if not openai_api_key:
+        st.warning("OpenAI key is not configured. Some features may be disabled.")
 
 def generate_bio_with_chatgpt(researcher_full_name, university_affiliation):
     """

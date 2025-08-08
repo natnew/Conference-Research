@@ -52,9 +52,9 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-openai_api_key = st.secrets["openai_api_key"]
-# Initialize OpenAI client
-client = OpenAI(api_key=openai_api_key)
+openai_api_key = st.secrets.get("openai_api_key")
+# Initialize OpenAI client if available
+client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 model = "gpt-4o-mini"
 
 # Initialize DuckDuckGo search

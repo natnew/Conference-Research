@@ -149,7 +149,8 @@ class ConfigManager:
             config_dir: Custom configuration directory path
         """
         self.environment = self._detect_environment(environment)
-        self.config_dir = config_dir or Path(__file__).parent.parent / "config"
+        # Use repository-level config directory by default (e.g., /workspace/config)
+        self.config_dir = config_dir or Path(__file__).resolve().parents[2] / "config"
         self._config = None
         self._secrets = None
     
