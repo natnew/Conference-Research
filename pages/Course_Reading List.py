@@ -38,7 +38,7 @@ USE CASES:
 """
 
 import streamlit as st
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -444,7 +444,11 @@ def main():
     if st.button("Get Reading List"):
         with st.spinner("Retrieving the reading list; this might take some time...."):
             if university and course:
-                openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+                openai_key = st.secrets.get("openai_api_key")
+                if not openai_key:
+                    st.error("OpenAI API key is not configured. Please add 'openai_api_key' to Streamlit secrets.")
+                    return
+                openai_client = OpenAI(api_key=openai_key)
                 texts_urls, query = get_reading_list(university, course)
                 if texts_urls:
                     reading_list_items = process_text_with_llm(texts_urls, query, openai_client)

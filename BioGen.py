@@ -40,7 +40,7 @@ import openai
 import re
 from io import BytesIO
 from openai import OpenAI
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 import requests
 from bs4 import BeautifulSoup
 import tiktoken
@@ -166,7 +166,7 @@ def retry_api_call(max_retries=None, backoff_factor=None):
             for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
-                except (requests.RequestException, openai.OpenAIError, ConnectionError) as e:
+                except (requests.RequestException, openai.APIError, ConnectionError) as e:
                     if attempt == max_retries:
                         raise e
                     delay = config.retry.initial_delay * (backoff_factor ** attempt) + random.uniform(0, 1)
@@ -382,8 +382,12 @@ def generate_enriched_text(researcher_full_name, university_affiliation):
     request_payload = json.dumps({
         "q": search_query
     })
+    serper_api_key = st.secrets.get("serper_api_key")
+    if not serper_api_key:
+        st.error("Serper API key is not configured. Please add 'serper_api_key' to Streamlit secrets.")
+        return None
     request_headers = {
-        'X-API-KEY': st.secrets["serper_api_key"],
+        'X-API-KEY': serper_api_key,
         'Content-Type': 'application/json'
     }
     http_connection.request("POST", "/search", request_payload, request_headers)
@@ -451,7 +455,11 @@ def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enri
     )
     try:
         # Initialize the OpenAI client
-        openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+        openai_key = st.secrets.get("openai_api_key")
+        if not openai_key:
+            st.error("OpenAI API key is not configured. Please add 'openai_api_key' to Streamlit secrets.")
+            return [], ""
+        openai_client = OpenAI(api_key=openai_key)
 
         # Generate response using the official OpenAI method
         chat_response = openai_client.chat.completions.create(

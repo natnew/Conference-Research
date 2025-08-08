@@ -215,7 +215,11 @@ def main():
     if 'selected_course_details' not in st.session_state:
         st.session_state.selected_course_details = None
 
-    openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+    openai_key = st.secrets.get("openai_api_key")
+    if not openai_key:
+        st.error("OpenAI API key is not configured. Please add 'openai_api_key' to Streamlit secrets.")
+        return
+    openai_client = OpenAI(api_key=openai_key)
 
     # URL Input
     st.subheader("Enter Course Catalogue URL")
