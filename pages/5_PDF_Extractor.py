@@ -68,7 +68,9 @@ with st.sidebar:
     st.markdown(
         "This tool is a work in progress."
     )
-    openai_api_key = st.secrets["openai_api_key"]
+    openai_api_key = st.secrets.get("openai_api_key")
+    if not openai_api_key:
+        st.warning("OpenAI key is not configured. Some features may be disabled.")
 
 # Pydantic model for LLM response
 class ExtractedInfo(BaseModel):
