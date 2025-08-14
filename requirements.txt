@@ -1,22 +1,38 @@
 # Conference Research Application - Production Dependencies
-beautifulsoup4==4.12.3
-openai>=1.43.0
-pandas==2.2.2
-pydantic>=2.6,<2.12
-pymupdf4llm==0.0.8
-pyyaml==6.0.2
-requests==2.32.3
-streamlit==1.34.0
-streamlit-authenticator==0.2.3
-tiktoken==0.5.2
-xlsxwriter==3.2.5
-duckduckgo_search==6.1.9
-langchain==0.2.14
-langchain-core==0.2.38
-langchain-openai==0.1.6
-PyPDF2==3.0.1
-webdriver-manager==4.0.2
-openpyxl==3.1.5
-pdfminer.six==20231228
+# Generated from pyproject.toml - do not edit manually
+# Use 'pip install -e .' to install from pyproject.toml
+
+# Core application dependencies
+streamlit>=1.28.0
+openai>=1.30.0
 selenium>=4.15.0
+pandas>=1.5.0,<3.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+webdriver-manager>=4.0.0
+openpyxl>=3.1.0
+tiktoken>=0.5.2,<0.6.0
+ddgs>=1.0.0
+xlsxwriter>=3.2.0
+pdfminer.six>=20221105
+PyPDF2>=3.0.0
+pymupdf4llm>=0.0.5
+langchain>=0.1.0
+langchain_openai>=0.1.0
+google-generativeai>=0.5.0
+streamlit-authenticator>=0.2.0
+duckduckgo_search
+
+# Configuration and validation
+pydantic>=2.0.0
+pyyaml>=6.0
+
+# Note: For development dependencies, use: pip install -e ".[dev,test]"
+# For security scanning, use: pip install -e ".[security]"
+# For documentation, use: pip install -e ".[docs]"
+
+
+
+
+
 
