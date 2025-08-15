@@ -36,372 +36,360 @@ COMPATIBILITY:
 JavaScript-heavy sites, SPAs, GDPR consent sites, dynamic AJAX content
 """
 
-import os
 import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, WebDriverException
-from bs4 import BeautifulSoup
 import pandas as pd
-import time
+import openai
 import re
-from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
-from openai import OpenAI
 from io import BytesIO
+from openai import OpenAI
+from duckduckgo_search import DDGS
+import requests
+from bs4 import BeautifulSoup
+import tiktoken
+import http.client
+import json
 
-# Sidebar content
+# Sidebar Configuration
 st.sidebar.title(":streamlit: Conference & Campus Research Assistant")
 st.sidebar.write("""
-A specialized web scraping tool designed to extract academic profiles from conference
-websites and institutional pages. Automatically identifies and extracts names,
-affiliations, and other relevant information while handling dynamic content and
-cookie consents.
+A self-service app that automates the generation of biographical content
+and assists in lead generation. Designed to support academic and professional
+activities, it offers interconnected modules that streamline research tasks,
+whether for conferences, campus visits, or other events.
 """)
+
+st.sidebar.write(
+    "Built by [Natasha Newbold](https://www.linkedin.com/in/natasha-newbold/) "
+)
 
 # Sidebar Info Box as Dropdown
 with st.sidebar.expander("Capabilities", expanded=False):
     st.write("""
-    This scraper includes advanced capabilities:
-    - Automated cookie consent handling
-    - Dynamic content loading support
-    - Smart name and affiliation detection
-    - Customizable wait times and thresholds
-    - Export results to Excel format
+    This app leverages cutting-edge technologies to automate and enhance research
+    workflows. It combines generative AI, voice-to-action capabilities,
+    Retrieval-Augmented Generation (RAG), agentic RAG, and other advanced
+    methodologies to deliver efficient and accurate results.
     """)
 
+# Additional Information in the Sidebar
 with st.sidebar:
     st.markdown("# About This Tool")
     st.markdown(
-        "Simply paste a URL from a conference website or academic page. "
-        "The scraper will navigate through cookie notices, wait for content to load, "
-        "and extract structured information about academics and their affiliations."
+        "Search for academic profiles by querying local files (CSV/XLSX) or the internet. Combine the power of local data and web scraping to uncover detailed academic profiles. "
     )
-    st.markdown(
-        "This tool is continuously being improved to better handle various website layouts "
-        "and data formats. Your feedback helps us enhance its capabilities."
-    )
+    st.markdown("This tool is a work in progress.")
+    openai_api_key = st.secrets["openai_api_key"]
 
-def get_chrome_driver():
+def scrape_text_from_url(url):
     """
-    Initializes and configures Chrome WebDriver with headless options optimized for Streamlit Cloud deployment.
-    
-    Returns:
-        webdriver.Chrome: Configured Chrome WebDriver instance ready for web scraping
-        
-    Raises:
-        WebDriverException: If Chrome/Chromium installation fails or driver cannot be initialized
-        Exception: If ChromeDriverManager cannot download or install appropriate driver version
-        
-    Configuration:
-        - Headless mode for server environments
-        - JavaScript enabled for dynamic content
-        - GPU disabled for performance in cloud environments
-        - Sandbox disabled for containerized deployments
-        
-    Dependencies:
-        - webdriver-manager for automatic driver management
-        - selenium for browser automation
-        
-    Note:
-        Automatically handles Chrome driver version management and installation.
-        Optimized for Streamlit Cloud but works in local environments.
-        Uses ChromeType.CHROMIUM for broader compatibility.
-    """
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--enable-javascript')
-
-    try:
-        chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
-        webdriver_instance = webdriver.Chrome(service=chrome_service, options=chrome_options)
-        return webdriver_instance
-    except WebDriverException as e:
-        st.error(f"Failed to initialize Chrome driver: {str(e)}")
-        return None
-    except Exception as e:
-        st.error(f"Unexpected error during driver initialization: {str(e)}")
-        return None
-
-class AcademicInfo(BaseModel):
-    name: str
-    affiliation: str
-    location: Optional[str] = Field(None, description="The location of the academic's affiliation.")
-
-class ParticipantList(BaseModel):
-    participant_details: Optional[List[AcademicInfo]] = Field(description="List of names, affiliations, and locations.")
-
-class GenericConferenceScraper:
-    """Generic scraper for conference websites with configurable patterns"""
-
-    def __init__(self):
-        """Initialize the scraper with cached Selenium WebDriver"""
-        self.webdriver_instance = get_chrome_driver()
-        if not self.webdriver_instance:
-            st.error("Failed to initialize the scraper")
-            st.stop()
-
-    def __del__(self):
-        """Clean up the WebDriver"""
-        if hasattr(self, 'webdriver_instance') and self.webdriver_instance:
-            try:
-                self.webdriver_instance.quit()
-            except:
-                pass
-
-    def handle_cookie_consent(self):
-        """Handle cookie consent popups"""
-        try:
-            # Wait for cookie consent button (adjust selectors based on the actual page)
-            cookie_buttons = [
-                "//button[contains(text(), 'Accept')]",
-                "//button[contains(text(), 'accept')]",
-                "//button[contains(@class, 'accept')]",
-                "//button[contains(text(), 'Allow')]",
-                "//button[contains(text(), 'Agree')]",
-                # Add specific button for your site
-                "//button[text()='Accept']"
-            ]
-
-            for button_xpath in cookie_buttons:
-                try:
-                    WebDriverWait(self.webdriver_instance, 5).until(
-                        EC.element_to_be_clickable((By.XPATH, button_xpath))
-                    ).click()
-                    st.info("Cookie consent handled")
-                    time.sleep(2)  # Wait for the popup to disappear
-                    return True
-                except (TimeoutException, ElementClickInterceptedException):
-                    continue
-
-            return False
-        except Exception as e:
-            st.warning(f"Cookie consent handling failed: {str(e)}")
-            return False
-
-    def wait_for_content(self, timeout=30):
-        """Wait for dynamic content to load"""
-        try:
-            # Wait for specific elements that indicate content has loaded
-            # Adjust these selectors based on the actual page structure
-            content_indicators = [
-                "//div[contains(@class, 'faculty')]",
-                "//div[contains(@class, 'speakers')]",
-                "//div[contains(@class, 'content')]"
-            ]
-
-            for indicator in content_indicators:
-                try:
-                    WebDriverWait(self.webdriver_instance, timeout).until(
-                        EC.presence_of_element_located((By.XPATH, indicator))
-                    )
-                    return True
-                except TimeoutException:
-                    continue
-
-            return False
-        except Exception as e:
-            st.warning(f"Content loading wait failed: {str(e)}")
-            return False
-
-    def scrape_webpage(self, url: str, wait_time: int = 5) -> str:
-        """Scrape webpage content with cookie handling and dynamic content waiting"""
-        if not self.webdriver_instance:
-            return ""
-
-        try:
-            st.info(f"Accessing URL: {url}")
-            self.webdriver_instance.get(url)
-            time.sleep(wait_time)  # Initial wait for page load
-
-            # Handle cookie consent
-            if self.handle_cookie_consent():
-                st.info("Cookies accepted, waiting for content to load...")
-            else:
-                st.warning("Cookie consent not found or couldn't be handled")
-
-            # Wait for dynamic content
-            if self.wait_for_content():
-                st.info("Content loaded successfully")
-            else:
-                st.warning("Content loading timeout - proceeding with available content")
-
-            # Get the page source after all handling
-            return self.webdriver_instance.page_source
-        except Exception as e:
-            st.error(f"Error accessing URL: {str(e)}")
-            return ""
-
-    def get_readable_text(self, content: str) -> str:
-        """Extract readable text from HTML content"""
-        soup = BeautifulSoup(content, 'html.parser')
-
-        # Remove script and style elements
-        for script in soup(['script', 'style']):
-            script.decompose()
-
-        # Get text and clean it up
-        text = soup.get_text(separator='\n', strip=True)
-        # Remove multiple newlines
-        text = re.sub(r'\n\s*\n', '\n\n', text)
-        return text
-
-def extract_academic_info(text: str, openai_client: OpenAI) -> List[Dict[str, str]]:
-    """
-    Extracts structured academic information from unstructured text using OpenAI LLM processing.
+    Scrapes and extracts plain text content from a given URL using Beautiful Soup.
     
     Args:
-        text (str): Raw text content from web pages or documents containing academic information
-        openai_client (OpenAI): Configured OpenAI client instance with valid API credentials
+        url (str): The complete URL to scrape (must include http/https protocol)
         
     Returns:
-        Dict[str, List[Dict[str, str]]]: Parsed academic information with a
-        ``participant_details`` key containing dictionaries with:
-                            - ``name``: Full name of academic individual
-                            - ``affiliation``: University or research institution
-                            - ``location``: Country location inferred from affiliation
-                            
+        str: Cleaned plain text content with HTML tags removed and whitespace normalized
+        
     Raises:
-        openai.OpenAIError: If API request fails, quota exceeded, or authentication fails
+        requests.exceptions.RequestException: If URL is unreachable or returns error status
+        ValueError: If URL format is invalid or content cannot be parsed
+        
+    Note:
+        Uses requests with 10-second timeout and handles UTF-8 encoding automatically.
+        Removes scripts, styles, and other non-content elements before text extraction.
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check if the request was successful
+        response.encoding = 'utf-8'  # Specify the encoding
+        try:
+            soup = BeautifulSoup(response.content, 'html.parser')  # You can also try 'lxml' or 'html5lib'
+            # Extract text from paragraphs and other relevant tags
+            paragraphs = soup.find_all(['p', 'li', 'span', 'div'])
+            text = ' '.join([para.get_text() for para in paragraphs])
+        except Exception as e:
+            print(f"Error parsing {url} with BeautifulSoup: {e}")
+            text = response.text  # Fall back to raw text content
+        return text
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return None
+
+def clean_text(text):
+    """
+    Normalizes and cleans raw text by removing extra whitespace and formatting artifacts.
+    
+    Args:
+        text (str): Raw text content that may contain irregular spacing, line breaks, or formatting
+        
+    Returns:
+        str: Cleaned text with normalized whitespace, single spaces between words, 
+             and standardized line breaks
+    
+    Note:
+        Preserves sentence structure while removing redundant whitespace patterns
+        commonly found in web-scraped or PDF-extracted content.
+    """
+    # Remove excessive whitespace and newlines
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+def truncate_text(text, max_tokens, encoding_name="cl100k_base"):
+    """
+    Truncates text content to fit within specified token limits for LLM processing.
+    
+    Args:
+        text (str): Input text to be truncated
+        max_tokens (int): Maximum number of tokens allowed (must be positive)
+        encoding_name (str, optional): Tokenizer encoding to use. Defaults to "cl100k_base" (GPT-4)
+        
+    Returns:
+        str: Truncated text that fits within the token limit, preserving complete words
+        
+    Raises:
+        ValueError: If max_tokens is not positive or encoding_name is invalid
+        tiktoken.core.UnicodeEncodeError: If text contains unsupported characters
+        
+    Note:
+        Uses tiktoken library for accurate token counting. Truncation occurs at word boundaries
+        to maintain readability. Different models may use different encodings.
+    """
+    encoding = tiktoken.get_encoding(encoding_name)
+    tokens = encoding.encode(text)
+    truncated_tokens = tokens[:max_tokens]
+    truncated_text = encoding.decode(truncated_tokens)
+    return truncated_text
+
+# Function to generate enriched text using DDGS
+# def generate_enriched_text(full_name, university):
+#     query = f"a professional bio and email for {full_name}, who is affiliated with {university}."
+#     results = DDGS().text(query, max_results=3)
+
+#     enriched_text = ""
+#     for result in results:
+#         url = result['href']
+#         body_text = result['body']
+#         scraped_text = scrape_text_from_url(url)
+#         if scraped_text is not None:
+#             combined_text = f"{body_text} {scraped_text}"
+#             enriched_text += clean_text(combined_text) + " "
+#         else:
+#             enriched_text += clean_text(body_text) + " "
+
+#     # Format the enriched text into a block of text
+#     enriched_text = re.sub(r'\s+', ' ', enriched_text).strip()
+#     return enriched_text
+def generate_enriched_text(researcher_full_name, university_affiliation):
+    """
+    Searches for and compiles comprehensive academic information about a researcher using Google Search API.
+    
+    Args:
+        researcher_full_name (str): Complete name of the academic researcher (first and last name)
+        university_affiliation (str): Full name of the researcher's institutional affiliation
+        
+    Returns:
+        str: Compiled research profile containing publication details, academic achievements,
+             research interests, and professional background information
+             
+    Raises:
+        Exception: If Google Search API key is missing or API request fails
+        requests.exceptions.RequestException: If network request to search API fails
         
     Dependencies:
-        - OpenAI GPT model for intelligent text analysis
-        - Structured prompting for consistent academic information extraction
+        - Requires valid Google Search API key in st.secrets
+        - Uses SERPER_API_KEY for Google search functionality
         
     Note:
-        Designed for academic conference websites, faculty listings, and research directories.
-        Uses intelligent parsing to handle various text formats and structures.
-        Results may vary based on input text quality and formatting consistency.
+        Performs multiple targeted searches combining name and university for comprehensive results.
+        Results are concatenated and can be quite lengthy (suitable for subsequent LLM processing).
+        Rate-limited by Google Search API quotas.
     """
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini-2024-07-18",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Extract the names, affiliations, and locations from the following text and for location if not present "
-                    "and based on the affiliations you can infer it from your general knowledge and just provide the country "
-                    "name in the location and DON'T include the city name. Return the results as a JSON array of objects with "
-                    "'name', 'affiliation', and 'location' keys."
-                ),
-            },
-            {"role": "user", "content": text},
-        ],
-        response_model=ParticipantList,
-    )
+    search_query = f"a professional bio and email for {researcher_full_name}, who is affiliated with {university_affiliation}."
+    http_connection = http.client.HTTPSConnection("google.serper.dev")
+    request_payload = json.dumps({
+        "q": search_query
+    })
+    request_headers = {
+        'X-API-KEY': st.secrets["serper_api_key"],
+        'Content-Type': 'application/json'
+    }
+    http_connection.request("POST", "/search", request_payload, request_headers)
+    api_response = http_connection.getresponse()
+    response_data_raw = api_response.read()
+    parsed_response_data = json.loads(response_data_raw.decode("utf-8"))
 
-    parsed = response.parse()
-    return parsed.model_dump()
-
-def main():
-    """
-    Main execution function for the Web Scraper Streamlit application interface.
-    
-    Functionality:
-        - Renders comprehensive Streamlit UI for web scraping configuration
-        - Manages URL input, scraping parameters, and extraction settings
-        - Coordinates between ConferenceScraper class and academic information extraction
-        - Handles real-time progress indication and error reporting
-        - Provides data export capabilities (CSV, Excel, JSON formats)
-        - Manages session state for scraping results and configuration persistence
-        
-    Side Effects:
-        - Updates Streamlit session state with scraping results and settings
-        - Renders dynamic UI components based on scraping progress and results
-        - Handles file downloads and data persistence operations
-        - Manages WebDriver lifecycle and cleanup
-        
-    Features:
-        - Real-time scraping progress with status indicators
-        - Configurable wait times and scraping parameters
-        - Academic information extraction with AI-powered analysis
-        - Multiple export formats for different use cases
-        - Error handling with user-friendly feedback
-        
-    Note:
-        Entry point for the generic web scraping application.
-        Designed for academic conference websites but adaptable to other structured sites.
-        Includes comprehensive error handling for network issues, parsing failures, and API errors.
-    """
-    st.title("Web Scraper")
-
-    url = st.text_input(
-           "Enter website URL:",
-           placeholder="e.g., https://example.com"
-        )
-    wait_time = st.slider(
-        "Page Load Wait Time (seconds)",
-        min_value=1,
-        max_value=15,
-        value=5,
-        help="Adjust this slider to control how long the scraper waits for a webpage to load. If the website is slow or has complex dynamic content, increase this time to ensure all information is captured. A longer wait time helps with websites that load content gradually or have multiple loading stages."
-    )
-
-    st.caption(
-        "Increase the wait time if the target page loads slowly or relies on dynamic content."
-    )
-
-    if st.button("Extract Information"):
-        if url:
-            try:
-                with st.spinner("Initializing scraper..."):
-                    scraper = GenericConferenceScraper()
-
-                with st.spinner("Scraping webpage..."):
-                    content = scraper.scrape_webpage(url, wait_time)
-
-                if content:
-                    # Extract and display readable text
-                    with st.spinner("Processing raw text..."):
-                        readable_text = scraper.get_readable_text(content)
-                        st.subheader("Raw Scraped Text")
-                        with st.expander("Click to view raw text", expanded=False):
-                            st.text_area("", readable_text, height=300)
-
-                    with st.spinner("Extracting information..."):
-                        openai_key = st.secrets.get("openai_api_key")
-                        if not openai_key:
-                            st.error("OpenAI API key is not configured. Please add 'openai_api_key' to Streamlit secrets.")
-                            return
-                        openai_client = OpenAI(api_key=openai_key)
-                        academics_dict = extract_academic_info(readable_text, openai_client)
-
-                    if academics_dict:
-                        academics_list = academics_dict.get("participant_details", [])
-                        df = pd.DataFrame(academics_list)
-
-                        st.subheader("Results")
-                        st.dataframe(df)
-
-                        # Save as Excel
-                        output = BytesIO()
-                        df.to_excel(output, index=False, engine='openpyxl')
-                        output.seek(0)
-                        st.download_button(
-                            "Download Results as Excel",
-                            output,
-                            "conference_academics.xlsx",
-                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key='download-excel'
-                        )
-                    else:
-                        st.warning("No academic information found. Try adjusting the wait time.")
-                else:
-                    st.error("Failed to retrieve content from the URL.")
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-                st.error("Please try again with different parameters or check the URL.")
+    compiled_enriched_text = ""
+    for search_result in parsed_response_data.get('organic', []):
+        result_url = search_result['link']
+        snippet_text = search_result['snippet']
+        scraped_content = scrape_text_from_url(result_url)
+        if scraped_content is not None:
+            combined_content = f"{snippet_text} {scraped_content}"
+            compiled_enriched_text += clean_text(combined_content) + " "
         else:
-            st.warning("Please enter a URL.")
+            compiled_enriched_text += clean_text(snippet_text) + " "
 
-if __name__ == "__main__":
-    main()
+    # Format the enriched text into a block of text
+    final_enriched_text = re.sub(r'\s+', ' ', compiled_enriched_text).strip()
+    return final_enriched_text
+
+def generate_bio_with_chatgpt(researcher_full_name, university_affiliation, enriched_text_content):
+    """
+    Generates a comprehensive academic biography using OpenAI GPT-4o-mini with enriched research data.
+    
+    Args:
+        researcher_full_name (str): Complete name of the researcher for bio personalization
+        university_affiliation (str): Institutional affiliation to include in biography
+        enriched_text_content (str): Pre-compiled research information from web searches
+        
+    Returns:
+        str: Professionally formatted academic biography (typically 200-400 words) including
+             research interests, publications, achievements, and contact information when available
+             
+    Raises:
+        openai.OpenAIError: If API key is invalid or request fails
+        Exception: If response parsing fails or content generation errors occur
+        
+    Dependencies:
+        - Requires valid OpenAI API key in st.secrets["openai_api_key"]
+        - Uses GPT-4o-mini-2024-07-18 model for cost-effective generation
+        
+    Note:
+        Includes specific prompting for academic tone, factual accuracy, and professional formatting.
+        Output includes structured sections for research focus, achievements, and institutional context.
+        Token usage approximately 1000-2000 tokens per request depending on enriched content length.
+    """
+    prompt = (
+        f"Create a professional biographical profile for {researcher_full_name}, who is affiliated with {university_affiliation}, based on the following information: {enriched_text_content}\n\n"
+        "Important guidelines:\n"
+        "1. Do NOT assume any titles (like Dr. or Professor) unless explicitly mentioned in the provided information\n"
+        "2. Only include factual information that is directly supported by the provided text\n"
+        "3. Format the bio in the following structure:\n"
+           "- Full name and current position (exactly as provided)\n"
+           "- Institutional affiliations\n"
+           "- Email address (if available)\n"
+           "- Research focus and interests\n"
+           "- Teaching activities (if any)\n"
+           "- Notable publications or projects (only if specifically mentioned)\n"
+        "4. If certain information is not available in the provided text, omit that section rather than making assumptions\n"
+        "5. Keep the tone professional but factual, avoiding speculative or honorary language"
+    
+    )
+    try:
+        # Initialize the OpenAI client
+        openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
+
+        # Generate response using the official OpenAI method
+        chat_response = openai_client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        bio_results = chat_response.choices[0].message.content
+
+        return bio_results
+    except Exception as e:
+        st.error(f"Error generating bio with ChatGPT: {e}")
+        return None
+
+def extract_email(bio_content):
+    """
+    Extracts email addresses from biographical text using regex pattern matching.
+    
+    Args:
+        bio_content (str): Text content that may contain email addresses
+        
+    Returns:
+        str: First valid email address found, or "No email found" if none detected
+        
+    Note:
+        Uses standard email regex pattern to identify valid email formats.
+        Returns only the first email found if multiple addresses are present.
+        Case-insensitive matching for common email domains and formats.
+    """
+    email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", bio_content)
+    return email_match.group() if email_match else "Email not found"
+
+# App Title
+st.title("BioGen - Automated Bio Generator")
+
+# File Upload
+uploaded_dataset = st.file_uploader("Upload your CSV/XLSX file :balloon:", type=["csv", "xlsx"])
+if uploaded_dataset:
+    # Load File
+    if uploaded_dataset.name.endswith(".csv"):
+        dataset_dataframe = pd.read_csv(uploaded_dataset)
+    else:
+        dataset_dataframe = pd.read_excel(uploaded_dataset)
+
+    st.write("### File Preview:")
+    st.write(dataset_dataframe.head())
+
+    # If 'University' column is missing but 'Affiliation' exists, rename it
+    if 'University' not in dataset_dataframe.columns and 'Affiliation' in dataset_dataframe.columns:
+        dataset_dataframe.rename(columns={'Affiliation': 'University'}, inplace=True)
+        st.info("'Affiliation' column found and renamed to 'University' for processing.")
+
+    # Check if required columns are present
+    required_columns = ['Name', 'University']
+    if all(col in dataset_dataframe.columns for col in required_columns):
+        st.success("File contains the required columns for processing.")
+
+        # Add a placeholder for the Bio column if not already present
+        if 'Bio' not in dataset_dataframe.columns:
+            dataset_dataframe['Bio'] = ""
+        if 'Email' not in dataset_dataframe.columns:
+            dataset_dataframe['Email'] = ""
+
+        # Specify Chunk Size
+        default_chunk_size = min(10, len(dataset_dataframe))
+        processing_chunk_size = st.number_input("Number of rows per chunk", min_value=1, max_value=len(dataset_dataframe), value=default_chunk_size)
+
+        total_chunks = (len(dataset_dataframe) + processing_chunk_size - 1) // processing_chunk_size
+        st.write(f"### Total Chunks: {total_chunks}")
+
+        # Select Chunk to Process
+        selected_chunk_index = st.number_input("Select Chunk Index", min_value=0, max_value=total_chunks - 1, value=0, step=1)
+        current_chunk_data = dataset_dataframe.iloc[selected_chunk_index * processing_chunk_size:(selected_chunk_index + 1) * processing_chunk_size]
+        st.write("### Current Chunk:")
+        st.write(current_chunk_data)
+
+        if st.button("Generate Bios for Current Chunk"):
+            # Iterate through each row in the chunk
+            for data_index, data_row in current_chunk_data.iterrows():
+                researcher_name = data_row['Name']
+                researcher_university = data_row['University']
+
+                # Generate enriched text using DDGS
+                enriched_research_text = generate_enriched_text(researcher_name, researcher_university)
+
+                # Truncate enriched text to fit within token limit
+                max_token_limit = 100000  # Adjust this value based on your model's token limit
+                truncated_enriched_text = truncate_text(enriched_research_text, max_token_limit)
+
+                # Generate bio using ChatGPT
+                generated_bio_content = generate_bio_with_chatgpt(researcher_name, researcher_university, truncated_enriched_text)
+                if generated_bio_content:
+                    dataset_dataframe.at[data_index, 'Bio'] = generated_bio_content  # Update the bio column
+
+                    # Extract email from the bio content
+                    extracted_email = extract_email(generated_bio_content)
+                    dataset_dataframe.at[data_index, 'Email'] = extracted_email
+
+            # Display Updated Chunk
+            updated_chunk_display = dataset_dataframe.iloc[selected_chunk_index * processing_chunk_size:(selected_chunk_index + 1) * processing_chunk_size]
+            st.write("### Updated Chunk with Bios:")
+            st.write(updated_chunk_display)
+
+            # Download Option
+            excel_output = BytesIO()
+            updated_chunk_display.to_excel(excel_output, index=False, engine='openpyxl')
+            excel_output.seek(0)
+            st.download_button(
+                label="Download Current Chunk as an Excel Sheet",
+                data=excel_output,
+                file_name=f"chunk_{selected_chunk_index}_bios.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        st.info("Use the Chunk Index to process the next set of rows.")
+    else:
+        st.error(f"Uploaded file must contain the following columns: {required_columns}")
